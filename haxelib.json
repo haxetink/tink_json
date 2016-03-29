@@ -1,0 +1,8 @@
+{
+  "name": "tink_json",
+  "classPath": "./src",
+  "dependencies": {
+    "tink_parse": "",
+    "tink_macro": ""
+  }
+}
