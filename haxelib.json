@@ -1,11 +1,13 @@
 {
 	"name": "tink_json",
 	"classPath": "./src",
-	"releasenote": "First release.",
-	"version": "0.0.0",
+	"contributors": [
+		"back2dos"
+	],
+	"releasenote": "Initial haxelib release.",
+	"version": "0.0.1",
 	"dependencies": {
 		"tink_parse": "",
 		"tink_macro": ""
-	},
-	"contributors": ["back2dos"]
+	}
 }
