@@ -1,8 +1,10 @@
 {
-  "name": "tink_json",
-  "classPath": "./src",
-  "dependencies": {
-    "tink_parse": "",
-    "tink_macro": ""
-  }
+	"name": "tink_json",
+	"classPath": "./src",
+	"releasenote": "First release.",
+	"version": "0.0.0",
+	"dependencies": {
+		"tink_parse": "",
+		"tink_macro": ""
+	}
 }
