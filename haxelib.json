@@ -6,5 +6,6 @@
 	"dependencies": {
 		"tink_parse": "",
 		"tink_macro": ""
-	}
+	},
+	"contributors": ["back2dos"]
 }
