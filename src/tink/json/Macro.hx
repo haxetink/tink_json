@@ -9,7 +9,7 @@ using tink.MacroApi;
 
 class Macro {
   
-  static public function build():Type
+  static public function buildParser():Type
     return 
       switch Context.getLocalType() {
         case TInst(_.toString() => 'tink.json.Parser', [v]):
@@ -17,10 +17,11 @@ class Macro {
         default:
           throw 'assert';
       }    
-  static var counter = 0;
+      
+  static var parserCounter = 0;
   static function parserForType(t:Type):Type {
     
-    var name = 'JsonParser${counter++}',
+    var name = 'JsonParser${parserCounter++}',
         ct = t.toComplex(),
         pos = Context.currentPos();
     
@@ -141,4 +142,108 @@ class Macro {
     
     return Context.getType(name);    
   }
+  
+  static public function buildWriter():Type
+    return 
+      switch Context.getLocalType() {
+        case TInst(_.toString() => 'tink.json.Writer', [v]):
+          writerForType(v);
+        default:
+          throw 'assert';
+      }    
+      
+  static var writerCounter = 0;
+  static function writerForType(t:Type):Type {
+    
+    var name = 'JsonWriter${writerCounter++}',
+        ct = t.toComplex(),
+        pos = Context.currentPos();
+    
+    var cl = macro class $name extends tink.json.Writer.BasicWriter {
+      public function new() {}
+    } 
+    
+    function add(t:TypeDefinition)
+      cl.fields = cl.fields.concat(t.fields);
+      
+    var anons = new Map<String, Type>();
+    
+    function write(t:Type, pos:Position):Expr 
+      return
+        if (t.getID(false) == 'Null')
+          macro this.writeNull(value, function (value) ${write(t.reduce(), pos)});
+        else
+          switch t.reduce() {
+            
+            case _.getID() => 'String': 
+              macro this.writeString(value);
+              
+            case _.getID() => 'Float': 
+              macro this.writeFloat(value);
+              
+            case _.getID() => 'Int': 
+              macro this.writeInt(value);
+              
+            case _.getID() => 'Bool': 
+              macro this.writeBool(value);
+              
+            case TAnonymous(fields):
+              
+              var method = null;
+              
+              for (func in anons.keys()) {
+                
+                var known = anons[func];
+                
+                if (Context.unify(t, known) && Context.unify(known, t)) {
+                  method = func;
+                  break;
+                }
+                
+              }
+              
+              if (method == null) {
+                method = 'writeAnon${Lambda.count(anons)}';
+                
+                anons[method] = t;
+                
+                var fields = fields.get().fields,
+                    ct = t.toComplex();
+                
+                add(macro class {
+                  function $method(value:$ct):Void {
+                    var open = '{';
+                    $b{[for (f in fields) {
+                      var name = f.name;
+                      macro {
+                        this.output('${if (f == fields[0]) "$open" else ","}"$name":');
+                        var value = value.$name;
+                        ${write(f.type, f.pos)};
+                      }
+                    }]};
+                    char('}'.code);
+                  }
+                });
+              }
+              
+              macro this.$method(value);
+            case TInst(_.get() => { name: 'Array', pack: [] }, [t]):
+              macro this.writeArray(value, function (value) ${write(t, pos)});
+            case v: 
+              pos.error('Cannot handle ${t.toString()}');
+          }
+
+    add(macro class { 
+      public function write(value:$ct):String {
+        this.init();
+        ${write(t, pos)};
+        return this.buf.toString();
+      }
+    });
+    
+    Context.defineType(cl);
+    
+    return Context.getType(name);    
+  }
+  
 }

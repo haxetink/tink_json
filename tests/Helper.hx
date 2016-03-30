@@ -8,8 +8,10 @@ class Helper {
     return macro {
       var original = $e,
           roundtripped = original;
-      roundtripped = tink.Json.parse(haxe.Json.stringify(original));
+      roundtripped = tink.Json.parse(tink.Json.stringify(original));
       structEq(original, roundtripped);
+      structEq(original, haxe.Json.parse(tink.Json.stringify(original)));
+      structEq(original, tink.Json.parse(haxe.Json.stringify(original)));
     }
   }
   

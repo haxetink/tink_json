@@ -1,11 +1,12 @@
 {
 	"name": "tink_json",
-	"classPath": "./src",
+	"classPath": "src",
 	"contributors": [
 		"back2dos"
 	],
 	"releasenote": "Initial haxelib release.",
 	"version": "0.0.1",
+	"license": "MIT",
 	"dependencies": {
 		"tink_parse": "",
 		"tink_macro": ""

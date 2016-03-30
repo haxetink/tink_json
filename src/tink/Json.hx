@@ -21,5 +21,9 @@ class Json {
               macro tink.CoreApi.OutcomeTools.sure(new tink.json.Parser<$ct>().parse($e));
           }
       }
-  
+      
+  static macro public function stringify(e:Expr) {
+    var ct = e.typeof().sure().toComplex();
+    return macro new tink.json.Writer<$ct>().write($e);
+  }
 }

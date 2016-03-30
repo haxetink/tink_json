@@ -7,7 +7,7 @@ import tink.parse.Char.*;
 using StringTools;
 using tink.CoreApi;
 
-@:genericBuild(tink.json.Macro.build())
+@:genericBuild(tink.json.Macro.buildParser())
 class Parser<T> {
   
 }
