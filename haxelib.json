@@ -1,17 +1,17 @@
 {
 	"name": "tink_json",
+	"license": "MIT",
+	"tags": [
+		"tink",
+		"cross",
+		"json"
+	],
 	"classPath": "src",
 	"contributors": [
 		"back2dos"
 	],
-  "tags": [
-    "tink",
-    "cross",
-    "json"
-  ],
 	"releasenote": "Initial haxelib release.",
-	"version": "0.0.1",
-	"license": "MIT",
+	"version": "0.0.2",
 	"dependencies": {
 		"tink_parse": "",
 		"tink_macro": ""
