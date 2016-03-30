@@ -4,6 +4,11 @@
 	"contributors": [
 		"back2dos"
 	],
+  "tags": [
+    "tink",
+    "cross",
+    "json"
+  ],
 	"releasenote": "Initial haxelib release.",
 	"version": "0.0.1",
 	"license": "MIT",
