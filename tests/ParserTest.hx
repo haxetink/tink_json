@@ -11,6 +11,17 @@ typedef Cons<T> = Null<{
   ?tail:Cons<T>
 }>;
 
+enum Color {
+  Rgb(a:Int, b:Int, c:Int);
+  Hsv(hsv:{ hue:Float, saturation:Float, value:Float });
+  Hsl(value:{ hue:Float, saturation:Float, lightness:Float });
+}
+
+enum Item {
+  @:json({ type: 'sword' }) Sword(damage:Int);
+  @:json({ type: 'shield' }) Shield(armor:Int);
+}
+
 class ParserTest extends TestCase {
   
   function testStructEq() {
@@ -48,8 +59,8 @@ class ParserTest extends TestCase {
     haxe.Log.trace('$s took ${stamp() - start}', pos);
     return ret;
   }
-  
-  /*public function testPerformance() {
+  /*
+  public function testPerformance() {
     var o = {
       blub: [
         { foo: [ { bar: [4] } ] }, 
@@ -95,7 +106,8 @@ class ParserTest extends TestCase {
         o = tink.Json.parse(s)
     );
     
-  }*/
+  }
+  */
   public function testParser() {
     
     Helper.roundtrip({

@@ -93,7 +93,7 @@ class Macro {
                      
                   read = macro @:pos(f.pos) 
                     if (__name__ == $v{name}) {
-                      __ret.$name = ${parse(f.type, f.pos)};
+                      @:privateAccess (__ret.$name = ${parse(f.type, f.pos)});//in case the field is (default, null) or something
                       ${
                         if (optional) macro $b{[]}
                         else macro $i{name} = true
