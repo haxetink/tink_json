@@ -14,7 +14,7 @@ class Parser<T> {
 
 private abstract JsonString(StringSlice) from StringSlice {
   @:to public function toString():String {
-    return haxe.Json.parse('"$this"');
+    return haxe.format.JsonParser.parse('"$this"');
   }
   @:to inline function toSlice()
     return this;

@@ -9,15 +9,21 @@ using tink.MacroApi;
 
 class Macro {
   
-  static public function buildParser():Type
+  static function getType(name) 
     return 
       switch Context.getLocalType() {
-        case TInst(_.toString() => 'tink.json.Parser', [v]):
-          parserForType(v);
+        case TInst(_.toString() == name => true, [v]):
+          v;
         default:
           throw 'assert';
-      }    
+      }      
       
+  static function typesEqual(t1, t2)
+    return Context.unify(t1, t2) && Context.unify(t2, t1);
+    
+  static public function buildParser():Type
+    return parserForType(getType('tink.json.Parser'));
+  
   static var parserCounter = 0;
   static function parserForType(t:Type):Type {
     
@@ -61,7 +67,7 @@ class Macro {
                 
                 var known = anons[func];
                 
-                if (Context.unify(t, known) && Context.unify(known, t)) {
+                if (typesEqual(t, known)) {
                   method = func;
                   break;
                 }
@@ -77,45 +83,66 @@ class Macro {
                     read = macro this.skipValue(),
                     vars:Array<Var> = [],
                     obj:Array<{ field:String, expr:Expr }> = [],
-                    optional = [],
+                    checks = [],
                     ct = t.toComplex();
                     
                 for (f in fields) {
-                  var ct = f.type.reduce().toComplex();
+                  var ct = f.type.reduce().toComplex(),
+                      name = f.name,
+                      optional = f.meta.has(':optional');
                      
                   read = macro @:pos(f.pos) 
-                    if (__name__ == $v{f.name}) 
-                      $i{f.name} = tink.core.Ref.to(${parse(f.type, f.pos)})
+                    if (__name__ == $v{name}) {
+                      __ret.$name = ${parse(f.type, f.pos)};
+                      ${
+                        if (optional) macro $b{[]}
+                        else macro $i{name} = true
+                      }
+                    } 
                     else $read;
                   
-                  vars.push({
-                    type: macro : Null<tink.core.Ref<$ct>>,
-                    name: f.name,
-                    expr: macro null,
-                  });
-                  
-                  if (f.meta.has(':optional')) {
-                    var name = f.name;
-                    optional.push(macro if ($i{f.name} != null) __ret.$name = $i{f.name}.value);
-                  }
-                  else
+                  if (!optional) {
                     obj.push({
-                      field: f.name,
-                      expr: macro if ($i{f.name} == null) __missing__($v{f.name}) else $i{f.name}.value,
+                      field: name,
+                      expr: switch f.type.getID() {
+                        case 'Bool': macro false;
+                        case 'Int': macro 0;
+                        case 'Float': macro .0;
+                        default: macro null;
+                      },
                     });
+                    vars.push({
+                      type: macro : Bool,
+                      name: name,
+                      expr: macro false,
+                    });
+                    checks.push(macro if (!$i{name})  __missing__($v{f.name}));
+                  }
+                  
                 };
                 
                 add(macro class {
                   function $method():$ct {
+                    
                     ${EVars(vars).at()};
-                    var __start__ = this.parseObject(function (__name__) {
-                      $read;
-                    });
+                    var __ret:$ct = ${EObjectDecl(obj).at(pos)};
+                    
+                    var __start__ = this.pos;
+                    expect('{');
+                    if (!allow('}')) {
+                      do {
+                        var __name__:tink.parse.StringSlice = this.parseString();
+                        expect(':');
+                        $read;
+                      } while (allow(','));
+                      expect('}');
+                    }
+                      
                     function __missing__(field:String):Dynamic {
                       return die('missing ' + field + ' in ' + this.source[__start__...this.pos].toString());
                     }
-                    var __ret:$ct = ${EObjectDecl(obj).at()};
-                    $b{optional};
+                    
+                    $b{checks};
                     return __ret;
                   }
                 });
@@ -123,7 +150,18 @@ class Macro {
               
               macro this.$method();
             case TInst(_.get() => { name: 'Array', pack: [] }, [t]):
-              macro this.parseArray(function () return ${parse(t, pos)});
+              macro {
+                this.expect('[');
+                var __ret = [];
+                if (!allow(']')) {
+                  do {
+                    __ret.push(${parse(t, pos)});
+                  } while (allow(','));
+                  expect(']');
+                }    
+                __ret;
+                //this.parseArray(function () return ${parse(t, pos)});
+              }
             case v: 
               pos.error('Cannot handle ${t.toString()}');
           }
@@ -144,13 +182,7 @@ class Macro {
   }
   
   static public function buildWriter():Type
-    return 
-      switch Context.getLocalType() {
-        case TInst(_.toString() => 'tink.json.Writer', [v]):
-          writerForType(v);
-        default:
-          throw 'assert';
-      }    
+    return writerForType(getType('tink.json.Writer'));
       
   static var writerCounter = 0;
   static function writerForType(t:Type):Type {
@@ -195,7 +227,7 @@ class Macro {
                 
                 var known = anons[func];
                 
-                if (Context.unify(t, known) && Context.unify(known, t)) {
+                if (typesEqual(t, known)) {
                   method = func;
                   break;
                 }

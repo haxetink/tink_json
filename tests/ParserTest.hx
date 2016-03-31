@@ -23,6 +23,68 @@ class ParserTest extends TestCase {
     }
   }
   
+  function measure<A>(s:String, f:Void->A, ?pos:haxe.PosInfos) {
+    function stamp()
+      return
+        #if java
+          Sys.cpuTime();
+        #else
+          haxe.Timer.stamp();
+        #end
+        
+    var start = stamp();
+    var ret = f();
+    haxe.Log.trace('$s took ${stamp() - start}', pos);
+    return ret;
+  }
+  
+  public function testPerformance() {
+    var o = {
+      blub: [
+        { foo: [ { bar: [4] } ] }, 
+        { foo: [ { bar: [4] } ] } 
+      ]
+    };
+    
+    
+    for (i in 0...100000)
+      haxe.Json.stringify(o);
+      
+    measure('haxe stringify', function () 
+      for (i in 0...10000)
+        haxe.Json.stringify(o)
+    );
+    
+    
+    for (i in 0...100000)
+      tink.Json.stringify(o);
+      
+    measure('tink stringify', function () 
+      for (i in 0...10000)
+        tink.Json.stringify(o)
+    );
+        
+    var s = tink.Json.stringify(o);
+    
+    
+    for (i in 0...100000)
+      o = haxe.Json.parse(s);
+      
+    measure('haxe parse', function () 
+      for (i in 0...10000)
+        o = haxe.Json.parse(s)
+    );
+    
+    
+    for (i in 0...100000)
+      o = tink.Json.parse(s);
+    
+    measure('tink parse', function () 
+      for (i in 0...10000)
+        o = tink.Json.parse(s)
+    );
+    
+  }
   public function testParser() {
     
     Helper.roundtrip({

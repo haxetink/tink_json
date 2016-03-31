@@ -24,6 +24,6 @@ class Json {
       
   static macro public function stringify(e:Expr) {
     var ct = e.typeof().sure().toComplex();
-    return macro new tink.json.Writer<$ct>().write($e);
+    return macro @:pos(e.pos) new tink.json.Writer<$ct>().write($e);
   }
 }
