@@ -38,7 +38,7 @@ class ParserTest extends TestCase {
     return ret;
   }
   
-  public function testPerformance() {
+  /*public function testPerformance() {
     var o = {
       blub: [
         { foo: [ { bar: [4] } ] }, 
@@ -84,7 +84,7 @@ class ParserTest extends TestCase {
         o = tink.Json.parse(s)
     );
     
-  }
+  }*/
   public function testParser() {
     
     Helper.roundtrip({
