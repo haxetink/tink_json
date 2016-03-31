@@ -160,8 +160,41 @@ class Macro {
                   expect(']');
                 }    
                 __ret;
-                //this.parseArray(function () return ${parse(t, pos)});
               }
+              
+            case TAbstract(_.get() => { name: 'Map', pack: [] }, [k, v]):
+              macro {
+                this.expect('[');
+                var __ret = new Map();
+                if (!allow(']')) {
+                  do {
+                    this.expect('[');
+                    __ret[${parse(k, pos)}] = this.expect(',') + ${parse(v, pos)};
+                    this.expect(']');
+                  } while (allow(','));
+                  expect(']');
+                }    
+                __ret;
+              }
+            
+            case TDynamic(t):
+              var ct = t.toComplex();
+              macro (${parse((macro : haxe.DynamicAccess<$ct>).toType().sure(), pos)} : Dynamic<$ct>);
+            case TAbstract(_.get() => { name: 'DynamicAccess', pack: ['haxe'] }, [t]):
+              var ct = t.toComplex();
+              macro {
+                this.expect('{');
+                var __ret = new haxe.DynamicAccess();
+                if (!allow('}')) {
+                  do {
+                    __ret[this.parseString().toString()] = expect(':') + ${parse(t, pos)};
+                  } while (allow(','));
+                  expect('}');
+                }    
+                __ret;
+                
+              }
+              
             case v: 
               pos.error('Cannot handle ${t.toString()}');
           }
@@ -259,8 +292,77 @@ class Macro {
               }
               
               macro this.$method(value);
+              
             case TInst(_.get() => { name: 'Array', pack: [] }, [t]):
-              macro this.writeArray(value, function (value) ${write(t, pos)});
+              
+              macro {
+                this.char('['.code);
+                var first = true;
+                for (value in value) {
+                  if (first)
+                    first = false;
+                  else
+                    this.char(','.code);
+                  ${write(t, pos)}
+                }
+                this.char(']'.code);  
+              }
+              
+            case TDynamic(t):
+              
+              var ct = t.toComplex();
+              macro {
+                var value:haxe.DynamicAccess<$ct> = value;
+                ${write((macro : haxe.DynamicAccess<$ct>).toType().sure(), pos)};
+              }
+            
+            case TAbstract(_.get() => ({ name: 'DynamicAccess', pack: ['haxe'] } | { name: 'Dynamic', pack: [] }), [t]):
+              var ct = t.toComplex();
+              macro {
+                var value:haxe.DynamicAccess<$ct> = value,
+                    first = true;
+                    
+                this.char('{'.code);
+                for (k in value.keys()) {
+                  if (first)
+                    first = false;
+                  else
+                    this.char(','.code);
+                    
+                  this.writeString(k);
+                  this.char(':'.code);
+                  {
+                    var value = value.get(k);
+                    ${write(t, pos)}
+                  }
+                  
+                }
+                this.char('}'.code);
+              }
+            case TAbstract(_.get() => { name: 'Map', pack: [] }, [k, v]):
+              macro {
+                this.char('['.code);
+                var first = true;
+                for (k in value.keys()) {
+                  if (first)
+                    first = false;
+                  else
+                    this.char(','.code);
+                  this.char('['.code);
+                  {
+                    var value = k;
+                    ${write(k, pos)}
+                  }
+                  this.char(','.code);
+                  {
+                    var value = value.get(k);
+                    ${write(v, pos)}
+                  }
+                  
+                  this.char(']'.code);
+                }
+                this.char(']'.code);  
+              }
             case v: 
               pos.error('Cannot handle ${t.toString()}');
           }

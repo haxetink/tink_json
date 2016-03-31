@@ -13,9 +13,14 @@ class Parser<T> {
 }
 
 private abstract JsonString(StringSlice) from StringSlice {
-  @:to public function toString():String {
-    return haxe.format.JsonParser.parse('"$this"');
-  }
+  
+  @:to public function toString():String 
+    return 
+      if (this.indexOf('\\') == -1)
+        this;
+      else
+        haxe.format.JsonParser.parse('"$this"');
+  
   @:to inline function toSlice()
     return this;
 }

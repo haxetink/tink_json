@@ -1,5 +1,6 @@
 package;
 
+import haxe.Constraints.IMap;
 import haxe.PosInfos;
 import haxe.unit.TestCase;
 import tink.json.Parser;
@@ -16,6 +17,16 @@ class ParserTest extends TestCase {
     structEq( { foo: [{ bar: [4] }]}, { foo: [{ bar: [4] }]} );
     try {
       structEq( { foo: [{ bar: [4] }]}, { foo: [{ bar: [5] }]} );
+      assertTrue(false);
+    }
+    catch (e:Dynamic) {
+      assertTrue(true);
+    }
+    
+    structEq( { foo: [ 'bar' => [4] ] }, { foo: [ 'bar' => [4] ] } );
+    
+    try {
+      structEq( { foo: [ 'bar' => 4 ] }, { foo: [ 'bar' => 5 ] } );
       assertTrue(false);
     }
     catch (e:Dynamic) {
@@ -120,6 +131,24 @@ class ParserTest extends TestCase {
     };
     
     Helper.roundtrip(l);
+    
+    Helper.roundtrip({
+      foo: [
+        4 => true,
+        5 => false
+      ]
+    }, true);
+    
+     Helper.roundtrip({
+       foo: ({
+         first: 1,
+         second: 2
+       } : Dynamic<Int>),
+       bar: ({
+         first: 1,
+         second: 2
+       } : haxe.DynamicAccess<Int>),       
+     });
   }
 	function fail( reason:String, ?c : PosInfos ) : Void {
 		currentTest.done = true;
@@ -157,6 +186,12 @@ class ParserTest extends TestCase {
         for (i in 0...expected.length)
           structEq(expected[i], found[i]);
           
+      case TClass(_) if (Std.is(expected, IMap)):
+        var expected = cast (expected, IMap<Dynamic, Dynamic>);
+        var found = cast (found, IMap<Dynamic, Dynamic>);
+        for (k in expected.keys()) {
+          structEq(expected.get(k), found.get(k));
+        }
       case TClass(cl):
         throw 'comparing $cl not implemented';
       case TEnum(e):
