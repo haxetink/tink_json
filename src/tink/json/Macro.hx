@@ -202,6 +202,7 @@ class Macro {
                 
               }
             case TEnum(_.get() => e, _):
+              var ce = t.toComplex();
               
               function mkComplex(fields:Iterable<FieldInfo>):ComplexType
                 return TAnonymous([for (f in fields) {
@@ -270,24 +271,42 @@ class Macro {
                       pat.push({ field: f.name, expr: macro $i{f.name}});
                     }
                     
-                    trace(EObjectDecl(pat).at().toString());
+                    //trace(EObjectDecl(pat).at().toString());
+                    var args = [for (f in cfields) macro $i{f.name}];
+                    var call = macro ($i{name}($a{args}) : $ce);
+                    
+                    cases.push({
+                      values: [EObjectDecl(pat).at()],
+                      guard: guard,
+                      expr: call
+                    });
+                    
                     //for (name in cfields.keys())
                       //add(name, cfields[name]);
                     
-                    //for (o in obj)
-                      //add(o.field, o.expr.typeof().sure());
+                    for (o in obj)
+                      add({
+                        name: o.field, 
+                        type: o.expr.typeof().sure(),
+                        optional: true,
+                      });
                     
                   case v:
                     v[1].pos.error('invalid use of @:json');
                 }
               }
               
-              //mkComplex(fields, optional).toType;
-              //for (c in e.constructs) {
-                //if (c.meta.has(':json'))
-                  //c.pos.error('sorry, the @:json syntax is actually not yet implemented');
-              //}
-              macro null;
+              cases.push({
+                values: [macro v],
+                expr: macro throw new tink.core.Error('Cannot process '+Std.string(v)),
+              });
+              
+              trace(mkComplex(fields).toString());
+              var ret = ESwitch(parse(mkComplex(fields).toType().sure(), pos), cases, null).at(pos);
+              
+              //trace(ret.toString());
+              
+              ret;
             case v: 
               pos.error('Cannot parse ${t.toString()}');
           }
