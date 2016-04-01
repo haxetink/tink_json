@@ -18,8 +18,9 @@ enum Color {
 }
 
 enum Item {
-  @:json({ type: 'sword' }) Sword(damage:Int);
-  @:json({ type: 'shield' }) Shield(armor:Int);
+  @:json({ type: 'sword' }) Sword(damage:{max:Int});
+  @:json({ type: 'shield' }) Shield(shield:{armor:Int});
+  @:json({ type: 'staff' }) Staff(block:Float, magic:Int);
 }
 
 class ParserTest extends TestCase {
@@ -161,6 +162,10 @@ class ParserTest extends TestCase {
          second: 2
        } : haxe.DynamicAccess<Int>),       
      });
+     
+     //Helper.roundtrip(Rgb(0, 255, 128));
+     
+     structEq([Sword({max:100}), Shield({armor:50})], tink.Json.parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "armor": 50 }]'));
   }
 	function fail( reason:String, ?c : PosInfos ) : Void {
 		currentTest.done = true;

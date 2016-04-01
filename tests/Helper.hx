@@ -5,7 +5,7 @@ import haxe.macro.Expr;
 class Helper {
 
   macro static public function roundtrip(e:Expr, ?noHaxe:Bool) {
-    return macro {
+    return macro @:pos(e.pos) {
       var original = $e,
           roundtripped = original;
       roundtripped = tink.Json.parse(tink.Json.stringify(original));

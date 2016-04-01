@@ -7,7 +7,14 @@ import haxe.macro.Type;
 using haxe.macro.Tools;
 using tink.MacroApi;
 
+private typedef FieldInfo = {
+  name:String,
+  type:Type,
+  optional:Bool
+}
+
 class Macro {
+  static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
   
   static function getType(name) 
     return 
@@ -194,9 +201,95 @@ class Macro {
                 __ret;
                 
               }
+            case TEnum(_.get() => e, _):
               
+              function mkComplex(fields:Iterable<FieldInfo>):ComplexType
+                return TAnonymous([for (f in fields) {
+                  name: f.name,
+                  pos: e.pos,
+                  meta: if (f.optional) OPTIONAL else [],
+                  kind: FVar(f.type.toComplex()),
+                }]);
+                
+              var fields = new Map<String, FieldInfo>(),
+                  cases = new Array<Case>();
+              
+              function mkOpt(f:FieldInfo)
+                return
+                  if (f.optional) f;
+                  else {
+                    name: f.name,
+                    optional: true,
+                    type: f.type
+                  }
+                  
+              function add(f:FieldInfo) 
+                switch fields[f.name] {
+                  case null: fields[f.name] = f;
+                  case same if (typesEqual(same.type, f.type)):
+                    fields[f.name] = {
+                      name: f.name,
+                      type: f.type,
+                      optional: same.optional || f.optional,
+                    }
+                  case other: 
+                    e.pos.error('conflict for field $name');
+                }
+                  
+              for (name in e.names) {
+                
+                var c = e.constructs[name];
+                var cfields = 
+                  switch c.type.reduce() {
+                    case TFun([{ name: name, t: TAnonymous(anon) }], ret) if (name.toLowerCase() == c.name.toLowerCase()):
+                      [for (f in anon.get().fields) { name: f.name, type: f.type, optional: f.meta.has(':optional') }];
+                    case TFun(args, ret):
+                      [for (a in args) { name: a.name, type: a.t, optional: a.opt }];
+                    default:
+                      c.pos.error('constructor has no arguments');
+                  }
+                                    
+                switch c.meta.extract(':json') {
+                  case []:
+                    add({
+                      name: name,
+                      optional: true,
+                      type: mkComplex(cfields).toType().sure(),
+                    });
+                    
+                    throw 'ni';
+                  case [{ params:[{ expr: EObjectDecl(obj) }] }]:
+                    
+                    var pat = obj.copy(),
+                        guard = macro true;
+                    for (f in cfields) {
+                      add(mkOpt(f));
+                      if (!f.optional)
+                        guard = macro $guard && $i{f.name} != null;
+                      
+                      pat.push({ field: f.name, expr: macro $i{f.name}});
+                    }
+                    
+                    trace(EObjectDecl(pat).at().toString());
+                    //for (name in cfields.keys())
+                      //add(name, cfields[name]);
+                    
+                    //for (o in obj)
+                      //add(o.field, o.expr.typeof().sure());
+                    
+                  case v:
+                    v[1].pos.error('invalid use of @:json');
+                }
+              }
+              
+              //mkComplex(fields, optional).toType;
+              //for (c in e.constructs) {
+                //if (c.meta.has(':json'))
+                  //c.pos.error('sorry, the @:json syntax is actually not yet implemented');
+              //}
+              macro null;
             case v: 
-              pos.error('Cannot handle ${t.toString()}');
+              pos.error('Cannot parse ${t.toString()}');
           }
     
     add(macro class { 
@@ -364,7 +457,7 @@ class Macro {
                 this.char(']'.code);  
               }
             case v: 
-              pos.error('Cannot handle ${t.toString()}');
+              pos.error('Cannot stringify ${t.toString()}');
           }
 
     add(macro class { 
