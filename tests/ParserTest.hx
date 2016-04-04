@@ -1,8 +1,11 @@
 package;
 
 import haxe.Constraints.IMap;
+import haxe.io.Bytes;
 import haxe.PosInfos;
 import haxe.unit.TestCase;
+import haxe.unit.TestStatus;
+import tink.core.Error;
 import tink.json.Parser;
 
 typedef Foo = { foo:Float, bar:Array<{ flag: Bool, ?buzz:Array<{ word: String }> }> };
@@ -35,35 +38,66 @@ enum Item {
 
 class ParserTest extends TestCase {
   
+  function bytes(a:Array<Int>) {
+    var ret = Bytes.alloc(a.length);
+    
+    for (i in 0...a.length)
+      ret.set(i, a[i] & 255);
+      
+    return ret;
+  }
+  
+  function assertFailure(f:Void->Void) {
+    try {
+      f();
+      throw 'Function did not fail';
+    }
+    catch (e:TestStatus) {
+      
+    }
+  }
+  
   function testStructEq() {
     structEq( { foo: [{ bar: [4] }]}, { foo: [{ bar: [4] }]} );
-    try {
+    assertFailure(function () {
       structEq( { foo: [{ bar: [4] }]}, { foo: [{ bar: [5] }]} );
-      assertTrue(false);
-    }
-    catch (e:Dynamic) {
-      assertTrue(true);
-    }
+    });
     
     structEq( { foo: [ 'bar' => [4] ] }, { foo: [ 'bar' => [4] ] } );
     
-    try {
+    assertFailure(function () {
       structEq( { foo: [ 'bar' => 4 ] }, { foo: [ 'bar' => 5 ] } );
-      assertTrue(false);
-    }
-    catch (e:Dynamic) {
-      assertTrue(true);
-    }
+    });
+        
+    structEq( { foo: [ 'bar' => [Staff(400, 20)] ] }, { foo: [ 'bar' => [Staff(400, 20)] ] } );
     
-    //structEq( { foo: [ 'bar' => [Staff(400, 20)] ] }, { foo: [ 'bar' => [Staff(400, 20)] ] } );
-    //
-    //try {
-      //structEq( { foo: [ 'bar' => [Staff(400, 20)] ] }, { foo: [ 'bar' => [Staff(400, 30)] ] } );
-      //assertTrue(false);
-    //}
-    //catch (e:Dynamic) {
-      //assertTrue(true);
-    //}    
+    assertFailure(function () {
+      structEq( { foo: [ 'bar' => [Staff(400, 20)] ] }, { foo: [ 'bar' => [Staff(400, 30)] ] } );
+    });
+    
+    structEq(
+      { foo: [{ bar: [Date.fromTime(0)] }]}, 
+      { foo: [{ bar: [Date.fromTime(0)] }]} 
+    );
+    
+    assertFailure(function () {
+      structEq( 
+        { foo: [{ bar: [Date.fromTime(4000)] }]}, 
+        { foo: [{ bar: [Date.fromTime(5000)] }]} 
+      );
+    });
+    
+    structEq( 
+      { foo: [{ bar: [bytes([for (i in 0...0x100) i])] }]}, 
+      { foo: [{ bar: [bytes([for (i in 0...0x100) i])] }]} 
+    );
+    
+    assertFailure(function () {
+      structEq(
+        { foo: [ { bar: [bytes([for (i in 0...0xFF) i])] } ] }, 
+        { foo: [ { bar: [bytes([for (i in 0...0x100) i])] } ] } 
+      );
+    });    
   }
   
   function measure<A>(s:String, f:Void->A, ?pos:haxe.PosInfos) {
@@ -194,6 +228,11 @@ class ParserTest extends TestCase {
       Hsv({ value: 100.0, saturation: 100.0, hue: 0.0 }), 
       Hsl({ lightness: 100.0, saturation: 100.0, hue: 0.0 })
     ], true);
+    
+    Helper.roundtrip({
+      date: Date.now(),
+      bytes: bytes([for (i in 0...0x100) i])
+    }, true);
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {
@@ -235,11 +274,30 @@ class ParserTest extends TestCase {
       case TClass(_) if (Std.is(expected, IMap)):
         var expected = cast (expected, IMap<Dynamic, Dynamic>);
         var found = cast (found, IMap<Dynamic, Dynamic>);
+        
         for (k in expected.keys()) {
           structEq(expected.get(k), found.get(k));
         }
+        
+      case TClass(Date):
+        
+        var expected:Date = cast expected,
+            found:Date = cast found;
+        
+        if (expected.getTime() != found.getTime())
+          fail('expected $expected but found $found');
+            
+      case TClass(Bytes):
+        
+        var expected = (cast expected : Bytes).toHex(),
+            found = (cast found : Bytes).toHex();
+        
+        if (expected != found)
+          fail('expected $expected but found $found');
+            
       case TClass(cl):
         throw 'comparing $cl not implemented';
+        
       case TEnum(e):
         
         var expected:EnumValue = cast expected,

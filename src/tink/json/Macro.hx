@@ -27,15 +27,6 @@ class Macro {
           throw 'assert';
       }      
   
-  //static function plainAbstract(r:Ref<AbstractType>) {
-    //var a = r.get();
-    
-    //var ret = a.type;
-        
-    //return if (get(a.from) && get(a.to)) Some(ret) else None;
-    //return if (typesEquivalent
-  //}
-  
   static function plainAbstract(t:Type)
     return switch t.reduce() {
       case TAbstract(_.get() => a, params):
@@ -52,10 +43,6 @@ class Macro {
         }        
         
         if (get(a.from) && get(a.to)) Some(ret) else None;
-        //switch apply(a.type) {
-          //case ret if (typesEquivalent(ret, t)): Some(ret);
-          //default: None;
-        //}
        
       default: None;
     }
@@ -103,6 +90,12 @@ class Macro {
               
             case _.getID() => 'Bool': 
               macro this.parseBool();
+              
+            case _.getID() => 'Date':
+              macro Date.fromTime(Std.parseFloat(this.parseNumber()));
+              
+            case _.getID() => 'haxe.io.Bytes':
+              macro haxe.crypto.Base64.decode(this.parseString());
               
             case TAnonymous(fields):
               
@@ -359,11 +352,11 @@ class Macro {
                       expr: call
                     });
                     
-                    for (o in obj)
+                    for (f in obj)
                       add({
-                        pos: o.expr.pos,
-                        name: o.field, 
-                        type: o.expr.typeof().sure(),
+                        pos: f.expr.pos,
+                        name: f.field, 
+                        type: f.expr.typeof().sure(),
                         optional: true,
                       });
                     
@@ -383,7 +376,7 @@ class Macro {
           }
     
     add(macro class { 
-      public function parse(source):tink.core.Outcome < $ct, tink.core.Error > {
+      public function parse(source):tink.core.Outcome<$ct, tink.core.Error> {
         this.init(source);
         return 
           tink.core.Error.catchExceptions(
@@ -435,6 +428,12 @@ class Macro {
             case _.getID() => 'Bool': 
               macro this.writeBool(value);
               
+            case _.getID() => 'Date':
+              macro this.writeFloat(value.getTime());
+              
+            case _.getID() => 'haxe.io.Bytes':
+              macro this.writeString(haxe.crypto.Base64.encode(value));
+             
             case TAnonymous(fields):
               
               var method = null;
@@ -646,6 +645,6 @@ class Macro {
 
 @:forward
 private abstract HasName(String) from String to String {
-  @:from static function fieldInfo(o:FieldInfo):HasName
-    return o.name;
+  @:from static function fieldInfo(f:FieldInfo):HasName
+    return f.name;
 }

@@ -81,6 +81,14 @@ enum Item {
 }
 ```
 
+### Dates
+
+Dates are represented simply as floats obtained by calling `getTime()` on a `Date`.
+
+### Bytes
+
+Bytes are represented in their Base64 encoded form.
+
 ## Benefits
 
 Using `tink_json` adds a lot more safety to your application. You get a validating parser for free. You get compile time errors if you try to parse or write values that cannot be represented in JSON. At the same time the range of things you can represent is expanded considerably. Also, you get full control over what gets parsed and written, meaning that you don't have to waste memory parsing parts of data you don't intend to use and also you won't have data written that 
