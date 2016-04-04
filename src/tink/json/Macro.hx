@@ -201,9 +201,6 @@ class Macro {
                 __ret;
               }
             
-            case TAbstract(plainAbstract(_) => Some(a), _):
-              var ct = t.toComplex();
-              macro (${parse(a, pos)} : $ct);
             case TDynamic(t):
               var ct = t.toComplex();
               macro (${parse((macro : haxe.DynamicAccess<$ct>).toType().sure(), pos)} : Dynamic<$ct>);
@@ -222,6 +219,11 @@ class Macro {
                 __ret;
                 
               }
+              
+            case TAbstract(plainAbstract(_) => Some(a), _):
+              var ct = t.toComplex();
+              macro (${parse(a, pos)} : $ct);
+              
             case TEnum(_.get() => e, _):
               var ce = t.toComplex();
               
@@ -461,11 +463,7 @@ class Macro {
                 }
                 this.char(']'.code);  
               }
-            
-            case TAbstract(plainAbstract(_) => Some(a), _):
-              
-              write(a, pos);
-              
+                          
             case TDynamic(t):
               
               var ct = t.toComplex();
@@ -523,6 +521,10 @@ class Macro {
                 }
                 this.char(']'.code);  
               }
+              
+            case TAbstract(plainAbstract(_) => Some(a), _):
+              
+              write(a, pos);              
               
             case TEnum(_.get() => e, _):
               
