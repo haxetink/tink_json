@@ -17,8 +17,12 @@ enum Color {
   Hsl(value:{ hue:Float, saturation:Float, lightness:Float });
 }
 
+abstract Hitpoints(Int) from Int to Int {
+  
+}
+
 enum PotionEffect {
-  Heals(hp:Int);
+  Heals(hp:Hitpoints);
   Restores(mana:Int);
 }
 

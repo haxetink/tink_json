@@ -3,6 +3,7 @@ package tink.json;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 import haxe.macro.Type;
+import haxe.ds.Option;
 
 using haxe.macro.Tools;
 using tink.MacroApi;
@@ -25,7 +26,22 @@ class Macro {
         default:
           throw 'assert';
       }      
-      
+  
+  static function plainAbstract(r:Ref<AbstractType>) {
+    var a = r.get();
+    
+    var ret = a.type;
+    
+    function get(casts:Array<{t:Type, field:Null<ClassField>}>) {
+      for (c in casts)
+        if (c.field == null && typesEqual(ret, c.t)) 
+          return true;
+      return false;
+    }
+        
+    return if (get(a.from) && get(a.to)) Some(ret) else None;
+  }
+  
   static function typesEqual(t1, t2)
     return Context.unify(t1, t2) && Context.unify(t2, t1);
     
@@ -185,9 +201,13 @@ class Macro {
                 __ret;
               }
             
+            case TAbstract(plainAbstract(_) => Some(a), _):
+              var ct = t.toComplex();
+              macro (${parse(a, pos)} : $ct);
             case TDynamic(t):
               var ct = t.toComplex();
               macro (${parse((macro : haxe.DynamicAccess<$ct>).toType().sure(), pos)} : Dynamic<$ct>);
+              
             case TAbstract(_.get() => { name: 'DynamicAccess', pack: ['haxe'] }, [t]):
               var ct = t.toComplex();
               macro {
@@ -441,6 +461,10 @@ class Macro {
                 }
                 this.char(']'.code);  
               }
+            
+            case TAbstract(plainAbstract(_) => Some(a), _):
+              
+              write(a, pos);
               
             case TDynamic(t):
               
