@@ -126,9 +126,14 @@ class Macro {
                     else $read;
                   
                   if (!optional) {
+                    var valType = 
+                      switch f.type.reduce() {
+                        case TAbstract(plainAbstract(_) => Some(a), _): a;
+                        case v: v;
+                      }
                     obj.push({
                       field: name,
-                      expr: switch f.type.getID() {
+                      expr: switch valType.getID() {
                         case 'Bool': macro false;
                         case 'Int': macro 0;
                         case 'Float': macro .0;
