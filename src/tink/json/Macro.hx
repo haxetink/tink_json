@@ -27,23 +27,44 @@ class Macro {
           throw 'assert';
       }      
   
-  static function plainAbstract(r:Ref<AbstractType>) {
-    var a = r.get();
+  //static function plainAbstract(r:Ref<AbstractType>) {
+    //var a = r.get();
     
-    var ret = a.type;
-    
-    function get(casts:Array<{t:Type, field:Null<ClassField>}>) {
-      for (c in casts)
-        if (c.field == null && typesEqual(ret, c.t)) 
-          return true;
-      return false;
-    }
+    //var ret = a.type;
         
-    return if (get(a.from) && get(a.to)) Some(ret) else None;
-  }
+    //return if (get(a.from) && get(a.to)) Some(ret) else None;
+    //return if (typesEquivalent
+  //}
   
-  static function typesEqual(t1, t2)
+  static function plainAbstract(t:Type)
+    return switch t.reduce() {
+      case TAbstract(_.get() => a, params):
+        function apply(t)
+          return haxe.macro.TypeTools.applyTypeParameters(t, a.params, params);
+        
+        var ret = apply(a.type);
+        
+        function get(casts:Array<{t:Type, field:Null<ClassField>}>) {
+          for (c in casts)
+            if (c.field == null && typesEqual(ret, apply(c.t))) 
+              return true;
+          return false;
+        }        
+        
+        if (get(a.from) && get(a.to)) Some(ret) else None;
+        //switch apply(a.type) {
+          //case ret if (typesEquivalent(ret, t)): Some(ret);
+          //default: None;
+        //}
+       
+      default: None;
+    }
+
+  static function typesEquivalent(t1, t2)
     return Context.unify(t1, t2) && Context.unify(t2, t1);
+
+  static function typesEqual(t1, t2)
+    return typesEquivalent(t1, t2);//TODO: make this more exact
     
   static public function buildParser():Type
     return parserForType(getType('tink.json.Parser'));
@@ -127,10 +148,11 @@ class Macro {
                   
                   if (!optional) {
                     var valType = 
-                      switch f.type.reduce() {
-                        case TAbstract(plainAbstract(_) => Some(a), _): a;
-                        case v: v;
+                      switch plainAbstract(f.type) {
+                        case Some(a): a;
+                        default: f.type;
                       }
+                      
                     obj.push({
                       field: name,
                       expr: switch valType.getID() {
@@ -225,7 +247,7 @@ class Macro {
                 
               }
               
-            case TAbstract(plainAbstract(_) => Some(a), _):
+            case plainAbstract(_) => Some(a):
               var ct = t.toComplex();
               macro (${parse(a, pos)} : $ct);
               
@@ -527,7 +549,7 @@ class Macro {
                 this.char(']'.code);  
               }
               
-            case TAbstract(plainAbstract(_) => Some(a), _):
+            case plainAbstract(_) => Some(a):
               
               write(a, pos);              
               
