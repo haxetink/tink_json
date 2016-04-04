@@ -9,6 +9,7 @@ using tink.MacroApi;
 
 private typedef FieldInfo = {
   name:String,
+  pos:Position,
   type:Type,
   optional:Bool
 }
@@ -204,6 +205,12 @@ class Macro {
             case TEnum(_.get() => e, _):
               var ce = t.toComplex();
               
+              function captured(f:HasName)
+                return macro @:pos(pos) $i{
+                  if (f.charAt(0).toUpperCase() == f.charAt(0)) '__'+f.toLowerCase()
+                  else f
+                };              
+                
               function mkComplex(fields:Iterable<FieldInfo>):ComplexType
                 return TAnonymous([for (f in fields) {
                   name: f.name,
@@ -215,13 +222,14 @@ class Macro {
               var fields = new Map<String, FieldInfo>(),
                   cases = new Array<Case>();
               
-              function mkOpt(f:FieldInfo)
+              function mkOpt(f:FieldInfo):FieldInfo
                 return
                   if (f.optional) f;
                   else {
                     name: f.name,
                     optional: true,
-                    type: f.type
+                    type: f.type,
+                    pos: f.pos,
                   }
                   
               function add(f:FieldInfo) 
@@ -229,6 +237,7 @@ class Macro {
                   case null: fields[f.name] = f;
                   case same if (typesEqual(same.type, f.type)):
                     fields[f.name] = {
+                      pos: f.pos,
                       name: f.name,
                       type: f.type,
                       optional: same.optional || f.optional,
@@ -239,40 +248,60 @@ class Macro {
                   
               for (name in e.names) {
                 
-                var c = e.constructs[name];
+                var c = e.constructs[name],
+                    inlined = false;
+                    
                 var cfields = 
                   switch c.type.reduce() {
                     case TFun([{ name: name, t: TAnonymous(anon) }], ret) if (name.toLowerCase() == c.name.toLowerCase()):
-                      [for (f in anon.get().fields) { name: f.name, type: f.type, optional: f.meta.has(':optional') }];
+                      inlined = true;
+                      [for (f in anon.get().fields) { name: f.name, type: f.type, optional: f.meta.has(':optional'), pos: c.pos }];
                     case TFun(args, ret):
-                      [for (a in args) { name: a.name, type: a.t, optional: a.opt }];
+                      [for (a in args) { name: a.name, type: a.t, optional: a.opt, pos: c.pos }];
                     default:
                       c.pos.error('constructor has no arguments');
                   }
                                     
                 switch c.meta.extract(':json') {
                   case []:
+                    
                     add({
                       name: name,
                       optional: true,
                       type: mkComplex(cfields).toType().sure(),
+                      pos: c.pos,
                     });
                     
-                    throw 'ni';
+                    cases.push({
+                      values: [macro { $name : o }],
+                      guard: macro o != null,
+                      expr: {
+                        var args = if (inlined) [macro o];
+                        else [for (f in cfields) {
+                          var name = f.name;
+                          macro o.$name;
+                        }];
+                        macro ($i{name}($a{args}) : $ce);
+                      }
+                    });
+                    
                   case [{ params:[{ expr: EObjectDecl(obj) }] }]:
                     
                     var pat = obj.copy(),
                         guard = macro true;
+                      
                     for (f in cfields) {
                       add(mkOpt(f));
                       if (!f.optional)
-                        guard = macro $guard && $i{f.name} != null;
+                        guard = macro $guard && ${captured(f)} != null;
                       
-                      pat.push({ field: f.name, expr: macro $i{f.name}});
+                      pat.push({ field: f.name, expr: macro ${captured(f)}});
                     }
                     
-                    //trace(EObjectDecl(pat).at().toString());
-                    var args = [for (f in cfields) macro $i{f.name}];
+                    var args = 
+                      if (inlined) [EObjectDecl([for (f in cfields) { field: f.name, expr: macro ${captured(f)} }]).at(pos)];
+                      else [for (f in cfields) macro ${captured(f)}];
+                    
                     var call = macro ($i{name}($a{args}) : $ce);
                     
                     cases.push({
@@ -281,30 +310,23 @@ class Macro {
                       expr: call
                     });
                     
-                    //for (name in cfields.keys())
-                      //add(name, cfields[name]);
-                    
                     for (o in obj)
                       add({
+                        pos: o.expr.pos,
                         name: o.field, 
                         type: o.expr.typeof().sure(),
                         optional: true,
                       });
                     
                   case v:
-                    v[1].pos.error('invalid use of @:json');
+                    c.pos.error('invalid use of @:json');
                 }
               }
               
-              cases.push({
-                values: [macro v],
-                expr: macro throw new tink.core.Error('Cannot process '+Std.string(v)),
-              });
-              
-              trace(mkComplex(fields).toString());
-              var ret = ESwitch(parse(mkComplex(fields).toType().sure(), pos), cases, null).at(pos);
-              
-              //trace(ret.toString());
+              var ret = macro @:pos(pos) {
+                var __ret = ${parse(mkComplex(fields).toType().sure(), pos)};
+                ${ESwitch(macro __ret, cases, macro throw new tink.core.Error('Cannot process '+Std.string(__ret))).at(pos)};
+              }
               
               ret;
             case v: 
@@ -460,11 +482,13 @@ class Macro {
                     first = false;
                   else
                     this.char(','.code);
+                    
                   this.char('['.code);
                   {
                     var value = k;
                     ${write(k, pos)}
                   }
+                  
                   this.char(','.code);
                   {
                     var value = value.get(k);
@@ -475,6 +499,79 @@ class Macro {
                 }
                 this.char(']'.code);  
               }
+              
+            case TEnum(_.get() => e, _):
+              
+              var cases = [];
+              
+              for (name in e.names) {
+                
+                var c = e.constructs[name],
+                    inlined = false;
+                    
+                var cfields = 
+                  switch c.type.reduce() {
+                    case TFun([{ name: name, t: TAnonymous(anon) }], ret) if (name.toLowerCase() == c.name.toLowerCase()):
+                      inlined = true;
+                      [for (f in anon.get().fields) { name: f.name, type: f.type, optional: f.meta.has(':optional'), pos: c.pos }];
+                    case TFun(args, ret):
+                      [for (a in args) { name: a.name, type: a.t, optional: a.opt, pos: c.pos }];
+                    default:
+                      c.pos.error('constructor has no arguments');
+                  }
+                
+                var postfix = '}',
+                    first = true;
+                    
+                var prefix = 
+                  switch c.meta.extract(':json') {
+                    case []:
+                      
+                      postfix = '}}';
+                      '{"$name":{';
+                      
+                    case [{ params:[{ expr: EObjectDecl(obj) }] }]:                
+                      
+                      first = false;
+                      var ret = haxe.format.JsonPrinter.print(ExprTools.getValue(EObjectDecl(obj).at()));
+                      ret.substr(0, ret.length - 1);
+                        
+                    default:
+                      c.pos.error('invalid use of @:json');
+                  }
+                
+                var args = 
+                  if (inlined) [macro value]
+                  else [for (f in cfields) macro $i{f.name}];
+                
+                cases.push({
+                  values: [macro @:pos(c.pos) $i{name}($a{args})],
+                  expr: macro {
+                    this.output($v{prefix});
+                    $b{[for (f in cfields) {
+                      var fname = f.name;
+                      macro {
+                        this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
+                        this.char(':'.code);
+                        {
+                          var value = ${
+                            if (inlined)
+                              macro value.$fname
+                            else
+                              macro $i{f.name}
+                          }
+                          ${write(f.type, f.pos)};
+                        }
+                      }
+                    }]}
+                    this.output($v{postfix});
+                  },
+                });
+                
+              }
+              
+              ESwitch(macro value, cases, null).at(pos);
+              
             case v: 
               pos.error('Cannot stringify ${t.toString()}');
           }
@@ -492,4 +589,10 @@ class Macro {
     return Context.getType(name);    
   }
   
+}
+
+@:forward
+private abstract HasName(String) from String to String {
+  @:from static function fieldInfo(o:FieldInfo):HasName
+    return o.name;
 }

@@ -17,10 +17,16 @@ enum Color {
   Hsl(value:{ hue:Float, saturation:Float, lightness:Float });
 }
 
+enum PotionEffect {
+  Heals(hp:Int);
+  Restores(mana:Int);
+}
+
 enum Item {
   @:json({ type: 'sword' }) Sword(damage:{max:Int});
-  @:json({ type: 'shield' }) Shield(s:{armor:Int});
-  @:json({ type: 'staff' }) Staff(block:Float, magic:Int);
+  @:json({ type: 'shield' }) Shield(shield:{armor:Int});
+  @:json({ type: 'staff' }) Staff(block:Float, ?magic:Int);
+  Potion(effect:PotionEffect);
 }
 
 class ParserTest extends TestCase {
@@ -44,6 +50,16 @@ class ParserTest extends TestCase {
     catch (e:Dynamic) {
       assertTrue(true);
     }
+    
+    //structEq( { foo: [ 'bar' => [Staff(400, 20)] ] }, { foo: [ 'bar' => [Staff(400, 20)] ] } );
+    //
+    //try {
+      //structEq( { foo: [ 'bar' => [Staff(400, 20)] ] }, { foo: [ 'bar' => [Staff(400, 30)] ] } );
+      //assertTrue(false);
+    //}
+    //catch (e:Dynamic) {
+      //assertTrue(true);
+    //}    
   }
   
   function measure<A>(s:String, f:Void->A, ?pos:haxe.PosInfos) {
@@ -152,21 +168,30 @@ class ParserTest extends TestCase {
       ]
     }, true);
     
-     Helper.roundtrip({
-       foo: ({
-         first: 1,
-         second: 2
-       } : Dynamic<Int>),
-       bar: ({
-         first: 1,
-         second: 2
-       } : haxe.DynamicAccess<Int>),       
-     });
-     
-     //Helper.roundtrip(Rgb(0, 255, 128));
-     
-     structEq([Sword({max:100}), Shield({armor:50})], tink.Json.parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "s": { "armor": 50 } }]'));
+    Helper.roundtrip({
+      foo: ({
+        first: 1,
+        second: 2
+      } : Dynamic<Int>),
+      bar: ({
+        first: 1,
+        second: 2
+      } : haxe.DynamicAccess<Int>),       
+    });
+    
+    var equipment = [Sword({max:40}), Staff(.5), Shield({ armor: 50 }), Potion(Heals(30))];
+    
+    Helper.roundtrip(equipment, true);
+    
+    structEq([Sword({max:100}), Shield({armor:50})], tink.Json.parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "armor": 50 }]'));
+    
+    Helper.roundtrip([
+      Rgb(128, 100, 80), 
+      Hsv({ value: 100.0, saturation: 100.0, hue: 0.0 }), 
+      Hsl({ lightness: 100.0, saturation: 100.0, hue: 0.0 })
+    ], true);
   }
+  
 	function fail( reason:String, ?c : PosInfos ) : Void {
 		currentTest.done = true;
     currentTest.success = false;
@@ -212,8 +237,12 @@ class ParserTest extends TestCase {
       case TClass(cl):
         throw 'comparing $cl not implemented';
       case TEnum(e):
-        throw 'not implemented';
-        //assertEquals(Type.enumConstructor(expected), Type.enumConstructor(found));
+        
+        var expected:EnumValue = cast expected,
+            found:EnumValue = cast found;
+            
+        assertEquals(Type.enumConstructor(expected), Type.enumConstructor(found));
+        structEq(Type.enumParameters(expected), Type.enumParameters(found));
       case TUnknown:
         throw 'not implemented';
     }
