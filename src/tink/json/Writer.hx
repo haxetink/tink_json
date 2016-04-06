@@ -17,24 +17,19 @@ class BasicWriter {
     
   inline function char(c:Int)
     buf.addChar(c);
-  
-  function writeNull<T>(value:Null<T>, writer:T->Void) 
-    switch value {
-      case null: output('null');
-      case v: writer(v);
-    }
     
-  function writeInt(v:Int)
+  inline function writeInt(v:Int)
     output(Std.string(v));
     
-  function writeFloat(v:Float)
+  inline function writeFloat(v:Float)
     output(Std.string(v));
     
-  function writeBool(b:Bool)
+  inline function writeBool(b:Bool)
     output(if (b) 'true' else 'false');
     
   function writeString(s:String) {
     char('"'.code);
+    //TODO: optimize - add fast path for simple strings
     Utf8.iter(s, function (c) {
       if (c > 0x7f)
         output('\\u' + StringTools.hex(c, 4));
@@ -49,19 +44,6 @@ class BasicWriter {
         }
     });
     char('"'.code);
-  }
-  
-  function writeArray<T>(a:Array<T>, writer:T->Void) {
-    char('['.code);
-    var first = true;
-    for (x in a) {
-      if (first) 
-        first = false;
-      else
-        char(','.code);
-      writer(x);
-    }
-    char(']'.code);
   }
   
 }

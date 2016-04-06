@@ -20,4 +20,9 @@ class Helper {
     }
   }
   
+  macro static public function test(e:Expr) {
+    trace(haxe.macro.ExprTools.toString(haxe.macro.Context.getTypedExpr(haxe.macro.Context.typeExpr(e))));
+    return e;
+  }
+    
 }

@@ -16,6 +16,7 @@ private typedef FieldInfo = {
 }
 
 class Macro {
+  
   static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
   
   static function getType(name) 
@@ -75,27 +76,30 @@ class Macro {
     function parse(t:Type, pos:Position):Expr
       return
         if (t.getID(false) == 'Null')
-          macro this.parseNull(function () return ${parse(t.reduce(), pos)});
+          macro {
+            if (this.allow('null')) null;
+            else ${parse(t.reduce(), pos)};
+          }
         else
           switch t.reduce() {
             
             case _.getID() => 'String': 
-              macro (this.parseString() : String);
+              macro (this.parseString().toString() : String);
               
             case _.getID() => 'Float': 
-              macro Std.parseFloat(this.parseNumber());
+              macro this.parseNumber().toFloat();
               
             case _.getID() => 'Int': 
-              macro Std.parseInt(this.parseNumber());
+              macro this.parseNumber().toInt();
               
             case _.getID() => 'Bool': 
               macro this.parseBool();
               
             case _.getID() => 'Date':
-              macro Date.fromTime(Std.parseFloat(this.parseNumber()));
+              macro Date.fromTime(this.parseNumber().toFloat());
               
             case _.getID() => 'haxe.io.Bytes':
-              macro haxe.crypto.Base64.decode(this.parseString());
+              macro haxe.crypto.Base64.decode(this.parseString().toString());
               
             case TAnonymous(fields):
               
@@ -172,18 +176,19 @@ class Macro {
                     var __ret:$ct = ${EObjectDecl(obj).at(pos)};
                     
                     var __start__ = this.pos;
-                    expect('{');
-                    if (!allow('}')) {
+                    this.expect('{');
+                    if (!this.allow('}')) {
                       do {
-                        var __name__:tink.parse.StringSlice = this.parseString();
-                        expect(':');
+                        var __name__ = this.parseString();
+                        this.expect(':');
                         $read;
-                      } while (allow(','));
-                      expect('}');
+                      } while (this.allow(','));
+                      this.expect('}');
                     }
                       
                     function __missing__(field:String):Dynamic {
-                      return die('missing ' + field + ' in ' + this.source[__start__...this.pos].toString());
+                      //return this.die('missing ' + field + ' in ' + this.source[__start__...this.pos].toString());
+                      return this.die('missing ' + field);
                     }
                     
                     $b{checks};
@@ -376,13 +381,12 @@ class Macro {
           }
     
     add(macro class { 
-      public function parse(source):tink.core.Outcome<$ct, tink.core.Error> {
+      public function parse(source):$ct {
         this.init(source);
-        return 
-          tink.core.Error.catchExceptions(
-            function () return ${parse(t, pos)}
-          );
+        return ${parse(t, pos)};
       }
+      public function tryParse(source)
+        return tink.core.Error.catchExceptions(function () return parse(source));
     });
         
     Context.defineType(cl);
@@ -412,7 +416,10 @@ class Macro {
     function write(t:Type, pos:Position):Expr 
       return
         if (t.getID(false) == 'Null')
-          macro this.writeNull(value, function (value) ${write(t.reduce(), pos)});
+          macro {
+            if (value == null) this.output('null');
+            else ${write(t.reduce(), pos)};
+          }
         else
           switch t.reduce() {
             
@@ -457,19 +464,25 @@ class Macro {
                 var fields = fields.get().fields,
                     ct = t.toComplex();
                 
+                var body = 
+                  if (fields.length == 0)
+                    macro this.output('{}');
+                  else
+                    macro {
+                      var open = '{';
+                      $b{[for (f in fields) {
+                        var name = f.name;
+                        macro {
+                          this.output('${if (f == fields[0]) "$open" else ","}"$name":');
+                          var value = value.$name;
+                          ${write(f.type, f.pos)};
+                        }
+                      }]};
+                      char('}'.code);
+                    }
+                    
                 add(macro class {
-                  function $method(value:$ct):Void {
-                    var open = '{';
-                    $b{[for (f in fields) {
-                      var name = f.name;
-                      macro {
-                        this.output('${if (f == fields[0]) "$open" else ","}"$name":');
-                        var value = value.$name;
-                        ${write(f.type, f.pos)};
-                      }
-                    }]};
-                    char('}'.code);
-                  }
+                  function $method(value:$ct):Void $body;
                 });
               }
               

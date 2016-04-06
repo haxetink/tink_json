@@ -114,16 +114,15 @@ class ParserTest extends TestCase {
     haxe.Log.trace('$s took ${stamp() - start}', pos);
     return ret;
   }
-  /*
+  /**
   public function testPerformance() {
     var o = {
       blub: [
-        { foo: [ { bar: [4] } ] }, 
-        { foo: [ { bar: [4] } ] } 
+        { foo: [ { bar: [true] } ] }, 
+        { foo: [ { bar: [false] } ] } 
       ]
     };
-    
-    
+    //
     for (i in 0...100000)
       haxe.Json.stringify(o);
       
@@ -132,13 +131,13 @@ class ParserTest extends TestCase {
         haxe.Json.stringify(o)
     );
     
-    
+    var writer = new tink.json.Writer<{ blub:Array<{ foo: Array<{ bar:Array<Bool> }>}> }>();
     for (i in 0...100000)
-      tink.Json.stringify(o);
+      writer.write(o);
       
     measure('tink stringify', function () 
       for (i in 0...10000)
-        tink.Json.stringify(o)
+        writer.write(o)
     );
         
     var s = tink.Json.stringify(o);
@@ -152,17 +151,29 @@ class ParserTest extends TestCase {
         o = haxe.Json.parse(s)
     );
     
-    
+    var parser = new tink.json.Parser<{ blub:Array<{ foo: Array<{ bar:Array<Bool> }>}> }>();
     for (i in 0...100000)
-      o = tink.Json.parse(s);
+      parser.parse(s);
     
     measure('tink parse', function () 
       for (i in 0...10000)
-        o = tink.Json.parse(s)
+        parser.parse(s)
     );
     
+    //var parser = new tink.json.Parser<Array<Bool>>();
+    //var s = '[true]';
+    ////
+    //measure('haxe parse', function () 
+      //for (i in 0...10000)
+        //haxe.format.JsonParser.parse(s)
+    //);    
+    //
+    //measure('tink parse', function () 
+      //for (i in 0...10000)
+        //parser.parse(s)
+    //);    
   }
-  */
+  /**/
   public function testParser() {
     
     Helper.roundtrip({
@@ -186,6 +197,10 @@ class ParserTest extends TestCase {
     }
     
     Helper.roundtrip(x);
+    
+    var x: { foo:Float } = x;
+    
+    x = tink.Json.parse(haxe.Json.stringify(x, '  '));
     
     var l:Cons<Int> = {
       head: 4,
@@ -233,6 +248,7 @@ class ParserTest extends TestCase {
       date: Date.now(),
       bytes: bytes([for (i in 0...0x100) i])
     }, true);
+    
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {

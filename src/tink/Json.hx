@@ -18,7 +18,8 @@ class Json {
             case null:
               e.reject('Cannot determine expected type');
             case _.toComplex() => ct:
-              macro @:pos(e.pos) tink.CoreApi.OutcomeTools.sure(new tink.json.Parser<$ct>().parse($e));
+              //macro @:pos(e.pos) tink.CoreApi.OutcomeTools.sure(new tink.json.Parser<$ct>().parse($e));
+              macro @:pos(e.pos) new tink.json.Parser<$ct>().parse($e);
           }
       }
       

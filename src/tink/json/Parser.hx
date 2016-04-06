@@ -7,125 +7,221 @@ import tink.parse.Char.*;
 using StringTools;
 using tink.CoreApi;
 
+#if !macro
 @:genericBuild(tink.json.Macro.buildParser())
+#end
 class Parser<T> {
   
 }
 
-private abstract JsonString(StringSlice) from StringSlice {
+private class SliceData {
   
-  @:to public function toString():String 
-    return 
-      if (this.indexOf('\\') == -1)
-        this;
-      else
-        haxe.format.JsonParser.parse('"$this"');
+  public var source(default, null):String;
+  public var min(default, null):Int;
+  public var max(default, null):Int;
   
-  @:to inline function toSlice()
-    return this;
+  public inline function new(source, min, max) {
+    this.source = source;
+    this.min = min;
+    this.max = max;
+  }
 }
 
-class BasicParser extends ParserBase<StringSlice, Error> { 
-  static var ARRAY:ListSyntax = { end: ']', sep: ',' };
-  override function doSkipIgnored() 
-    doReadWhile(WHITE);    
-  
-  function parseString()
-    return parseStringWith('"');
-  
-  function parseNull<A>(parser:Void->A):Null<A>
-    return
-      if (allow('null')) null;
-      else parser();  
-      
-  function parseBool() 
+@:forward
+private abstract JsonString(SliceData) from SliceData {
+
+  public function toString():String 
     return 
-      if (allow('true')) true;
-      else if (allow('false')) false;
-      else die('expected boolean value');
-    
-  function skipValue() {
-    skipIgnored();
-    switch source[pos] {
-      case '['.code: expect('['); parseList(skipValue, ARRAY);
-      case '{'.code: expect('{'); parseObject(function (_) skipValue());
-      case '"'.code: parseString();
-      case 't'.code, 'f'.code: parseBool();
-      case 'n'.code: expect('null');
-      case num if (num == '.'.code || DIGIT[num]): parseNumber();
-      case v:
-        die('Invalid character 0x'+v.hex(2));
-    }
-  }  
+      if (this.source.indexOf('\\') == -1)
+        get();
+      else
+        haxe.format.JsonParser.parse(this.source.substring(this.min-1, this.max+1));
   
-  override function makeError(message:String, pos:StringSlice):Error {
-    return new Error(message);
+  public inline function get() 
+    return this.source.substring(this.min, this.max);
+  
+        
+  public inline function toInt() 
+    return Std.parseInt(get());
+  
+  public inline function toFloat() 
+    return Std.parseFloat(get());
+    
+  @:commutative
+  @:op(a == b) static public inline function equalsString(a:JsonString, b:String) {
+    #if nodejs
+    return (a.source : Dynamic).startsWith(b, a.min);
+    #else
+    return b.length == (a.max - a.min) && a.source.substring(a.min, a.max) == b;
+    #end
+  }
+        
+  //@:to inline function toSlice()
+    //return this;
+    
+}
+
+class BasicParser { 
+  var source:String;
+  var pos:Int;
+  var max:Int;
+  
+  function init(source) { 
+     this.source = source;
+     this.pos = 0;
+     this.max = source.length;
+     skipIgnored();
   }
   
-  function parseObject(parseValue:StringSlice->Void) {
-    var start = -1;
-    expect('{');
-    parseRepeatedly(function () {
-      if (start == -1)
-        start = this.pos;
-      var name = parseString();
-      expect(':');
-      parseValue(name);
-    }, { end: '}', sep: ',' } );
+  inline function skipIgnored()
+    while (pos < max && source.fastCodeAt(pos) < 33) pos++;
+  
+  #if !macro
+  function parseString():JsonString {
+    expect('"');
+    return slice(skipString(), pos - 1);
+  }
+  
+  function skipString() {
+    var start = pos;
+    
+    while (true)
+      switch source.indexOf('"', pos) {
+        case -1: 
+          
+          die('unterminated string', start);
+        
+        case v:
+          
+          pos = v + 1;
+          
+          var p = pos - 2;
+          
+          while (source.fastCodeAt(p) == '\\'.code) p--;
+          if ((p - pos) & 1 == 0) 
+            break;
+      }
+    
+    return start;  
+  }
+    
+  static inline function isDigit(char:Int)
+    return char < 58 && char > 47;
+  
+  function parseNumber():JsonString 
+    return slice(skipNumber(source.fastCodeAt(pos++)), pos);
+  
+  function skipNumber(c:Int) {
+    var start = pos-1;
+    
+    try @:privateAccess {
+      var p = new haxe.format.JsonParser(source);
+      p.pos = start+1;
+      p.parseNumber(source.fastCodeAt(start));
+      pos = p.pos;
+    }
+    catch (e:Dynamic) {
+      die(Std.string(e));
+    }
     return start;
   }
   
-  override function doMakePos(from:Int, to:Int) {
-    return source[from...to];
+  function slice(from, to):JsonString
+    return new SliceData(this.source, from, to);
+	
+  inline function nextChar() 
+		return source.fastCodeAt(pos++);
+	    
+  function skipValue() 
+    switch nextChar() {
+      case '{'.code:
+        
+        if (allow('}'))
+          return;
+                  
+        inline function pair() {
+          if (nextChar() != '"'.code)
+            die('expected string', pos - 1);
+            
+          skipString();
+          expect(':');
+          skipValue();
+        }
+        
+        do {
+          pair();
+        } while (allow(','));
+        
+        expect('}', true, false);
+        
+      case '['.code:
+        if (allow(']')) 
+          return;
+        
+        do {
+          skipValue();
+        } while (allow(','));
+        
+        expect(']', true, false);
+      case '"'.code:
+        skipString();
+      case 't'.code:
+        expect('rue', false, false);
+      case 'f'.code:
+        expect('alse', false, false);
+      case 'n'.code:
+        expect('ull', false, false);
+      case '.'.code:
+        skipNumber('.'.code);
+      case v if (isDigit(v)):
+        skipNumber(v);
+      case invalid: 
+        invalidChar(invalid);
+    }  
+  
+  function invalidChar(c:Int) 
+    return die('invalid char ${c.hex(2)}', pos - 1);
+
+  function die(s:String, ?pos:Int):Dynamic {
+    if (pos == null)
+      pos = this.pos;
+      
+    return new Error('#pos: $pos'+s).throwSelf();
+  }
+  #end
+  
+  macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
+    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected $s') else null : tink.parse.ParserBase.Continue);
   }
   
-  function parseArray<A>(reader:Void->A) 
-    return expect('[') + parseList(reader, ARRAY );    
+  macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
     
-  function parseNumber() {
-    var start = pos;
-    
-    function digits() {
-      var start = pos;
-      doReadWhile(DIGIT);
-      if (start == pos)
-        die('at least one digit expected');
-    }
-    
-    function exponent() {
-      if (allowHere('e')) {
-        allowHere('+') || allowHere('-');
-        digits();
-      }
-      return chomp(start);      
-    }
-    
-    function fraction() {
-      digits();
-      return exponent();
-    }
+    if (s.length == 0)
+      throw 'assert';
       
-    return
-      if (allow('.'))
-        fraction();
-      else {
-        digits();
-        
-        if (DIGIT[source[pos+1]] && allowHere('.'))
-          fraction();
-        else
-          exponent();
+    var ret = macro this.max > this.pos + $v{s.length - 1};
+    
+    for (i in 0...s.length)
+      ret = macro $ret && StringTools.fastCodeAt($ethis.source, $ethis.pos + $v{i}) == $v{s.charCodeAt(i)};
+    
+    return macro {
+      if ($v{skipBefore}) 
+        $ethis.skipIgnored();
+      if ($ret) {
+        $ethis.pos += $v{s.length};
+        if ($v{skipAfter}) 
+          $ethis.skipIgnored();
+        true;
       }
+      else false;
+    }
   }
-    
-  function parseStringWith(quote:StringSlice):JsonString {
-    expect(quote);
-    var start = pos;
-    do {
-      upto(quote);
-    } while (source[pos - 2] == '\\'.code);
-    
-    return source[start...pos - 1];
-  }
+  #if !macro    
+  function parseBool() 
+    return 
+      if (this.allow('true')) true;
+      else if (this.allow('false')) false;
+      else die('expected boolean value');
+  #end
   
 }
