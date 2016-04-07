@@ -24,18 +24,18 @@ class Benchmark {
   static function testPerformance() {
     var o = {
       blub: [
-        { foo: [ { bar: [true] } ] }, 
-        { foo: [ { bar: [false] } ] } 
+        { foo: [ { bar: [4.0] } ] }, 
+        { foo: [ { bar: [5.0] } ] } 
       ]
     };
     
     var platform = 
       #if java
         'java';
-      #elseif neko
-        'neko';
       #elseif interp
         'interp';
+      #elseif neko
+        'neko';
       #elseif cpp
         'cpp';
       #elseif cs
@@ -53,7 +53,7 @@ class Benchmark {
       #end
     
     var count = switch platform {
-      case 'php' | 'python': 1000;
+      case 'php' | 'python' | 'interp': 1000;
       case 'java': 50000;
       default: 10000;
     }
@@ -66,7 +66,7 @@ class Benchmark {
         haxe.Json.stringify(o)
     );
     
-    var writer = new tink.json.Writer<{ blub:Array<{ foo: Array<{ bar:Array<Bool> }>}> }>();
+    var writer = new tink.json.Writer<{ blub:Array<{ foo: Array<{ bar:Array<Float> }>}> }>();
     for (i in 0...10 * count)
       writer.write(o);
       
@@ -85,7 +85,7 @@ class Benchmark {
         o = haxe.Json.parse(s)
     );
     
-    var parser = new tink.json.Parser<{ blub:Array<{ foo: Array<{ bar:Array<Bool> }>}> }>();
+    var parser = new tink.json.Parser<{ blub:Array<{ foo: Array<{ bar:Array<Float> }>}> }>();
     for (i in 0...10 * count)
       parser.parse(s);
     

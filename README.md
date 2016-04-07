@@ -89,14 +89,29 @@ Dates are represented simply as floats obtained by calling `getTime()` on a `Dat
 
 Bytes are represented in their Base64 encoded form.
 
+## Performance
+
+Here are the benchmark results of the current state of this library:
+
+| platform | write speedup | read speedup |
+|---------:|--------------:|-------------:|
+| interp   |          1.32 |         0.53 |
+| neko     |          1.09 |         0.56 |
+| python   |          5.8  |         0.07 |
+| nodejs   |          4.75 |         0.16 |
+| java     |          1.94 |         1.48 |
+| cpp      |          2.86 |         0.9  |
+| cs       |          8.46 |         1.37 |
+| php      |          0.92 |         0.28 |
+
+While the numbers for writing look great, reading obviously could use some more optimization. On static platforms performance can be further increased by allowing to parse/stringify class instances, as accessing fields on instances is significantly faster. Particularly on Python and JavaScript it is clear that the native functionality needs to be used, ideally using object_hook/reviver to perform on-the-fly transformation.
+
 ## Benefits
 
-Using `tink_json` adds a lot more safety to your application. You get a validating parser for free. You get compile time errors if you try to parse or write values that cannot be represented in JSON. At the same time the range of things you can represent is expanded considerably. Also, you get full control over what gets parsed and written, meaning that you don't have to waste memory parsing parts of data you don't intend to use and also you won't have data written that 
-
-Another benefit is that `tink_json` can perform better in some situations, particularly for writing JSON, which makes it a suitable choice for writing JSON APIs. For example on nodejs it can serialize data up to 3 times faster than the native counterpart. Sadly, it is currently slower when parsing on most platforms, partly because the underlying parser leaves much room for optimization. So there is hope yet!
+Using `tink_json` adds a lot more safety to your application. You get a validating parser for free. You get compile time errors if you try to parse or write values that cannot be represented in JSON. At the same time the range of things you can represent is expanded considerably. Also, you get full control over what gets parsed and written, meaning that you don't have to waste memory parsing parts of data you don't intend to use and also you won't have fields written that you know nothing about.
 
 ## Caveats
 
 The most important thing to be aware of though is that roundtripping JSON through `tink_json` will discard all the things it does not know about. So if you want to load some JSON, modify a field and then write the JSON back, this library will cause data elimination. This may be a good way to get rid of stale data, but also an awesome way to shoot someone else (relying on the data you don't know about) in the foot. You have been warned.
 
-This library generates quite a lot of code. The overhead is reasonable, but if you use it to parse complex data structures only to access very few values, you might find it too high. OTOH hand if you reduce the type declaration to the bits you need, very little code is generated and also all the noise is discarded while parsing, resulting in better overall performance.
+This library generates quite a lot of code. The overhead is reasonable, but if you use it to parse complex data structures only to access very few values, you might find it too high. OTOH hand if you reduce the type declaration to the bits you need, only the necessary code is generated and also all the noise is discarded while parsing, resulting in better overall performance.
