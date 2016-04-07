@@ -1,9 +1,5 @@
 package tink.json;
 
-import tink.parse.ParserBase;
-import tink.parse.StringSlice;
-import tink.parse.Char.*;
-
 using StringTools;
 using tink.CoreApi;
 
@@ -47,17 +43,15 @@ private abstract JsonString(SliceData) from SliceData {
   public inline function toFloat() 
     return Std.parseFloat(get());
     
-  @:commutative
-  @:op(a == b) static public inline function equalsString(a:JsonString, b:String) {
-    #if nodejs
-    return (a.source : Dynamic).startsWith(b, a.min);
-    #else
-    return b.length == (a.max - a.min) && a.source.substring(a.min, a.max) == b;
-    #end
+  @:commutative @:op(a == b) 
+  static public inline function equalsString(a:JsonString, b:String):Bool {
+    return b.length == (a.max - a.min) && 
+      #if nodejs
+        (a.source : Dynamic).startsWith(b, a.min);
+      #else
+        a.source.substring(a.min, a.max) == b;
+      #end
   }
-        
-  //@:to inline function toSlice()
-    //return this;
     
 }
 
@@ -110,19 +104,44 @@ class BasicParser {
   
   function parseNumber():JsonString 
     return slice(skipNumber(source.fastCodeAt(pos++)), pos);
-  
-  function skipNumber(c:Int) {
-    var start = pos-1;
+
+	function invalidNumber( start : Int )
+		return die("Invalid number ${str.substr(start, pos - start)}", start);
     
-    try @:privateAccess {
-      var p = new haxe.format.JsonParser(source);
-      p.pos = start+1;
-      p.parseNumber(source.fastCodeAt(start));
-      pos = p.pos;
-    }
-    catch (e:Dynamic) {
-      die(Std.string(e));
-    }
+  function skipNumber(c:Int) {
+    //ripped shamelessly from haxe.format.JsonParser
+    var start = pos - 1;
+		var minus = c == '-'.code, digit = !minus, zero = c == '0'.code;
+		var point = false, e = false, pm = false, end = false;
+		while( true ) {
+			c = nextChar();
+			switch( c ) {
+				case '0'.code :
+					if (zero && !point) invalidNumber(start);
+					if (minus) {
+						minus = false; zero = true;
+					}
+					digit = true;
+				case '1'.code,'2'.code,'3'.code,'4'.code,'5'.code,'6'.code,'7'.code,'8'.code,'9'.code :
+					if (zero && !point) invalidNumber(start);
+					if (minus) minus = false;
+					digit = true; zero = false;
+				case '.'.code :
+					if (minus || point) invalidNumber(start);
+					digit = false; point = true;
+				case 'e'.code, 'E'.code :
+					if (minus || zero || e) invalidNumber(start);//from my understanding of the spec on json.org 0e4 is a valid number
+					digit = false; e = true;
+				case '+'.code, '-'.code :
+					if (!e || pm) invalidNumber(start);
+					digit = false; pm = true;
+				default :
+					if (!digit) invalidNumber(start);
+					pos--;
+					end = true;
+			}
+			if (end) break;
+		}
     return start;
   }
   
@@ -191,7 +210,7 @@ class BasicParser {
   #end
   
   macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
-    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected $s') else null : tink.parse.ParserBase.Continue);
+    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected $s') else null : tink.json.Parser.ContinueParsing);
   }
   
   macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
@@ -224,4 +243,10 @@ class BasicParser {
       else die('expected boolean value');
   #end
   
+}
+
+abstract ContinueParsing(Dynamic) {
+  @:commutative @:op(a+b)
+  @:extern static inline function then<A>(e:ContinueParsing, a:A):A 
+    return a;
 }
