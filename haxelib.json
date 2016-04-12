@@ -6,6 +6,7 @@
 		"cross",
 		"json"
 	],
+  "website": "http://haxetink.org/tink_json/",
 	"classPath": "src",
 	"contributors": [
 		"back2dos"

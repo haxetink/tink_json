@@ -4,6 +4,7 @@ import haxe.macro.Context;
 import haxe.macro.Expr;
 import haxe.macro.Type;
 import haxe.ds.Option;
+import tink.json.macros.Crawler;
 
 using haxe.macro.Tools;
 using tink.MacroApi;
@@ -408,243 +409,106 @@ class Macro {
       public function new() {}
     } 
     
+    var ret = Crawler.crawl(t, pos, {
+      args: function () return ['value'],
+      nullable: function (e) return macro if (value == null) this.output('null') else $e,
+      string: function () return macro this.writeString(value),
+      int: function () return macro this.writeInt(value),
+      float: function () return macro this.writeFloat(value),
+      bool: function () return macro this.writeBool(value),
+      date: function () return macro this.writeFloat(value.getTime()),
+      bytes: function () return macro this.writeString(haxe.crypto.Base64.encode(value)),
+      map: function (k, v)               
+        return macro {
+          this.char('['.code);
+          var first = true;
+          for (k in value.keys()) {
+            if (first)
+              first = false;
+            else
+              this.char(','.code);
+              
+            this.char('['.code);
+            {
+              var value = k;
+              $k;
+            }
+            
+            this.char(','.code);
+            {
+              var value = value.get(k);
+              $v;
+            }
+            
+            this.char(']'.code);
+          }
+          this.char(']'.code);  
+        },
+      anon: function (fields, ct) 
+        return (macro function (value:$ct) {
+          var open = '{';
+          $b{[for (f in fields) {
+            var name = f.name;
+            macro {
+              this.output('${if (f == fields[0]) "$open" else ","}"$name":');
+              var value = value.$name;
+              ${f.expr};
+            }
+          }]};
+          char('}'.code);
+        }).getFunction().sure(),
+      array: function (e) 
+        return macro {
+          this.char('['.code);
+          var first = true;
+          for (value in value) {
+            if (first)
+              first = false;
+            else
+              this.char(','.code);
+            $e;
+          }
+          this.char(']'.code);  
+        },
+      enm: null,
+      dyn: function (e, ct) 
+        return macro {
+          var value:haxe.DynamicAccess<$ct> = value;
+          $e;
+        },
+      dynAccess: function (e)
+        return macro {
+          var first = true;
+              
+          this.char('{'.code);
+          for (k in value.keys()) {
+            if (first)
+              first = false;
+            else
+              this.char(','.code);
+              
+            this.writeString(k);
+            this.char(':'.code);
+            {
+              var value = value.get(k);
+              $e;
+            }
+            
+          }
+          this.char('}'.code);
+        },
+      reject: function (t:Type) return 'Cannot stringify ${t.toString()}', 
+    });
+    
+    cl.fields = cl.fields.concat(ret.fields);
+    
     function add(t:TypeDefinition)
       cl.fields = cl.fields.concat(t.fields);
-      
-    var anons = new Map<String, Type>();
-    
-    function write(t:Type, pos:Position):Expr 
-      return
-        if (t.getID(false) == 'Null')
-          macro {
-            if (value == null) this.output('null');
-            else ${write(t.reduce(), pos)};
-          }
-        else
-          switch t.reduce() {
-            
-            case _.getID() => 'String': 
-              macro this.writeString(value);
-              
-            case _.getID() => 'Float': 
-              macro this.writeFloat(value);
-              
-            case _.getID() => 'Int': 
-              macro this.writeInt(value);
-              
-            case _.getID() => 'Bool': 
-              macro this.writeBool(value);
-              
-            case _.getID() => 'Date':
-              macro this.writeFloat(value.getTime());
-              
-            case _.getID() => 'haxe.io.Bytes':
-              macro this.writeString(haxe.crypto.Base64.encode(value));
-             
-            case TAnonymous(fields):
-              
-              var method = null;
-              
-              for (func in anons.keys()) {
-                
-                var known = anons[func];
-                
-                if (typesEqual(t, known)) {
-                  method = func;
-                  break;
-                }
-                
-              }
-              
-              if (method == null) {
-                method = 'writeAnon${Lambda.count(anons)}';
-                
-                anons[method] = t;
-                
-                var fields = fields.get().fields,
-                    ct = t.toComplex();
-                
-                var body = 
-                  if (fields.length == 0)
-                    macro this.output('{}');
-                  else
-                    macro {
-                      var open = '{';
-                      $b{[for (f in fields) {
-                        var name = f.name;
-                        macro {
-                          this.output('${if (f == fields[0]) "$open" else ","}"$name":');
-                          var value = value.$name;
-                          ${write(f.type, f.pos)};
-                        }
-                      }]};
-                      char('}'.code);
-                    }
-                    
-                add(macro class {
-                  function $method(value:$ct):Void $body;
-                });
-              }
-              
-              macro this.$method(value);
-              
-            case TInst(_.get() => { name: 'Array', pack: [] }, [t]):
-              
-              macro {
-                this.char('['.code);
-                var first = true;
-                for (value in value) {
-                  if (first)
-                    first = false;
-                  else
-                    this.char(','.code);
-                  ${write(t, pos)}
-                }
-                this.char(']'.code);  
-              }
-                          
-            case TDynamic(t):
-              
-              var ct = t.toComplex();
-              macro {
-                var value:haxe.DynamicAccess<$ct> = value;
-                ${write((macro : haxe.DynamicAccess<$ct>).toType().sure(), pos)};
-              }
-            
-            case TAbstract(_.get() => ({ name: 'DynamicAccess', pack: ['haxe'] } | { name: 'Dynamic', pack: [] }), [t]):
-              var ct = t.toComplex();
-              macro {
-                var value:haxe.DynamicAccess<$ct> = value,
-                    first = true;
-                    
-                this.char('{'.code);
-                for (k in value.keys()) {
-                  if (first)
-                    first = false;
-                  else
-                    this.char(','.code);
-                    
-                  this.writeString(k);
-                  this.char(':'.code);
-                  {
-                    var value = value.get(k);
-                    ${write(t, pos)}
-                  }
-                  
-                }
-                this.char('}'.code);
-              }
-            case TAbstract(_.get() => { name: 'Map', pack: [] }, [k, v]):
-              macro {
-                this.char('['.code);
-                var first = true;
-                for (k in value.keys()) {
-                  if (first)
-                    first = false;
-                  else
-                    this.char(','.code);
-                    
-                  this.char('['.code);
-                  {
-                    var value = k;
-                    ${write(k, pos)}
-                  }
-                  
-                  this.char(','.code);
-                  {
-                    var value = value.get(k);
-                    ${write(v, pos)}
-                  }
-                  
-                  this.char(']'.code);
-                }
-                this.char(']'.code);  
-              }
-              
-            case plainAbstract(_) => Some(a):
-              
-              write(a, pos);              
-              
-            case TEnum(_.get() => e, _):
-              
-              var cases = [];
-              
-              for (name in e.names) {
-                
-                var c = e.constructs[name],
-                    inlined = false;
-                    
-                var cfields = 
-                  switch c.type.reduce() {
-                    case TFun([{ name: name, t: TAnonymous(anon) }], ret) if (name.toLowerCase() == c.name.toLowerCase()):
-                      inlined = true;
-                      [for (f in anon.get().fields) { name: f.name, type: f.type, optional: f.meta.has(':optional'), pos: c.pos }];
-                    case TFun(args, ret):
-                      [for (a in args) { name: a.name, type: a.t, optional: a.opt, pos: c.pos }];
-                    default:
-                      c.pos.error('constructor has no arguments');
-                  }
-                
-                var postfix = '}',
-                    first = true;
-                    
-                var prefix = 
-                  switch c.meta.extract(':json') {
-                    case []:
-                      
-                      postfix = '}}';
-                      '{"$name":{';
-                      
-                    case [{ params:[{ expr: EObjectDecl(obj) }] }]:                
-                      
-                      first = false;
-                      var ret = haxe.format.JsonPrinter.print(ExprTools.getValue(EObjectDecl(obj).at()));
-                      ret.substr(0, ret.length - 1);
-                        
-                    default:
-                      c.pos.error('invalid use of @:json');
-                  }
-                
-                var args = 
-                  if (inlined) [macro value]
-                  else [for (f in cfields) macro $i{f.name}];
-                
-                cases.push({
-                  values: [macro @:pos(c.pos) $i{name}($a{args})],
-                  expr: macro {
-                    this.output($v{prefix});
-                    $b{[for (f in cfields) {
-                      var fname = f.name;
-                      macro {
-                        this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
-                        this.char(':'.code);
-                        {
-                          var value = ${
-                            if (inlined)
-                              macro value.$fname
-                            else
-                              macro $i{f.name}
-                          }
-                          ${write(f.type, f.pos)};
-                        }
-                      }
-                    }]}
-                    this.output($v{postfix});
-                  },
-                });
-                
-              }
-              
-              ESwitch(macro value, cases, null).at(pos);
-              
-            case v: 
-              pos.error('Cannot stringify ${t.toString()}');
-          }
 
     add(macro class { 
       public function write(value:$ct):String {
         this.init();
-        ${write(t, pos)};
+        ${ret.expr};
         return this.buf.toString();
       }
     });
