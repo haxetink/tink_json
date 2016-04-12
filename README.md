@@ -108,7 +108,7 @@ While the numbers for writing look great, reading obviously could use some more 
 
 ## Benefits
 
-Using `tink_json` adds a lot more safety to your application. You get a validating parser for free. You get compile time errors if you try to parse or write values that cannot be represented in JSON. At the same time the range of things you can represent is expanded considerably. Also, you get full control over what gets parsed and written, meaning that you don't have to waste memory parsing parts of data you don't intend to use and also you won't have fields written that you know nothing about.
+Using `tink_json` adds a lot more safety to your application. You get a validating parser for free. You get compile time errors if you try to parse or write values that cannot be represented in JSON. At the same time the range of things you can represent is expanded considerably. Also, you get full control over what gets parsed and written, meaning that you don't have to waste memory parsing parts of data you don't intend to use and also you won't have fields written that you know nothing about. If you are working with an object store such as MongoDB, then data parsed with tink_json is safe to insert into the database (in the sense that it will not be malformed) and data serialized with tink_json will not leak internal database fields, provided it is omitted in the type that is being serialized.
 
 ## Caveats
 

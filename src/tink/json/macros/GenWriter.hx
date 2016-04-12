@@ -2,7 +2,8 @@ package tink.json.macros;
 
 import haxe.macro.Type;
 import haxe.macro.Expr;
-import tink.json.macros.Generator.EnumConstructor;
+import tink.typecrawler.FieldInfo;
+import tink.typecrawler.Generator;
 
 using haxe.macro.Tools;
 using tink.MacroApi;
@@ -87,7 +88,7 @@ class GenWriter {
       this.char(']'.code);  
     };
     
-  static public function enm(constructors:Array<EnumConstructor>, ct) {
+  static public function enm(constructors:Array<EnumConstructor>, ct, _) {
     var cases = [];
     for (c in constructors) {
       var cfields = c.fields,
@@ -140,7 +141,7 @@ class GenWriter {
             }]}
             this.output($v{postfix});
           },
-            });            
+        });            
     }
     return ESwitch(macro value, cases, null).at();
   }
