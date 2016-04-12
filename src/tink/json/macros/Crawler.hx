@@ -148,6 +148,7 @@ class Crawler {
               
               constructors.push({
                 inlined: inlined,
+                ctor: c,
                 fields: cfields,
               });
             }

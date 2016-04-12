@@ -23,5 +23,6 @@ typedef Generator = {
 
 typedef EnumConstructor = {
   inlined:Bool, 
+  ctor: EnumField,
   fields:Array<FieldInfo>,  
 }
