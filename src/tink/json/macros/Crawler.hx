@@ -8,44 +8,13 @@ import haxe.ds.Option;
 using haxe.macro.Tools;
 using tink.MacroApi;
 
-typedef Gen = {
-  function args():Array<String>;
-  function nullable(e:Expr):Expr;
-  function string():Expr;
-  function float():Expr;
-  function int():Expr;
-  function dyn(e:Expr, ct:ComplexType):Expr;
-  function dynAccess(e:Expr):Expr;
-  function bool():Expr;
-  function date():Expr;
-  function bytes():Expr;
-  function anon(fields:Array<FieldInfo>, ct:ComplexType):Function;
-  function array(e:Expr):Expr;
-  function map(k:Expr, v:Expr):Expr;
-  function enm(constructors:Array<EnumConstructor>, ct:ComplexType):Expr;
-  function reject(t:Type):String;
-}
-
-typedef EnumConstructor = {
-  inlined:Bool, 
-  fields:Array<FieldInfo>,  
-}
-
-private typedef FieldInfo = {
-  name:String,
-  pos:Position,
-  type:Type,
-  expr:Expr,
-  optional:Bool
-}
-
 class Crawler { 
   
   var ret:Array<Field>;
-  var gen:Gen;
+  var gen:Generator;
   var anons:Map<String, Type>;
   
-  static public function crawl(type:Type, pos:Position, gen:Gen) {
+  static public function crawl(type:Type, pos:Position, gen) {
     var c = new Crawler(gen, type, pos);
     
     var expr = c.genType(type, pos);
@@ -145,35 +114,45 @@ class Crawler {
             
             genType(a, pos);              
             
-          //case TEnum(_.get() => e, _):
+          case TEnum(_.get() => e, params):
             
-            //var constructors = [];
-            //
-            //for (name in e.names) {
-              //
-              //var c = e.constructs[name],
-                  //inlined = false;
-                  //
-              //var cfields = 
-                //switch c.type.reduce() {
-                  //case TFun([{ name: name, t: TAnonymous(anon) }], ret) if (name.toLowerCase() == c.name.toLowerCase()):
-                    //inlined = true;
-                    //[for (f in anon.get().fields) { name: f.name, type: f.type, optional: f.meta.has(':optional'), pos: c.pos }];
-                  //case TFun(args, ret):
-                    //[for (a in args) { name: a.name, type: a.t, optional: a.opt, pos: c.pos }];
-                  //default:
-                    //c.pos.error('constructor has no arguments');
-                //}
-              //
-              //constructors.push({
-                //inlined: inlined,
-                //fields: cfields,
-              //});
-            //}
-            //
-            //gen.enm(constructors, t.toComplex());
+            var constructors = [];
             
-            //null;
+            for (name in e.names) {
+              
+              var c = e.constructs[name],
+                  inlined = false;
+                  
+              var cfields = 
+                switch c.type.applyTypeParameters(e.params, params).reduce() {
+                  case TFun([{ name: name, t: TAnonymous(anon) }], ret) if (name.toLowerCase() == c.name.toLowerCase()):
+                    inlined = true;
+                    [for (f in anon.get().fields) { 
+                      name: f.name, 
+                      type: f.type, 
+                      expr: genType(f.type, f.pos),
+                      optional: f.meta.has(':optional'), 
+                      pos: f.pos 
+                    }];
+                  case TFun(args, ret):
+                    [for (a in args) { 
+                      name: a.name, 
+                      type: a.t, 
+                      expr: genType(a.t, c.pos), 
+                      optional: a.opt, 
+                      pos: c.pos 
+                    }];
+                  default:
+                    c.pos.error('constructor has no arguments');
+                }
+              
+              constructors.push({
+                inlined: inlined,
+                fields: cfields,
+              });
+            }
+            
+            gen.enm(constructors, t.toComplex());
             
           case v: 
             pos.error(gen.reject(t));

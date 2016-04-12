@@ -470,7 +470,8 @@ class Macro {
           }
           this.char(']'.code);  
         },
-      enm: null,
+      enm: function (constructors, ct) 
+        return macro null,
       dyn: function (e, ct) 
         return macro {
           var value:haxe.DynamicAccess<$ct> = value;
