@@ -6,13 +6,13 @@
 		"cross",
 		"json"
 	],
-  "website": "http://haxetink.org/tink_json/",
 	"classPath": "src",
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "Added support for cpp, cs and java.",
-	"version": "0.0.3",
+	"website": "http://haxetink.org/tink_json/",
+	"releasenote": "Support for Date and Bytes. Faster parser.",
+	"version": "0.1.0",
 	"dependencies": {
 		"tink_typecrawler": ""
 	}
