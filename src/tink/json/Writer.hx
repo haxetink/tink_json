@@ -1,7 +1,7 @@
 package tink.json;
 import haxe.Utf8;
 
-@:genericBuild(tink.json.Macro.buildWriter())
+@:genericBuild(tink.json.macros.Macro.buildWriter())
 class Writer<T> {
 }
 

@@ -89,6 +89,34 @@ Dates are represented simply as floats obtained by calling `getTime()` on a `Dat
 
 Bytes are represented in their Base64 encoded form.
 
+### Custom Abstracts
+
+Custom abstracts that have a `from` and `to` to a type that can be JSON encoded, will be represented as such a type.
+
+Alternatively, you can declare implicit casts `@:from` and `@:to` for `tink.json.Representation<T>` where `T` will then be used as a representation.
+
+Example:
+  
+```haxe
+import tink.json.Representation;
+
+abstract UpperCase(String) {
+  
+  inline function new(v) this = v;
+  
+  @:to function toRepresentation():Representation<String> 
+    return new Representation(this);
+    
+  @:from static function ofRepresentation(rep:Representation<String>)
+    return new UpperCase(rep.get());
+  
+  @:from static function ofString(s:String)
+    return new UpperCase(s.toUpperCase());
+}
+```
+
+Notice how strings used as JSON representation are treated differently from ordinary strings.
+
 ## Performance
 
 Here are the benchmark results of the current state of this library:

@@ -88,7 +88,7 @@ class GenWriter {
       this.char(']'.code);  
     };
     
-  static public function enm(constructors:Array<EnumConstructor>, ct, _) {
+  static public function enm(constructors:Array<EnumConstructor>, ct, _, _) {
     var cases = [];
     for (c in constructors) {
       var cfields = c.fields,
@@ -173,6 +173,22 @@ class GenWriter {
       }
       this.char('}'.code);
     }
+    
+  static public function rescue(t:Type, pos:Position, gen:GenType) 
+    return switch Macro.getRepresentation(t, pos) {
+      case Some(v):
+        
+        var ct = v.toComplex();
+        
+        Some(macro @:pos(pos) {
+          var value = (value : tink.json.Representation<$ct>).get();
+          ${gen(v, pos)};
+        });
+        
+      default:
+        
+        None;
+    }        
     
   static public function reject(t:Type) 
     return 'Cannot stringify ${t.toString()}';

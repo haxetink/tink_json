@@ -3,6 +3,7 @@ package tink.json.macros;
 import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.macro.Expr;
+import haxe.ds.Option;
 import tink.typecrawler.Crawler;
 import tink.typecrawler.FieldInfo;
 import tink.typecrawler.Generator;
@@ -140,8 +141,7 @@ class GenReader {
       __ret;
     }
     
-  static public function enm(constructors:Array<EnumConstructor>, ct, gen:GenType) {
-    var pos = Context.currentPos();//TODO: this position is probably useless
+  static public function enm(constructors:Array<EnumConstructor>, ct, pos:Position, gen:GenType) {
     var fields = new Map<String, LiteInfo>(),
         cases = new Array<Case>();
         
@@ -278,8 +278,22 @@ class GenReader {
       __ret;
     }
     
+  static public function rescue(t:Type, pos:Position, gen:GenType) 
+    return switch Macro.getRepresentation(t, pos) {
+      case Some(v):
+        
+        var ct = v.toComplex();
+        
+        Some(macro @:pos(pos) {
+          new tink.json.Representation<$ct>(${gen(v, pos)});
+        });
+        
+      default:
+        None;
+    } 
+    
   static public function reject(t:Type) 
-    return 'Cannot stringify ${t.toString()}';
+    return 'Cannot parse ${t.toString()}';
 }
 
 

@@ -1,4 +1,4 @@
-package tink.json;
+package tink.json.macros;
 
 import haxe.macro.Context;
 import haxe.macro.Expr;
@@ -96,6 +96,25 @@ class Macro {
     Context.defineType(cl);
     
     return Context.getType(name);    
+  }
+  
+  static public function getRepresentation(t:Type, pos:Position) {
+    var ct = t.toComplex();
+    
+    return
+      switch (macro tink.json.Representation.of((null : $ct)).get()).typeof() {
+        case Success(rep):
+          
+          var rt = rep.toComplex();
+          
+          if (!(macro ((null : tink.json.Representation<$rt>) : $ct)).typeof().isSuccess()) 
+            pos.error('Cannot represent ${t.toString()} in JSON because ${(macro : tink.json.Representation<$rt>).toString()} cannot be converted to ${t.toString()}');
+          
+          Some(rep);
+          
+        default:
+          None;
+      }
   }
   
 }

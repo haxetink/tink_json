@@ -1,12 +1,14 @@
 package;
 
 import haxe.Constraints.IMap;
+import haxe.ds.Vector;
 import haxe.io.Bytes;
 import haxe.PosInfos;
 import haxe.unit.TestCase;
 import haxe.unit.TestStatus;
 import tink.core.Error;
 import tink.json.Parser;
+import tink.json.Representation;
 
 typedef Foo = { foo:Float, bar:Array<{ flag: Bool, ?buzz:Array<{ word: String }> }> };
 typedef Cons<T> = Null<{
@@ -160,9 +162,9 @@ class ParserTest extends TestCase {
     
     var equipment = [Sword({max:40}), Staff(.5), Shield({ armor: 50 }), Potion(Heals(30))];
     
-    //Helper.roundtrip(equipment, true);
-    //
-    //structEq([Sword({max:100}), Shield({armor:50})], tink.Json.parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "armor": 50 }]'));
+    Helper.roundtrip(equipment, true);
+    
+    structEq([Sword({max:100}), Shield({armor:50})], tink.Json.parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "armor": 50 }]'));
     
     Helper.roundtrip([
       Rgb(128, 100, 80), 
@@ -175,6 +177,16 @@ class ParserTest extends TestCase {
       bytes: bytes([for (i in 0...0x100) i])
     }, true);
     
+    var my:MyAbstract = new MyAbstract(Vector.fromArrayCopy([1, 2, 3, 4]));
+    var upper:UpperCase = 'test';
+    var fakeUpper:UpperCase = cast 'test';
+    
+    Helper.roundtrip({
+      test: new Test('foo'),
+      my: my,
+      upper: upper,
+      fakeUpper: fakeUpper,
+    });
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {
@@ -250,4 +262,42 @@ class ParserTest extends TestCase {
         throw 'not implemented';
     }
   }  
+  
+}
+
+abstract Test(String) {
+  
+  public function new(s)
+    this = s;
+  
+  @:to function toRepresentation():Representation<String> 
+    return new Representation(this);
+    
+  @:from static function ofRepresentation(r:Representation<String>):Test
+    return new Test(r.get());
+}
+
+abstract UpperCase(String) {
+  
+  inline function new(v) this = v;
+  
+  @:to function toRepresentation():Representation<String> 
+    return new Representation(this);
+    
+  @:from static function ofRepresentation(rep:Representation<String>)
+    return new UpperCase(rep.get());
+  
+  @:from static function ofString(s:String)
+    return new UpperCase(s.toUpperCase());
+}
+
+abstract MyAbstract(Vector<Int>) {
+  
+  public inline function new(vec) this = vec;
+  
+  @:from static function ofRepresentation(rep:Representation<Array<Int>>)
+    return new MyAbstract(Vector.fromArrayCopy(rep.get()));
+  
+  @:to function toRepresentation():Representation<Array<Int>> 
+    return new Representation(this.toArray());
 }

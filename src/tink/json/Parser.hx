@@ -4,7 +4,7 @@ using StringTools;
 using tink.CoreApi;
 
 #if !macro
-@:genericBuild(tink.json.Macro.buildParser())
+@:genericBuild(tink.json.macros.Macro.buildParser())
 #end
 class Parser<T> {
   
