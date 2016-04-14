@@ -11,8 +11,8 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Support for Date and Bytes. Faster parser.",
-	"version": "0.1.0",
+	"releasenote": "Support for custom abstracts.",
+	"version": "0.2.0",
 	"dependencies": {
 		"tink_typecrawler": ""
 	}
