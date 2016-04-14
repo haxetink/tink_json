@@ -237,7 +237,7 @@ class ParserTest extends TestCase {
         var expected:Date = cast expected,
             found:Date = cast found;
         
-        if (expected.getTime() % 3600000 != found.getTime() % 3600000)//python seems to mess up time zones ... -.-
+        if (expected.getSeconds() != found.getSeconds() || expected.getMinutes() != found.getMinutes())//python seems to mess up time zones and other stuff too ... -.-
           fail('expected $expected but found $found');    
       case TClass(Bytes):
         
