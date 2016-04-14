@@ -1,7 +1,6 @@
 package;
 
 import haxe.Constraints.IMap;
-import haxe.ds.Vector;
 import haxe.io.Bytes;
 import haxe.PosInfos;
 import haxe.unit.TestCase;
@@ -177,7 +176,7 @@ class ParserTest extends TestCase {
       bytes: bytes([for (i in 0...0x100) i])
     }, true);
     
-    var my:MyAbstract = new MyAbstract(Vector.fromArrayCopy([1, 2, 3, 4]));
+    var my:MyAbstract = new MyAbstract([1, 2, 3, 4]);
     var upper:UpperCase = 'test';
     var fakeUpper:UpperCase = cast 'test';
     
@@ -291,13 +290,13 @@ abstract UpperCase(String) {
     return new UpperCase(s.toUpperCase());
 }
 
-abstract MyAbstract(Vector<Int>) {
+abstract MyAbstract(Iterable<Int>) {
   
   public inline function new(vec) this = vec;
   
   @:from static function ofRepresentation(rep:Representation<Array<Int>>)
-    return new MyAbstract(Vector.fromArrayCopy(rep.get()));
+    return new MyAbstract(rep.get());
   
   @:to function toRepresentation():Representation<Array<Int>> 
-    return new Representation(this.toArray());
+    return new Representation(Lambda.array(this));
 }
