@@ -186,6 +186,8 @@ class ParserTest extends TestCase {
       upper: upper,
       fakeUpper: fakeUpper,
     });
+    
+    tink.Json.stringify(new Fruit('apple', .2));
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {
@@ -262,6 +264,15 @@ class ParserTest extends TestCase {
     }
   }  
   
+}
+
+class Fruit {
+  public var name(default, null):String;
+  public var weight(default, null):Float;
+  public function new(name, weight) {
+    this.name = name;
+    this.weight = weight;
+  }
 }
 
 abstract Test(String) {

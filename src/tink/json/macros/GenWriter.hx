@@ -1,5 +1,6 @@
 package tink.json.macros;
 
+import haxe.ds.Option;
 import haxe.macro.Type;
 import haxe.macro.Expr;
 import tink.typecrawler.FieldInfo;
@@ -62,12 +63,17 @@ class GenWriter {
     
   static public function anon(fields:Array<FieldInfo>, ct) 
     return (macro function (value:$ct) {
-      var open = '{';
+      //var open = '{';
       $b{[for (f in fields) {
         var name = f.name;
+        var field = (
+          if (f == fields[0]) '{'
+          else ','
+        ) + '"$name":';
+        
         macro {
-          this.output('${if (f == fields[0]) "$open" else ","}"$name":');
-          var value = value.$name;
+          this.output($v{field});
+          var value = @:privateAccess value.$name;
           ${f.expr};
         }
       }]};
@@ -174,22 +180,50 @@ class GenWriter {
       this.char('}'.code);
     }
     
-  static public function rescue(t:Type, pos:Position, gen:GenType) 
-    return switch Macro.getRepresentation(t, pos) {
-      case Some(v):
+  static public function rescue(t:Type, pos:Position, gen:GenType):Option<Expr>
+    return 
+      switch t.reduce() {
         
-        var ct = v.toComplex();
+        case TInst(_.get() => { isInterface: true }, _):
+          
+          pos.error('Interfaces cannot be stringified. ');
         
-        Some(macro @:pos(pos) {
-          var value = (value : tink.json.Representation<$ct>).get();
-          ${gen(v, pos)};
-        });
-        
-      default:
-        
-        None;
-    }        
-    
+        case TInst(_.get() => cl, params):
+          
+          var a = new Array<FieldInfo>();
+          
+          for (f in cl.fields.get()) 
+            if (Macro.shouldSerialize(f)) {
+              var ft = f.type.applyTypeParameters(cl.params, params);
+              a.push({
+                name: f.name,
+                type: ft,
+                expr: gen(ft, f.pos),
+                optional: false,
+                pos: f.pos
+              });
+            }
+          
+          Some(anon(a, t.toComplex()).expr);
+          
+        default:
+          
+          switch Macro.getRepresentation(t, pos) {
+            case Some(v):
+              
+              var ct = v.toComplex();
+              
+              Some(macro @:pos(pos) {
+                var value = (value : tink.json.Representation<$ct>).get();
+                ${gen(v, pos)};
+              });
+              
+            default:
+              
+              None;
+          }                  
+      }    
+      
   static public function reject(t:Type) 
     return 'Cannot stringify ${t.toString()}';
 }

@@ -120,7 +120,7 @@ class GenReader {
       }
         
       function __missing__(field:String):Dynamic {
-        return this.die('missing ' + field);
+        return this.die('missing field "' + field + '"', __start__);
       }
       
       $b{checks};
@@ -282,10 +282,19 @@ class GenReader {
     return switch Macro.getRepresentation(t, pos) {
       case Some(v):
         
+        var rt = t.toComplex();
         var ct = v.toComplex();
         
         Some(macro @:pos(pos) {
-          new tink.json.Representation<$ct>(${gen(v, pos)});
+          var __start__ = this.pos,
+              rep = ${gen(v, pos)};
+              
+          try {
+            (new tink.json.Representation<$ct>(rep) : $rt);
+          }
+          catch (e:Dynamic) {
+            this.die(Std.string(e), __start__);
+          }
         });
         
       default:

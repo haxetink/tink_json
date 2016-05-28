@@ -201,11 +201,36 @@ class BasicParser {
   function invalidChar(c:Int) 
     return die('invalid char ${c.hex(2)}', pos - 1);
 
-  function die(s:String, ?pos:Int):Dynamic {
-    if (pos == null)
-      pos = this.pos;
+  function die(s:String, ?pos:Int, ?end:Int):Dynamic {
+    if (pos == null) {
+      end = pos = this.pos;
+    }
+    else if (end == null)
+      end = this.pos;
+    
+    if (end <= pos) 
+      end = pos + 1;
       
-    return new Error('#pos: $pos'+s).throwSelf();
+    var range = 
+      if (end > pos + 1) 'characters $pos - $end';
+      else 'character $pos';
+    
+    function clip(s:String, maxLength:Int, left:Bool)
+      return 
+        if (s.length > maxLength) 
+          if (left)
+            '... ' + s.substr(s.length - maxLength);
+          else
+            s.substr(0, s.length) + ' ...';
+        else 
+          s;
+            
+    var center = (pos + end) >> 1;
+    //trace(source);
+    //trace(pos);
+    var context = clip(source.substring(0, pos), 20, true) + '  ---->  ' + clip(source.substring(pos, center), 20, false) + clip(source.substring(center, end), 20, true) + '  <----  ' + clip(source.substring(end), 20, false);
+            
+    return Error.withData(UnprocessableEntity, s+' at $range in $context', { source: source, start: pos, end: end }).throwSelf();
   }
   #end
   

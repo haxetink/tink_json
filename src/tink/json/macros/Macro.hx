@@ -117,6 +117,15 @@ class Macro {
       }
   }
   
+  static public function shouldSerialize(f:ClassField) 
+    return 
+      !f.meta.has(':transient') 
+      && switch f.kind {
+        case FVar(AccNever | AccCall, AccNever | AccCall):
+          f.meta.has(':isVar');
+        case FVar(_, _): true;
+        default: false;
+      }  
 }
 
 @:forward

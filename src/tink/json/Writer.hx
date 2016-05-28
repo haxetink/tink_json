@@ -1,6 +1,6 @@
 package tink.json;
-import haxe.Utf8;
 
+import haxe.Utf8;
 @:genericBuild(tink.json.macros.Macro.buildWriter())
 class Writer<T> {
 }
@@ -47,3 +47,18 @@ class BasicWriter {
   }
   
 }
+
+#if js
+@:forward(toString)
+private abstract StringBuf(String) {
+  
+  public inline function new() 
+    this = '';
+    
+  public inline function addChar(c) 
+    this += String.fromCharCode(c);
+    
+  public inline function add(s:String)
+    this += s;
+}
+#end
