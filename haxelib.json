@@ -11,8 +11,8 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Support for custom abstracts.",
-	"version": "0.2.0",
+	"releasenote": "Improve position tracking.",
+	"version": "0.2.1",
 	"dependencies": {
 		"tink_typecrawler": ""
 	}
