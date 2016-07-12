@@ -11,8 +11,8 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Improve position tracking.",
-	"version": "0.2.1",
+	"releasenote": "Fix error position.",
+	"version": "0.2.2",
 	"dependencies": {
 		"tink_typecrawler": ""
 	}
