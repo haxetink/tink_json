@@ -11,8 +11,10 @@ class RunTests {
   static function main() {
     var t = new TestRunner();
     t.add(new ParserTest());
-    if (!t.run())
-      Sys.exit(500);
+    Sys.exit(
+      if (t.run()) 0
+      else 500
+    );
   }
   
 }
