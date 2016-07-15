@@ -11,8 +11,8 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Fix error position.",
-	"version": "0.2.2",
+	"releasenote": "Fix error reporting for invalid numbers.",
+	"version": "0.2.3",
 	"dependencies": {
 		"tink_typecrawler": ""
 	}
