@@ -26,12 +26,18 @@ private class SliceData {
 @:forward
 private abstract JsonString(SliceData) from SliceData {
 
+  function contains(s:String)
+    return switch this.source.indexOf(s, this.min) {
+      case -1: false;
+      case outside if (outside > this.max): false;
+      case v: true;
+    }
+  
   public function toString():String 
-    return 
-      if (this.source.indexOf('\\') == -1)
-        get();
-      else
-        haxe.format.JsonParser.parse(this.source.substring(this.min-1, this.max+1));
+    return
+      if (contains('\\')) 
+        haxe.format.JsonParser.parse(this.source.substring(this.min - 1, this.max + 1));
+      else get();
   
   public inline function get() 
     return this.source.substring(this.min, this.max);
@@ -105,52 +111,52 @@ class BasicParser {
   function parseNumber():JsonString 
     return slice(skipNumber(source.fastCodeAt(pos++)), pos);
 
-	function invalidNumber( start : Int )
-		return die("Invalid number ${str.substr(start, pos - start)}", start);
+  function invalidNumber( start : Int )
+    return die('Invalid number ${source.substring(start, pos)}', start);
     
   function skipNumber(c:Int) {
     //ripped shamelessly from haxe.format.JsonParser
     var start = pos - 1;
-		var minus = c == '-'.code, digit = !minus, zero = c == '0'.code;
-		var point = false, e = false, pm = false, end = false;
-		while( true ) {
-			c = nextChar();
-			switch( c ) {
-				case '0'.code :
-					if (zero && !point) invalidNumber(start);
-					if (minus) {
-						minus = false; zero = true;
-					}
-					digit = true;
-				case '1'.code,'2'.code,'3'.code,'4'.code,'5'.code,'6'.code,'7'.code,'8'.code,'9'.code :
-					if (zero && !point) invalidNumber(start);
-					if (minus) minus = false;
-					digit = true; zero = false;
-				case '.'.code :
-					if (minus || point) invalidNumber(start);
-					digit = false; point = true;
-				case 'e'.code, 'E'.code :
-					if (minus || zero || e) invalidNumber(start);//from my understanding of the spec on json.org 0e4 is a valid number
-					digit = false; e = true;
-				case '+'.code, '-'.code :
-					if (!e || pm) invalidNumber(start);
-					digit = false; pm = true;
-				default :
-					if (!digit) invalidNumber(start);
-					pos--;
-					end = true;
-			}
-			if (end) break;
-		}
+    var minus = c == '-'.code, digit = !minus, zero = c == '0'.code;
+    var point = false, e = false, pm = false, end = false;
+    while( true ) {
+      c = nextChar();
+      switch( c ) {
+        case '0'.code :
+          if (zero && !point) invalidNumber(start);
+          if (minus) {
+            minus = false; zero = true;
+          }
+          digit = true;
+        case '1'.code,'2'.code,'3'.code,'4'.code,'5'.code,'6'.code,'7'.code,'8'.code,'9'.code :
+          if (zero && !point) invalidNumber(start);
+          if (minus) minus = false;
+          digit = true; zero = false;
+        case '.'.code :
+          if (minus || point) invalidNumber(start);
+          digit = false; point = true;
+        case 'e'.code, 'E'.code :
+          if (minus || zero || e) invalidNumber(start);//from my understanding of the spec on json.org 0e4 is a valid number
+          digit = false; e = true;
+        case '+'.code, '-'.code :
+          if (!e || pm) invalidNumber(start);
+          digit = false; pm = true;
+        default :
+          if (!digit) invalidNumber(start);
+          pos--;
+          end = true;
+      }
+      if (end) break;
+    }
     return start;
   }
   
   function slice(from, to):JsonString
     return new SliceData(this.source, from, to);
-	
+  
   inline function nextChar() 
-		return source.fastCodeAt(pos++);
-	    
+    return source.fastCodeAt(pos++);
+      
   function skipValue() 
     switch nextChar() {
       case '{'.code:
