@@ -1,9 +1,9 @@
 package tink.json;
 
 import haxe.Utf8;
+
 @:genericBuild(tink.json.macros.Macro.buildWriter())
-class Writer<T> {
-}
+class Writer<T> {}
 
 class BasicWriter {
   var buf:StringBuf;
@@ -46,6 +46,43 @@ class BasicWriter {
     char('"'.code);
   }
   
+  function writeValue(value:Value)
+    switch value {
+      case VNumber(f): writeFloat(f);
+      case VString(s): writeString(s);
+      case VNull: output('null');
+      case VBool(b): output(if (b) 'true' else 'false');
+      case VArray([]): output('[]');
+    case VArray(a): 
+        
+        char('['.code);
+        writeValue(a[0]);
+        
+        for (i in 1...a.length) {
+          char(','.code);
+          writeValue(a[i]);
+        }
+        char(']'.code);
+        
+      case VObject([]): output('{}');
+      case VObject(a):
+      
+        char('['.code);
+        
+        inline function write(p:tink.core.Named<Value>) {
+          writeString(p.name);
+          char(':'.code);
+          writeValue(p.value);
+        }
+        
+        for (i in 1...a.length) {
+          char(','.code);
+          write(a[i]);
+        }
+        
+        char(']'.code);      
+      
+    }
 }
 
 #if js

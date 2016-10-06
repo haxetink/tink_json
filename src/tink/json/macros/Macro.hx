@@ -84,7 +84,7 @@ class Macro {
     
     function add(t:TypeDefinition)
       cl.fields = cl.fields.concat(t.fields);
-
+    
     add(macro class { 
       public function write(value:$ct):String {
         this.init();
