@@ -149,7 +149,7 @@ class GenWriter {
           },
         });            
     }
-    return ESwitch(macro value, cases, null).at();
+    return ESwitch(macro (value:$ct), cases, null).at();
   }
   
   static public function dyn(e, ct) 
