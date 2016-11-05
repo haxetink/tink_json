@@ -65,12 +65,7 @@ class GenReader {
     for (f in fields) {
       var ct = f.type.reduce().toComplex(),
           name = f.name,
-          jsonName = switch f.meta.filter(function (m) return m.name == ':json') {
-            case []: f.name;
-            case [{ params: [name] }]: name.getName().sure();
-            case [v]: v.pos.error('@:json must have exactly one parameter');
-            case v: v[1].pos.error('duplicate @:json metadata not allowed on a single field');
-          },
+          jsonName = Macro.nativeName(f),
           optional = f.optional;
          
       read = macro @:pos(f.pos) 

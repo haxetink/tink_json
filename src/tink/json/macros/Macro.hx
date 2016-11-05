@@ -4,15 +4,23 @@ import haxe.macro.Context;
 import haxe.macro.Expr;
 import haxe.macro.Type;
 import haxe.ds.Option;
-import tink.typecrawler.Crawler;
-import tink.json.macros.GenReader;
-import tink.json.macros.GenWriter;
+
+import tink.typecrawler.*;
 
 using haxe.macro.Tools;
 using tink.MacroApi;
 
 class Macro {
     
+  static public function nativeName(f:FieldInfo)
+    return
+      switch f.meta.filter(function (m) return m.name == ':json') {
+        case []: f.name;
+        case [{ params: [name] }]: name.getName().sure();
+        case [v]: v.pos.error('@:json must have exactly one parameter');
+        case v: v[1].pos.error('duplicate @:json metadata not allowed on a single field');
+      }    
+  
   static function getType(name) 
     return 
       switch Context.getLocalType() {

@@ -68,7 +68,7 @@ class GenWriter {
         var field = (
           if (f == fields[0]) '{'
           else ','
-        ) + '"$name":';
+        ) + '"${Macro.nativeName(f)}":';
         
         macro {
           this.output($v{field});
