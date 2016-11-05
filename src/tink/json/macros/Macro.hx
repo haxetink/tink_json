@@ -4,6 +4,7 @@ import haxe.macro.Context;
 import haxe.macro.Expr;
 import haxe.macro.Type;
 import haxe.ds.Option;
+import tink.macro.BuildCache;
 
 import tink.typecrawler.*;
 
@@ -31,15 +32,12 @@ class Macro {
       }      
 
   static public function buildParser():Type
-    return parserForType(getType('tink.json.Parser'));
-  
-  static var parserCounter = 0;
-  static function parserForType(t:Type):Type {
+    return BuildCache.getType('tink.json.Parser', parser);
     
-    var name = 'JsonParser${parserCounter++}',
-        ct = t.toComplex(),
-        pos = Context.currentPos();
-    
+  static function parser(ctx:BuildContext):TypeDefinition {
+    var name = ctx.name,
+        ct = ctx.type.toComplex();
+        
     var cl = macro class $name extends tink.json.Parser.BasicParser {
       public function new() {}
     } 
@@ -47,7 +45,7 @@ class Macro {
     function add(t:TypeDefinition)
       cl.fields = cl.fields.concat(t.fields);
       
-    var ret = Crawler.crawl(t, pos, GenReader);
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader);
     
     cl.fields = cl.fields.concat(ret.fields);  
     
@@ -59,27 +57,22 @@ class Macro {
       public function tryParse(source)
         return tink.core.Error.catchExceptions(function () return parse(source));
     });
-        
-    Context.defineType(cl);
     
-    return Context.getType(name);    
+    return cl;
   }
-  
-  static public function buildWriter():Type
-    return writerForType(getType('tink.json.Writer'));
-      
-  static var writerCounter = 0;
-  static function writerForType(t:Type):Type {
     
-    var name = 'JsonWriter${writerCounter++}',
-        ct = t.toComplex(),
-        pos = Context.currentPos();
+  static public function buildWriter():Type
+    return BuildCache.getType('tink.json.Writer', writer);
+      
+  static function writer(ctx:BuildContext):TypeDefinition {
+    var name = ctx.name,
+        ct = ctx.type.toComplex();
     
     var cl = macro class $name extends tink.json.Writer.BasicWriter {
       public function new() {}
     } 
     
-    var ret = Crawler.crawl(t, pos, GenWriter);
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenWriter);
     
     cl.fields = cl.fields.concat(ret.fields);
     
@@ -94,9 +87,7 @@ class Macro {
       }
     });
     
-    Context.defineType(cl);
-    
-    return Context.getType(name);    
+    return cl;
   }
   
   static public function getRepresentation(t:Type, pos:Position) {

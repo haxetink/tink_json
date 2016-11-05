@@ -8,6 +8,7 @@ import haxe.unit.TestStatus;
 import tink.core.Error;
 import tink.json.Parser;
 import tink.json.Representation;
+import tink.json.Writer;
 
 typedef Foo = { foo:Float, bar:Array<{ flag: Bool, ?buzz:Array<{ word: String }> }> };
 typedef Cons<T> = Null<{
@@ -38,6 +39,28 @@ enum Item {
 }
 
 class ParserTest extends TestCase {
+  
+  function testCache() {
+    var w1 = new Writer<Array<String>>();
+    var w2 = new Writer<Array<Int>>();
+    var w3 = new Writer<Array<String>>();
+    
+    assertFalse(w1 == w3);
+    
+    function cls(v:Any):Dynamic
+      return Type.getClass(v);
+      
+    assertFalse(cls(w1) == cls(w2));
+    assertEquals(cls(w1), cls(w3));
+    
+    var p1 = new Parser<Array<String>>();
+    var p2 = new Parser<Array<Int>>();
+    var p3 = new Parser<Array<String>>();
+   
+    assertFalse(p1 == p3);
+    assertFalse(cls(p1) == cls(p2));
+    assertEquals(cls(p1), cls(p3));
+  }
   
   function bytes(a:Array<Int>) {
     var ret = Bytes.alloc(a.length);
