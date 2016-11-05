@@ -14,9 +14,9 @@ using tink.MacroApi;
 class GenReader {
   static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
   
-  static public function args() 
-    return [];
-    
+  static public function wrap(placeholder:Expr, ct:ComplexType):Function
+    return placeholder.func(ct);
+        
   static public function nullable(e) 
     return macro 
       if (this.allow('null')) null;
@@ -65,10 +65,16 @@ class GenReader {
     for (f in fields) {
       var ct = f.type.reduce().toComplex(),
           name = f.name,
+          jsonName = switch f.meta.filter(function (m) return m.name == ':json') {
+            case []: f.name;
+            case [{ params: [name] }]: name.getName().sure();
+            case [v]: v.pos.error('@:json must have exactly one parameter');
+            case v: v[1].pos.error('duplicate @:json metadata not allowed on a single field');
+          },
           optional = f.optional;
          
       read = macro @:pos(f.pos) 
-        if (__name__ == $v{name}) {
+        if (__name__ == $v{jsonName}) {
           @:privateAccess (__ret.$name = ${f.expr});
           ${
             if (optional) macro $b{[]}
@@ -98,12 +104,12 @@ class GenReader {
           name: name,
           expr: macro false,
         });
-        checks.push(macro if (!$i{name})  __missing__($v{f.name}));
+        checks.push(macro if (!$i{name})  __missing__($v{jsonName}));
       }
       
     };
         
-    return (macro function ():$ct {
+    return macro {
       
       ${EVars(vars).at()};
       var __ret:$ct = ${EObjectDecl(obj).at()};
@@ -124,8 +130,8 @@ class GenReader {
       }
       
       $b{checks};
-      return __ret;
-    }).getFunction().sure();
+      __ret;
+    };
   }  
   
   static public function array(e) 
@@ -158,6 +164,7 @@ class GenReader {
           name: f.name,
           optional: true,
           type: f.type,
+          meta: f.meta,
           expr: f.expr,
           pos: f.pos,
         } 

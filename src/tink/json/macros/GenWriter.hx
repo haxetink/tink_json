@@ -10,8 +10,8 @@ using haxe.macro.Tools;
 using tink.MacroApi;
 
 class GenWriter {
-  static public function args() 
-    return ['value'];
+  static public function wrap(placeholder:Expr, ct:ComplexType):Function
+    return placeholder.func(['value'.toArg(ct)], false);
     
   static public function nullable(e) 
     return macro if (value == null) this.output('null') else $e;
@@ -62,8 +62,7 @@ class GenWriter {
     }
     
   static public function anon(fields:Array<FieldInfo>, ct) 
-    return (macro function (value:$ct) {
-      //var open = '{';
+    return macro {
       $b{[for (f in fields) {
         var name = f.name;
         var field = (
@@ -78,7 +77,7 @@ class GenWriter {
         }
       }]};
       char('}'.code);
-    }).getFunction().sure();
+    };
     
   static public function array(e) 
     return macro {
@@ -197,6 +196,7 @@ class GenWriter {
               var ft = f.type.applyTypeParameters(cl.params, params);
               a.push({
                 name: f.name,
+                meta: f.meta.get(),
                 type: ft,
                 expr: gen(ft, f.pos),
                 optional: false,
@@ -204,7 +204,7 @@ class GenWriter {
               });
             }
           
-          Some(anon(a, t.toComplex()).expr);
+          Some(anon(a, t.toComplex()));
           
         default:
           

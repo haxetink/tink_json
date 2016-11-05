@@ -11,13 +11,6 @@ import tink.json.macros.GenWriter;
 using haxe.macro.Tools;
 using tink.MacroApi;
 
-private typedef FieldInfo = {
-  name:String,
-  pos:Position,
-  type:Type,
-  optional:Bool
-}
-
 class Macro {
     
   static function getType(name) 
@@ -126,10 +119,4 @@ class Macro {
         case FVar(_, _): true;
         default: false;
       }  
-}
-
-@:forward
-private abstract HasName(String) from String to String {
-  @:from static function fieldInfo(f:FieldInfo):HasName
-    return f.name;
 }
