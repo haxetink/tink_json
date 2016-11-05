@@ -10,6 +10,8 @@ import tink.json.Parser;
 import tink.json.Representation;
 import tink.json.Writer;
 
+using tink.CoreApi;
+
 typedef Foo = { foo:Float, bar:Array<{ flag: Bool, ?buzz:Array<{ word: String }> }> };
 typedef Cons<T> = Null<{
   head:T,
