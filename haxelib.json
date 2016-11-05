@@ -11,8 +11,8 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Fix error reporting for invalid numbers.",
-	"version": "0.2.3",
+	"releasenote": "Support for different field names. Cache generated parsers/writers.",
+	"version": "0.3.0",
 	"dependencies": {
 		"tink_typecrawler": ""
 	}
