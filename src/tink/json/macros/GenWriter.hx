@@ -126,7 +126,7 @@ class GenWriter {
           else [for (f in cfields) macro $i{f.name}];
         
         cases.push({
-          values: [macro @:pos(c.pos) $i{name}($a{args})],
+          values: [macro @:pos(c.pos) ${args.length == 0 ? macro $i{name} : macro $i{name}($a{args})}],
           expr: macro {
             this.output($v{prefix});
             $b{[for (f in cfields) {
