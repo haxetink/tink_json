@@ -233,7 +233,10 @@ class GenReader {
             if (inlined) [EObjectDecl([for (f in cfields) { field: f.name, expr: macro ${captured(f.name)} }]).at(pos)];
             else [for (f in cfields) macro ${captured(f.name)}];
           
-          var call = macro ($i{name}($a{args}) : $ct);
+          var call = switch args {
+            case []: macro ($i{name} : $ct);
+            case _: macro ($i{name}($a{args}) : $ct);
+          }
           
           cases.push({
             values: [EObjectDecl(pat).at()],
