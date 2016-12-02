@@ -7,6 +7,16 @@ class Benchmark {
     testPerformance();
   }
   
+  static function println(s:String) {
+    #if (sys || nodejs)
+      Sys.println(s);
+    #elseif js
+      js.Browser.console.log(s);
+    #else
+      trace(s);
+    #end
+  }
+  
   static function measure(f:Void->Void) {
     function stamp()
       return
@@ -44,6 +54,8 @@ class Benchmark {
         'python';
       #elseif nodejs
         'nodejs';
+      #elseif js
+        'js';
       #elseif flash
         'flash';
       #elseif php
@@ -97,6 +109,6 @@ class Benchmark {
     function clamp(f:Float)
       return Std.int(f * 100) / 100;
     
-    Sys.println('| $platform | ${clamp(haxeStringify / tinkStringify)} | ${clamp(haxeParse / tinkParse)} |');
+    println('| $platform | ${clamp(haxeStringify / tinkStringify)} | ${clamp(haxeParse / tinkParse)} |');
   }  
 }
