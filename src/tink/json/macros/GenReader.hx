@@ -12,35 +12,38 @@ using haxe.macro.Tools;
 using tink.MacroApi;
 
 class GenReader {
+  static public var inst = new GenReader();
+  
+  function new() {}
   static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
   
-  static public function wrap(placeholder:Expr, ct:ComplexType):Function
+  public function wrap(placeholder:Expr, ct:ComplexType):Function
     return placeholder.func(ct);
         
-  static public function nullable(e) 
+  public function nullable(e) 
     return macro 
       if (this.allow('null')) null;
       else $e;
     
-  static public function string() 
+  public function string() 
     return macro (this.parseString().toString() : String);
     
-  static public function int() 
+  public function int() 
     return macro this.parseNumber().toInt();
     
-  static public function float() 
+  public function float() 
     return macro this.parseNumber().toFloat();
     
-  static public function bool() 
+  public function bool() 
     return macro this.parseBool();
     
-  static public function date() 
+  public function date() 
     return macro Date.fromTime(this.parseNumber().toFloat());
     
-  static public function bytes() 
+  public function bytes() 
     return macro haxe.crypto.Base64.decode(this.parseString().toString());
     
-  static public function map(k, v)               
+  public function map(k, v)               
     return macro {
       this.expect('[');
       var __ret = new Map();
@@ -55,7 +58,7 @@ class GenReader {
       __ret;
     }
     
-  static public function anon(fields:Array<FieldInfo>, ct) {
+  public function anon(fields:Array<FieldInfo>, ct) {
     
     var read = macro this.skipValue(),
         vars:Array<Var> = [],
@@ -70,7 +73,9 @@ class GenReader {
          
       read = macro @:pos(f.pos) 
         if (__name__ == $v{jsonName}) {
+          
           @:privateAccess (__ret.$name = ${f.expr});
+            
           ${
             if (optional) macro $b{[]}
             else macro $i{name} = true
@@ -129,7 +134,7 @@ class GenReader {
     };
   }  
   
-  static public function array(e) 
+  public function array(e) 
     return macro {
       this.expect('[');
       var __ret = [];
@@ -142,7 +147,7 @@ class GenReader {
       __ret;
     }
     
-  static public function enm(constructors:Array<EnumConstructor>, ct, pos:Position, gen:GenType) {
+  public function enm(constructors:Array<EnumConstructor>, ct, pos:Position, gen:GenType) {
     var fields = new Map<String, LiteInfo>(),
         cases = new Array<Case>();
         
@@ -264,10 +269,10 @@ class GenReader {
     }
   }
   
-  static public function dyn(e, ct) 
+  public function dyn(e, ct) 
     return macro ($e : Dynamic<$ct>);
     
-  static public function dynAccess(e)
+  public function dynAccess(e)
     return macro {
       this.expect('{');
       var __ret = new haxe.DynamicAccess();
@@ -280,30 +285,30 @@ class GenReader {
       __ret;
     }
     
-  static public function rescue(t:Type, pos:Position, gen:GenType) 
-    return switch Macro.getRepresentation(t, pos) {
-      case Some(v):
-        
-        var rt = t.toComplex();
-        var ct = v.toComplex();
-        
-        Some(macro @:pos(pos) {
-          var __start__ = this.pos,
-              rep = ${gen(v, pos)};
-              
-          try {
-            (new tink.json.Representation<$ct>(rep) : $rt);
-          }
-          catch (e:Dynamic) {
-            this.die(Std.string(e), __start__);
-          }
-        });
-        
-      default:
-        None;
-    } 
+  public function rescue(t:Type, pos:Position, gen:GenType) 
+    return 
+      switch Macro.getRepresentation(t, pos) {
+        case Some(v):
+          var rt = t.toComplex();
+          var ct = v.toComplex();
+          
+          Some(macro @:pos(pos) {
+            var __start__ = this.pos,
+                rep = ${gen(v, pos)};
+                
+            try {
+              (new tink.json.Representation<$ct>(rep) : $rt);
+            }
+            catch (e:Dynamic) {
+              this.die(Std.string(e), __start__);
+            }
+          });
+          
+        default:
+          None;
+      }
     
-  static public function reject(t:Type) 
+  public function reject(t:Type) 
     return 'Cannot parse ${t.toString()}';
 }
 

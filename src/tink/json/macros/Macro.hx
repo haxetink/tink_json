@@ -45,7 +45,7 @@ class Macro {
     function add(t:TypeDefinition)
       cl.fields = cl.fields.concat(t.fields);
       
-    var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader);
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader.inst);
     
     cl.fields = cl.fields.concat(ret.fields);  
     
