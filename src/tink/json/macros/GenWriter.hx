@@ -62,22 +62,25 @@ class GenWriter {
     }
     
   static public function anon(fields:Array<FieldInfo>, ct) 
-    return macro {
-      $b{[for (f in fields) {
-        var name = f.name;
-        var field = (
-          if (f == fields[0]) '{'
-          else ','
-        ) + '"${Macro.nativeName(f)}":';
-        
-        macro {
-          this.output($v{field});
-          var value = @:privateAccess value.$name;
-          ${f.expr};
-        }
-      }]};
-      char('}'.code);
-    };
+    return if(fields.length == 0)
+      macro this.output('{}');
+    else
+      macro {
+        $b{[for (f in fields) {
+          var name = f.name;
+          var field = (
+            if (f == fields[0]) '{'
+            else ','
+          ) + '"${Macro.nativeName(f)}":';
+          
+          macro {
+            this.output($v{field});
+            var value = @:privateAccess value.$name;
+            ${f.expr};
+          }
+        }]};
+        this.char('}'.code);
+      };
     
   static public function array(e) 
     return macro {
@@ -125,7 +128,7 @@ class GenWriter {
           else [for (f in cfields) macro $i{f.name}];
         
         cases.push({
-          values: [macro @:pos(c.pos) $i{name}($a{args})],
+          values: [macro @:pos(c.pos) ${args.length == 0 ? macro $i{name} : macro $i{name}($a{args})}],
           expr: macro {
             this.output($v{prefix});
             $b{[for (f in cfields) {

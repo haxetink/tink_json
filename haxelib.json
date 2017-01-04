@@ -15,5 +15,6 @@
 	"version": "0.3.0",
 	"dependencies": {
 		"tink_typecrawler": ""
-	}
+	},
+	"url": "http://haxetink.org/tink_json"
 }
