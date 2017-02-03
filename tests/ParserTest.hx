@@ -92,7 +92,7 @@ class ParserTest extends TestCase {
     structEq( { foo: [ 'bar' => [4] ] }, { foo: [ 'bar' => [4] ] } );
     
     assertFailure(function () {
-      structEq( { foo: [ 'bar' => 4 ] }, { foo: [ 'bar' => 5 ] } );
+      structEq( { foo: [ "ba'r" => 4 ] }, { foo: [ "ba'r" => 5 ] } );
     });
         
     structEq( { foo: [ 'bar' => [Staff(400, 20)] ] }, { foo: [ 'bar' => [Staff(400, 20)] ] } );
