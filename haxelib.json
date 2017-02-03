@@ -11,10 +11,10 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Support for different field names. Cache generated parsers/writers.",
-	"version": "0.3.0",
+	"releasenote": "Fix various writer bugs.",
+	"version": "0.3.1",
+	"url": "http://haxetink.org/tink_json",
 	"dependencies": {
 		"tink_typecrawler": ""
-	},
-	"url": "http://haxetink.org/tink_json"
+	}
 }
