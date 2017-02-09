@@ -15,7 +15,7 @@ class WriterTest extends TestCase {
   function testBackSlash() {
     var data:{key:String} = {key: '\\s'};
     var s = tink.Json.stringify(data);
-    assertEquals('{"key":"\\\\s"}', tink.Json.stringify(data));
+    assertEquals('{"key":"\\\\s"}', s);
     data = tink.Json.parse(s);
     assertEquals('\\s', data.key);
   }
