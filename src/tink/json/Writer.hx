@@ -39,6 +39,7 @@ class BasicWriter {
           case '\r'.code: output('\\r');
           case '\t'.code: output('\\t');
           case '\"'.code: output('\\"');
+          case '\\'.code: output('\\\\');
           case v: char(v);
         }
     });
