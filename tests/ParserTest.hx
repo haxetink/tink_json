@@ -42,6 +42,13 @@ enum Item {
 
 class ParserTest extends TestCase {
   
+  function testNuances() {
+    var r = new Parser<{ optional: { ?foo: Int }, mandatory: { foo: Int }}>();
+    assertTrue(r.tryParse('{ "optional": {}, "mandatory": { "foo" : 5 } }').isSuccess());
+    assertTrue(r.tryParse('{ "optional": { "foo": 5 }, "mandatory": { "foo" : 5 } }').isSuccess());
+    assertFalse(r.tryParse('{ "optional": { "foo": 5 }, "mandatory": {} }').isSuccess());
+  }
+
   function testCache() {
     var w1 = new Writer<Array<String>>();
     var w2 = new Writer<Array<Int>>();
