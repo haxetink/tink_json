@@ -91,6 +91,9 @@ class Macro {
   }
   
   static public function getRepresentation(t:Type, pos:Position) {
+    
+    if(t.match(TMono(_))) return None;
+    
     var ct = t.toComplex();
     
     return
