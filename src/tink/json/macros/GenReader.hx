@@ -50,7 +50,7 @@ class GenReader {
       if (!allow(']')) {
         do {
           this.expect('[');
-          __ret[$k] = this.expect(',') + $v;
+          __ret[$k] = this.expect(',') & $v;
           this.expect(']');
         } while (allow(','));
         expect(']');
@@ -236,6 +236,8 @@ class GenReader {
           cfields = c.fields,
           c = c.ctor,
           name = c.name;
+
+      trace(cfields.length);
           
       switch c.meta.extract(':json') {
         case []:
@@ -320,7 +322,7 @@ class GenReader {
       var __ret = new haxe.DynamicAccess();
       if (!allow('}')) {
         do {
-          __ret[this.parseString().toString()] = expect(':') + $e;
+          __ret[this.parseString().toString()] = expect(':') & $e;
         } while (allow(','));
         expect('}');
       }    

@@ -77,10 +77,11 @@ class BasicParser {
     while (pos < max && source.fastCodeAt(pos) < 33) pos++;
   
   #if !macro
-  function parseString():JsonString {
-    expect('"');
+  function parseString():JsonString 
+    return expect('"') & parseRestOfString();
+
+  function parseRestOfString():JsonString
     return slice(skipString(), pos - 1);
-  }
   
   function skipString() {
     var start = pos;
@@ -275,7 +276,7 @@ class BasicParser {
 }
 
 abstract ContinueParsing(Dynamic) {
-  @:commutative @:op(a+b)
+  @:commutative @:op(a & b)
   @:extern static inline function then<A>(e:ContinueParsing, a:A):A 
     return a;
 }
