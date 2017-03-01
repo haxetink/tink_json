@@ -220,6 +220,11 @@ class ParserTest extends TestCase {
     });
     
     tink.Json.stringify(new Fruit('apple', .2));
+    
+    var o:Option<Int> = tink.Json.parse('{"None":{}}');
+    structEq(None, o);
+    var o:Option<Int> = tink.Json.parse('{"Some":{"v":1}}');
+    structEq(Some(1), o);
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {
