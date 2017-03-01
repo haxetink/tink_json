@@ -44,15 +44,18 @@ enum Color {
   Rgb(a:Int, b:Int, c:Int);
   Hsv(hsv:{ hue:Float, saturation:Float, value:Float });//notice the single argument with name equal to the constructor
   Hsl(value:{ hue:Float, saturation:Float, lightness:Float });
+  White;//no constructor
 }
 
 Rgb(0, 255, 128);
 Hsv({ hue: 0, saturation: 100, value: 100 });
 Hsl({ hue: 0, saturation: 100, lightness: 100 });
+White;
 //becomes
 { "Rgb": { "a": 0, "b": 255, "c": 128}}
 { "Hsv": { "hue": 0, "saturation": 100, "value": 100 }} //object gets "inlined" because it follows the above convention
 { "Hsl": { "value: { "hue": 0, "saturation": 100, "lightness": 100 } }}
+"White"
 ```
 
 This is nice in that it is a pretty readable and close to the original.
@@ -77,6 +80,7 @@ You can represent it like so:
 enum Item {
   @:json({ type: 'sword' }) Sword(damage:Int);
   @:json({ type: 'shield' }) Shield(armor:Int);
+  @:json("junk") Junk; //<-- special case for argumentless constructors
 }
 ```
 

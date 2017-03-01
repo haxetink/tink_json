@@ -10,6 +10,7 @@ import tink.typecrawler.Generator;
 
 using haxe.macro.Tools;
 using tink.MacroApi;
+using tink.CoreApi;
 
 class GenReader {
   static public var inst = new GenReader();
@@ -229,7 +230,7 @@ class GenReader {
         meta: if (f.optional) OPTIONAL else [],
         kind: FVar(f.type.toComplex()),
       }]);
-      
+    var argLess = [];  
     for (c in constructors) {
       
       var inlined = c.inlined,
@@ -237,9 +238,9 @@ class GenReader {
           c = c.ctor,
           name = c.name;
 
-      trace(cfields.length);
-          
-      switch c.meta.extract(':json') {
+      if (c.type.reduce().match(TEnum(_,_))) 
+        argLess.push(new Named(name, Macro.nameNiladic(c)));
+      else switch c.meta.extract(':json') {
         case []:
           
           add({
@@ -265,7 +266,7 @@ class GenReader {
               }
             }
           });
-          
+
         case [{ params:[{ expr: EObjectDecl(obj) }] }]:
           
           var pat = obj.copy(),
@@ -307,14 +308,27 @@ class GenReader {
       }      
     }
       
-    return macro {
+    var ret = macro {
       var __ret = ${gen(mkComplex(fields).toType().sure(), pos)};
       ${ESwitch(
         macro __ret, 
         cases, 
-        macro throw new tink.core.Error('Cannot process '+Std.string(__ret))
+        macro throw new tink.core.Error(422, 'Cannot process '+Std.string(__ret))
       ).at(pos)};
     }
+
+    return
+      if (argLess.length == 0) ret;
+      else {
+        
+        var argLessSwitch = ESwitch(macro parseRestOfString().toString(), [for (a in argLess) {
+          values: [macro $v{a.value}], expr: macro $i{a.name},
+        }].concat([{
+          values: [macro invalid], expr: macro throw new tink.core.Error(422, 'Invalid constructor '+invalid),
+        }]), null).at(pos);
+
+        macro if (allow('"')) $argLessSwitch else $ret;
+      }
   }
   
   public function dyn(e, ct) 

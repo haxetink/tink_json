@@ -221,8 +221,9 @@ class ParserTest extends TestCase {
     
     tink.Json.stringify(new Fruit('apple', .2));
     
-    var o:Option<Int> = tink.Json.parse('{"None":{}}');
+    var o:Option<Int> = tink.Json.parse('"None"');
     structEq(None, o);
+    var o:Option2 = tink.Json.parse('"none"');
     var o:Option<Int> = tink.Json.parse('{"Some":{"v":1}}');
     structEq(Some(1), o);
   }

@@ -104,52 +104,60 @@ class GenWriter {
           c = c.ctor,
           name = c.name,
           postfix = '}',
-          first = true;          
+          first = true;      
+      cases.push(
+        if (c.type.reduce().match(TEnum(_,_))) 
+          {
+            values: [macro $i{name}],
+            expr: (macro this.output($v{haxe.format.JsonPrinter.print(Macro.nameNiladic(c))})),
+          }
+        else {
+          var prefix = 
+            switch c.meta.extract(':json') {
+              case []:
+                
+                postfix = '}}';
+                '{"$name":{';
+                
+              case [{ params:[{ expr: EObjectDecl(obj) }] }]:                
+                
+                first = false;
+                var ret = haxe.format.JsonPrinter.print(ExprTools.getValue(EObjectDecl(obj).at()));
+                ret.substr(0, ret.length - 1);
+
+              default:
+                c.pos.error('invalid use of @:json');
+            } 
+            
+          var args = 
+            if (inlined) [macro value]
+            else [for (f in cfields) macro $i{f.name}];
           
-      var prefix = 
-        switch c.meta.extract(':json') {
-          case []:
-            
-            postfix = '}}';
-            '{"$name":{';
-            
-          case [{ params:[{ expr: EObjectDecl(obj) }] }]:                
-            
-            first = false;
-            var ret = haxe.format.JsonPrinter.print(ExprTools.getValue(EObjectDecl(obj).at()));
-            ret.substr(0, ret.length - 1);
-              
-          default:
-            c.pos.error('invalid use of @:json');
-        } 
-        
-        var args = 
-          if (inlined) [macro value]
-          else [for (f in cfields) macro $i{f.name}];
-        
-        cases.push({
-          values: [macro @:pos(c.pos) ${args.length == 0 ? macro $i{name} : macro $i{name}($a{args})}],
-          expr: macro {
-            this.output($v{prefix});
-            $b{[for (f in cfields) {
-              var fname = f.name;
-              macro {
-                this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
-                this.char(':'.code);
-                {
-                  var value = ${
-                    if (inlined)
-                      macro value.$fname
-                    else
-                      macro $i{f.name}
+          {
+            values: [macro @:pos(c.pos) ${args.length == 0 ? macro $i{name} : macro $i{name}($a{args})}],
+            expr: macro {
+              this.output($v{prefix});
+              $b{[for (f in cfields) {
+                var fname = f.name;
+                macro {
+                  this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
+                  this.char(':'.code);
+                  {
+                    var value = ${
+                      if (inlined)
+                        macro value.$fname
+                      else
+                        macro $i{f.name}
+                    }
+                    ${f.expr};
                   }
-                  ${f.expr};
                 }
-              }
-            }]}
-            this.output($v{postfix});
-          },
-        });            
+              }]}
+              this.output($v{postfix});
+            },
+          };            
+        }    
+      );
     }
     return ESwitch(macro (value:$ct), cases, null).at();
   }

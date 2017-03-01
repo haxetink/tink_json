@@ -33,7 +33,16 @@ class Macro {
 
   static public function buildParser():Type
     return BuildCache.getType('tink.json.Parser', parser);
-    
+
+  static public function nameNiladic(c:EnumField)
+    return
+      switch c.meta.extract(':json') {
+        case []: c.name;
+        case [{ params:[{ expr: EConst(CString(v)) }]}]: v;
+        case v: c.pos.error('invalid use of @:json');
+      }
+  
+
   static function parser(ctx:BuildContext):TypeDefinition {
     var name = ctx.name,
         ct = ctx.type.toComplex();
