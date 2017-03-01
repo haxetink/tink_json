@@ -91,7 +91,11 @@ class Macro {
   }
   
   static public function getRepresentation(t:Type, pos:Position) {
-    var ct = t.toComplex();
+    switch t.reduce() {
+      case TDynamic(null): return None;
+      default: 
+    }
+    var ct = t.toComplex({ direct: true });
     
     return
       switch (macro tink.json.Representation.of((null : $ct)).get()).typeof() {
