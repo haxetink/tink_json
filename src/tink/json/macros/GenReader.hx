@@ -67,52 +67,91 @@ class GenReader {
         
     for (f in fields) {
       var ct = f.type.reduce().toComplex(),
-          name = f.name,
+          name = 'v_' + f.name,
           jsonName = Macro.nativeName(f),
           optional = f.optional;
          
+      var hasName = 'has$name';
+
       read = macro @:pos(f.pos) 
         if (__name__ == $v{jsonName}) {
           
-          @:privateAccess (__ret.$name = ${f.expr});
+          $i{name} = ${f.expr};
             
           ${
             if (optional) macro $b{[]}
-            else macro $i{name} = true
+            else macro $i{hasName} = true
           }
         } 
         else $read;
-      
-      if (!optional) {
+
+      obj.push({
+        field: f.name,
+        expr: 
+          if (optional) macro $i{name}
+          else macro if ($i{hasName}) $i{name} else __missing__($v{jsonName}),
+      });
+
+      if (optional) 
+        vars.push({
+          name: name,
+          expr: macro null,
+          type: macro : Null<$ct>
+        })
+      else {
+
         var valType = 
           switch Crawler.plainAbstract(f.type) {
             case Some(a): a;
             default: f.type;
-          }
-          
-        obj.push({
-          field: name,
+          }       
+
+        vars.push({
+          name: name,
           expr: switch valType.getID() {
             case 'Bool': macro false;
             case 'Int': macro 0;
             case 'Float': macro .0;
             default: macro null;
           },
+          type: ct,
         });
+
         vars.push({
           type: macro : Bool,
-          name: name,
+          name: hasName,
           expr: macro false,
         });
-        checks.push(macro if (!$i{name})  __missing__($v{jsonName}));
       }
+      // if (!optional) {
+      //   var valType = 
+      //     switch Crawler.plainAbstract(f.type) {
+      //       case Some(a): a;
+      //       default: f.type;
+      //     }
+          
+      //   obj.push({
+      //     field: name,
+      //     expr: switch valType.getID() {
+      //       case 'Bool': macro false;
+      //       case 'Int': macro 0;
+      //       case 'Float': macro .0;
+      //       default: macro null;
+      //     },
+      //   });
+      //   vars.push({
+      //     type: macro : Bool,
+      //     name: name,
+      //     expr: macro false,
+      //   });
+      //   checks.push(macro if (!$i{name})  __missing__($v{jsonName}));
+      // }
       
     };
         
     return macro {
       
       ${EVars(vars).at()};
-      var __ret:$ct = ${EObjectDecl(obj).at()};
       
       var __start__ = this.pos;
       this.expect('{');
@@ -130,7 +169,7 @@ class GenReader {
       }
       
       $b{checks};
-      __ret;
+      (${EObjectDecl(obj).at()} : $ct);
     };
   }  
   
@@ -316,7 +355,7 @@ class GenReader {
       }
     
   public function reject(t:Type) 
-    return 'Cannot parse ${t.toString()}';
+    return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-abstracts';
 }
 
 
