@@ -8,10 +8,18 @@ using tink.CoreApi;
 
 class WriterTest extends TestCase {
   
+  function testEmptyEnum() {
+    var o:Option<Int> = None;
+    assertEquals('{"None":{}}', tink.Json.stringify(o));
+    o = Some(1);
+    assertEquals('{"Some":{"v":1}}', tink.Json.stringify(o));
+  }
+  
   function testEmptyAnon() {
     var data:{} = {};
     assertEquals('{}', tink.Json.stringify(data));
   }
+  
   function testBackSlash() {
     var data:{key:String} = {key: '\\s'};
     var s = tink.Json.stringify(data);

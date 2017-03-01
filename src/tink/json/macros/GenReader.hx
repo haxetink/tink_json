@@ -256,7 +256,11 @@ class GenReader {
                 var name = f.name;
                 macro o.$name;
               }];
-              macro ($i{name}($a{args}) : $ct);
+              
+              switch args {
+                case []: macro ($i{name} : $ct);
+                case _: macro ($i{name}($a{args}) : $ct);
+              }
             }
           });
           
