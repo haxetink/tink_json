@@ -63,8 +63,7 @@ class GenReader {
     
     var read = macro this.skipValue(),
         vars:Array<Var> = [],
-        obj:Array<{ field:String, expr:Expr }> = [],
-        checks = [];
+        obj:Array<{ field:String, expr:Expr }> = [];
         
     for (f in fields) {
       var ct = f.type.reduce().toComplex(),
@@ -124,29 +123,6 @@ class GenReader {
           expr: macro false,
         });
       }
-      // if (!optional) {
-      //   var valType = 
-      //     switch Crawler.plainAbstract(f.type) {
-      //       case Some(a): a;
-      //       default: f.type;
-      //     }
-          
-      //   obj.push({
-      //     field: name,
-      //     expr: switch valType.getID() {
-      //       case 'Bool': macro false;
-      //       case 'Int': macro 0;
-      //       case 'Float': macro .0;
-      //       default: macro null;
-      //     },
-      //   });
-      //   vars.push({
-      //     type: macro : Bool,
-      //     name: name,
-      //     expr: macro false,
-      //   });
-      //   checks.push(macro if (!$i{name})  __missing__($v{jsonName}));
-      // }
       
     };
         
@@ -167,9 +143,8 @@ class GenReader {
         
       function __missing__(field:String):Dynamic {
         return this.die('missing field "' + field + '"', __start__);
-      }
-      
-      $b{checks};
+      };
+
       (${EObjectDecl(obj).at()} : $ct);
     };
   }  
