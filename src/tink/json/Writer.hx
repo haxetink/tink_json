@@ -46,6 +46,9 @@ class BasicWriter {
     char('"'.code);
   }
   
+  function writeDynamic(value:Dynamic)
+    output(haxe.Json.stringify(value));
+  
   function writeValue(value:Value)
     switch value {
       case VNumber(f): writeFloat(f);

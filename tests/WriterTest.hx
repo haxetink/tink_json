@@ -30,4 +30,13 @@ class WriterTest extends TestCase {
     assertEquals('\\s', data.key);
   }
   
+  function testDynamic() {
+    var data:{dyn:Dynamic} = {dyn: 1};
+    assertEquals('{"dyn":1}', tink.Json.stringify(data));
+    var data:{dyn:Dynamic} = {dyn: 'a'};
+    assertEquals('{"dyn":"a"}', tink.Json.stringify(data));
+    var data:{array:Array<Dynamic>} = {array: [1, 'a', true]};
+    assertEquals('{"array":[1,"a",true]}', tink.Json.stringify(data));
+  }
+  
 }

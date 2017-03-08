@@ -216,6 +216,9 @@ class GenWriter {
             }
           
           Some(anon(a, t.toComplex()));
+        
+        case TDynamic(null):
+          Some(macro this.writeDynamic(value));
           
         default:
           
