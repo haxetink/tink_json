@@ -306,6 +306,10 @@ class GenReader {
       }
   }
   
+  public function enumAbstract(names:Array<String>, e:Expr):Expr {
+    throw 'not implemented';
+  }
+  
   public function dyn(e, ct) 
     return macro ($e : Dynamic<$ct>);
     
