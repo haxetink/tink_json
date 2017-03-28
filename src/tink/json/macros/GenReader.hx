@@ -347,6 +347,12 @@ class GenReader {
     
   public function reject(t:Type) 
     return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-abstracts';
+    
+  public function shouldIncludeField(c:ClassField, owner:Option<ClassType>):Bool
+    return Helper.shouldIncludeField(c, owner);
+    
+  public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
+    return gen(type, pos);
 }
 
 
