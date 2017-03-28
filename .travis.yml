@@ -23,5 +23,5 @@ script:
   #- haxelib run travix flash
   - haxelib run travix java
   - haxelib run travix cpp
-  - haxelib run travix cs
+  #- haxelib run travix cs # https://github.com/HaxeFoundation/haxe/issues/5953
   - haxelib run travix php
