@@ -237,4 +237,10 @@ class GenWriter {
       
   static public function reject(t:Type) 
     return 'Cannot stringify ${t.toString()}';
+    
+  static public function shouldIncludeField(c:ClassField, owner:Option<ClassType>):Bool
+    return Helper.shouldIncludeField(c, owner);
+    
+  static public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
+    return gen(type, pos);
 }
