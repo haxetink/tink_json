@@ -78,7 +78,7 @@ class Macro {
         ct = ctx.type.toComplex();
     
     var cl = macro class $name extends tink.json.Writer.BasicWriter {
-      public function new() {}
+      public function new() super();
     } 
     
     var ret = Crawler.crawl(ctx.type, ctx.pos, GenWriter);

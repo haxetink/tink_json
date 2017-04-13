@@ -371,9 +371,8 @@ class GenReader {
 
                   var rep = 
                     switch (macro @:pos(parser.pos) new $path(null).parse).typeof().sure().reduce() {
-                      case TFun([{ t: t }], ret): 
-                        t;
-                      default: parser.reject('field `parse` not suitable for parsing');
+                      case TFun([{ t: t }], ret): t;
+                      default: parser.reject('field `parse` has wrong signature');
                     }
                   macro @:pos(parser.pos) this.plugins.get($parser).parse(${drive(rep, pos, gen)});
                 case v: v.pos.error('@:jsonParse must have exactly one parameter');

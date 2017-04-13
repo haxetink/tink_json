@@ -1,13 +1,18 @@
 package tink.json;
 
-import haxe.Utf8;
+using tink.CoreApi;
 
 @:genericBuild(tink.json.macros.Macro.buildWriter())
 class Writer<T> {}
 
 class BasicWriter {
+  public var plugins(default, null):Annex<BasicWriter>;
+
   var buf:StringBuf;
   
+  function new() 
+    this.plugins = new Annex(this);
+
   function init() {
     buf = new StringBuf();
   }
@@ -28,7 +33,10 @@ class BasicWriter {
     output(if (b) 'true' else 'false');
     
   inline function writeString(s:String) 
-    output(StringWriter.stringify(s));
+    output(StdWriter.stringify(s));
+  
+  function writeDynamic(value:Dynamic) 
+    output(StdWriter.stringify(value));
   
   function writeValue(value:Value)
     switch value {
@@ -58,7 +66,7 @@ class BasicWriter {
           char(':'.code);
           writeValue(p.value);
         }
-        
+        write(a[0]);
         for (i in 1...a.length) {
           char(','.code);
           write(a[i]);
@@ -84,9 +92,9 @@ private abstract StringBuf(String) {
 }
 
 @:native("JSON")
-extern private class StringWriter {
-  static function stringify(s:String):String;
+extern private class StdWriter {
+  static function stringify(v:Dynamic):String;
 }
 #else
-private typedef StringWriter = haxe.format.Json;
+private typedef StdWriter = haxe.format.Json;
 #end

@@ -246,5 +246,32 @@ class GenWriter {
     return Helper.shouldIncludeField(c, owner);
     
   static public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
-    return gen(type, pos);
+    return
+      switch type {
+        case TDynamic(null): macro @:pos(pos) this.writeDynamic(value);
+        case TEnum(_.get().module => 'tink.json.Value', _): macro @:pos(pos) this.writeValue(value);
+        case v:
+          switch type.getMeta().filter(function (m) return m.has(':jsonStringify')) {
+            case []: gen(type, pos);
+            case v: 
+              switch v[0].extract(':jsonStringify')[0] {
+                case { params: [writer] }: 
+                  
+                  var path = writer.toString().asTypePath();
+
+                  var rep = 
+                    switch (macro @:pos(writer.pos) new $path(null).prepare).typeof().sure().reduce() {
+                      case TFun([{ t: t }], ret): ret;
+                      default: writer.reject('field `prepare` has wrong signature');
+                    }
+                    //throw rep;
+                  macro @:pos(writer.pos) {
+                    var value = this.plugins.get($writer).prepare(value);
+                    ${drive(rep, pos, gen)};
+                  }
+                case v: v.pos.error('@:jsonStringify must have exactly one parameter');
+              }
+          }
+        }
+
 }
