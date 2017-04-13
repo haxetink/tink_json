@@ -96,5 +96,5 @@ extern private class StdWriter {
   static function stringify(v:Dynamic):String;
 }
 #else
-private typedef StdWriter = haxe.format.Json;
+private typedef StdWriter = haxe.format.JsonPrinter;
 #end
