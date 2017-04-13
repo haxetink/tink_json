@@ -11,8 +11,8 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Use recent tink_typecrawler and hande @:enum abstract.",
-	"version": "0.5.0",
+	"releasenote": "Various improvements for customization and parsing unknown data.",
+	"version": "0.6.0",
 	"url": "http://haxetink.org/tink_json",
 	"dependencies": {
 		"tink_typecrawler": ""
