@@ -304,7 +304,7 @@ class ParserTest extends TestCase {
 class FruitParser {
   public function new(_) {}
 
-  public function parse(o:Value) 
+  public function parse(o) 
     return new Fruit(o.name, o.weight);
 }
 
