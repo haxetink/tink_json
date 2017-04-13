@@ -356,7 +356,25 @@ class GenReader {
     return Helper.shouldIncludeField(c, owner);
     
   public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
-    return gen(type, pos);
+    return 
+      switch type.getMeta().filter(function (m) return m.has(':jsonParse')) {
+        case []: gen(type, pos);
+        case v: 
+          switch v[0].extract(':jsonParse')[0] {
+            case { params: [parser] }: 
+              
+              var path = parser.toString().asTypePath();
+
+              var rep = (macro @:pos(parser.pos) {
+                var p = new $path(null);
+                var x = null;
+                p.parse(x);
+                x;
+              }).typeof().sure();
+              macro @:pos(parser.pos) this.plugins.get($parser).parse(${gen(rep, pos)});
+            case v: v.pos.error('@:jsonParse must have exactly one parameter');
+          }
+      }
 }
 
 

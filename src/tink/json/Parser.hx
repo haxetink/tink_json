@@ -71,10 +71,16 @@ private abstract JsonString(SliceData) from SliceData {
 }
 
 class BasicParser { 
+  
+  public var plugins(default, null):Annex<BasicParser>;
+  
   var source:String;
   var pos:Int;
   var max:Int;
   
+  function new()
+    this.plugins = new Annex(this);
+
   function init(source) { 
      this.source = source;
      this.pos = 0;

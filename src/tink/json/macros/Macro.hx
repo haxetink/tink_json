@@ -48,7 +48,7 @@ class Macro {
         ct = ctx.type.toComplex();
         
     var cl = macro class $name extends tink.json.Parser.BasicParser {
-      public function new() {}
+      public function new() super();
     } 
     
     function add(t:TypeDefinition)

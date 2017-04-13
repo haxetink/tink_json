@@ -3,12 +3,9 @@ package;
 import haxe.Constraints.IMap;
 import haxe.io.Bytes;
 import haxe.PosInfos;
-import haxe.unit.TestCase;
-import haxe.unit.TestStatus;
-import tink.core.Error;
-import tink.json.Parser;
-import tink.json.Representation;
-import tink.json.Writer;
+import haxe.unit.*;
+
+import tink.json.*;
 
 using tink.CoreApi;
 
@@ -219,8 +216,7 @@ class ParserTest extends TestCase {
       fakeUpper: fakeUpper,
     });
     
-    tink.Json.stringify(new Fruit('apple', .2));
-    
+    var f:Fruit = tink.Json.parse(tink.Json.stringify(new Fruit('apple', .2)));
     var o:Option<Int> = tink.Json.parse('"None"');
     structEq(None, o);
     var o:Option2 = tink.Json.parse('"none"');
@@ -304,6 +300,15 @@ class ParserTest extends TestCase {
   
 }
 
+class FruitParser {
+  public function new(_) {}
+
+  public function parse(o:{name:String, weight:Float}) {
+    return new Fruit(o.name, o.weight);
+  }
+}
+
+@:jsonParse(ParserTest.FruitParser)
 class Fruit {
   public var name(default, null):String;
   public var weight(default, null):Float;
