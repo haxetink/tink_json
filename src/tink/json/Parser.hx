@@ -180,6 +180,12 @@ class BasicParser {
   inline function nextChar() 
     return source.fastCodeAt(pos++);
 
+  function parseSerialized<T>():Serialized<T> {
+    var start = pos;
+    skipValue();
+    return cast source.substring(start, pos);
+  }
+
   function parseValue():Value
     return switch nextChar() {
       case '{'.code:

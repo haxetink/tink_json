@@ -89,10 +89,10 @@ class Macro {
       cl.fields = cl.fields.concat(t.fields);
     
     add(macro class { 
-      public function write(value:$ct):String {
+      public function write(value:$ct):tink.json.Serialized<$ct> {
         this.init();
         ${ret.expr};
-        return this.buf.toString();
+        return cast this.buf.toString();
       }
     });
     

@@ -39,6 +39,15 @@ enum Item {
 
 class ParserTest extends TestCase {
   
+  function testSerialized() {
+    var s:Serialized<{ foo: Int }> = cast '{"foo":5}';
+    assertEquals(5, s.parse().foo);
+    var o = { bar: s };
+    assertEquals('{"bar":$s}', tink.Json.stringify(o));
+    o = tink.Json.parse(tink.Json.stringify(o));
+    assertEquals(s, o.bar);
+  }
+
   function testNuances() {
     var r = new Parser<{ optional: { ?foo: Int }, mandatory: { foo: Int }}>();
     assertTrue(r.tryParse('{ "optional": {}, "mandatory": { "foo" : 5 } }').isSuccess());

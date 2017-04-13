@@ -358,8 +358,12 @@ class GenReader {
   public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return 
       switch type {
-        case TDynamic(null): macro @:pos(pos) this.parseDynamic();
-        case TEnum(_.get().module => 'tink.json.Value', _): macro @:pos(pos) this.parseValue();
+        case TDynamic(null): 
+          macro @:pos(pos) this.parseDynamic();
+        case TEnum(_.get().module => 'tink.json.Value', _): 
+          macro @:pos(pos) this.parseValue();
+        case TAbstract(_.get().module => 'tink.json.Serialized', _): 
+          macro @:pos(pos) this.parseSerialized();
         case v:
           switch type.getMeta().filter(function (m) return m.has(':jsonParse')) {
             case []: gen(type, pos);

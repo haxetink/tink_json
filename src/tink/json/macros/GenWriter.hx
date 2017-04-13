@@ -248,8 +248,12 @@ class GenWriter {
   static public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return
       switch type {
-        case TDynamic(null): macro @:pos(pos) this.writeDynamic(value);
-        case TEnum(_.get().module => 'tink.json.Value', _): macro @:pos(pos) this.writeValue(value);
+        case TDynamic(null): macro @:pos(pos) 
+          this.writeDynamic(value);
+        case TEnum(_.get().module => 'tink.json.Value', _): 
+          macro @:pos(pos) this.writeValue(value);
+        case TAbstract(_.get().module => 'tink.json.Serialized', _): 
+          macro @:pos(pos) this.output(value);
         case v:
           switch type.getMeta().filter(function (m) return m.has(':jsonStringify')) {
             case []: gen(type, pos);
