@@ -23,6 +23,15 @@ private class SliceData {
   }
 }
 
+#if js
+@:native('JSON')
+private extern class StringParser {
+  static function parse(s:String):Dynamic;
+}
+#else
+private typedef StringParser = haxe.format.JsonParser;
+#end
+
 @:forward
 private abstract JsonString(SliceData) from SliceData {
 
@@ -36,7 +45,7 @@ private abstract JsonString(SliceData) from SliceData {
   public function toString():String 
     return
       if (contains('\\')) 
-        haxe.format.JsonParser.parse(this.source.substring(this.min - 1, this.max + 1));
+        StringParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
   
   public inline function get() 
@@ -158,7 +167,11 @@ class BasicParser {
   inline function nextChar() 
     return source.fastCodeAt(pos++);
       
-  function skipValue() 
+  function skipValue() {
+    recurse({});
+  }
+
+  @:extern inline function recurse(o) 
     switch nextChar() {
       case '{'.code:
         

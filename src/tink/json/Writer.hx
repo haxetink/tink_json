@@ -27,24 +27,8 @@ class BasicWriter {
   inline function writeBool(b:Bool)
     output(if (b) 'true' else 'false');
     
-  function writeString(s:String) {
-    char('"'.code);
-    //TODO: optimize - add fast path for simple strings
-    Utf8.iter(s, function (c) {
-      if (c > 0x7f)
-        output('\\u' + StringTools.hex(c, 4));
-      else
-        switch c {
-          case '\n'.code: output('\\n');
-          case '\r'.code: output('\\r');
-          case '\t'.code: output('\\t');
-          case '\"'.code: output('\\"');
-          case '\\'.code: output('\\\\');
-          case v: char(v);
-        }
-    });
-    char('"'.code);
-  }
+  inline function writeString(s:String) 
+    output(StringWriter.stringify(s));
   
   function writeValue(value:Value)
     switch value {
@@ -53,7 +37,7 @@ class BasicWriter {
       case VNull: output('null');
       case VBool(b): output(if (b) 'true' else 'false');
       case VArray([]): output('[]');
-    case VArray(a): 
+      case VArray(a): 
         
         char('['.code);
         writeValue(a[0]);
@@ -67,7 +51,7 @@ class BasicWriter {
       case VObject([]): output('{}');
       case VObject(a):
       
-        char('['.code);
+        char('{'.code);
         
         inline function write(p:tink.core.Named<Value>) {
           writeString(p.name);
@@ -80,7 +64,7 @@ class BasicWriter {
           write(a[i]);
         }
         
-        char(']'.code);      
+        char('}'.code);      
       
     }
 }
@@ -98,4 +82,11 @@ private abstract StringBuf(String) {
   public inline function add(s:String)
     this += s;
 }
+
+@:native("JSON")
+extern private class StringWriter {
+  static function stringify(s:String):String;
+}
+#else
+private typedef StringWriter = haxe.format.Json;
 #end
