@@ -1,5 +1,6 @@
 package tink.json;
 
+import tink.json.Value;
 using StringTools;
 using tink.CoreApi;
 
@@ -25,11 +26,11 @@ private class SliceData {
 
 #if js
 @:native('JSON')
-private extern class StringParser {
+private extern class StdParser {
   static function parse(s:String):Dynamic;
 }
 #else
-private typedef StringParser = haxe.format.JsonParser;
+private typedef StdParser = haxe.format.JsonParser;
 #end
 
 @:forward
@@ -45,7 +46,7 @@ private abstract JsonString(SliceData) from SliceData {
   public function toString():String 
     return
       if (contains('\\')) 
-        StringParser.parse(this.source.substring(this.min - 1, this.max + 1));
+        StdParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
   
   public inline function get() 
@@ -92,6 +93,12 @@ class BasicParser {
     while (pos < max && source.fastCodeAt(pos) < 33) pos++;
   
   #if !macro
+  function parseDynamic():Any {
+    var start = pos;
+    skipValue();
+    return StdParser.parse(this.source.substring(start, pos));
+  }
+
   function parseString():JsonString 
     return expect('"') & parseRestOfString();
 
@@ -172,15 +179,65 @@ class BasicParser {
   
   inline function nextChar() 
     return source.fastCodeAt(pos++);
-      
-  function skipValue() {
-    recurse({});
-  }
 
-  @:extern inline function recurse(o) 
+  function parseValue():Value
+    return switch nextChar() {
+      case '{'.code:
+        var fields = new Array<Named<Value>>();
+        if (!allow('}')) {
+          inline function pair() {
+            if (nextChar() != '"'.code)
+              die('expected string', pos - 1);
+              
+            fields.push(new Named(
+              parseRestOfString().toString(),
+              expect(':') & parseValue()
+            ));
+          }
+          
+          do {
+            pair();
+          } while (allow(','));
+          
+          expect('}', true, false);
+        }
+        
+        VObject(fields);
+
+      case '['.code:
+        
+        var ret = new Array<Value>();
+        
+        if (!allow(']')) {
+          do {
+            ret.push(parseValue());
+          } while (allow(','));
+          expect(']', true, false);
+        }
+        
+        VArray(ret);
+
+      case '"'.code:
+        VString(parseRestOfString().toString());
+      case 't'.code:
+        expect('rue', false, false) & VBool(true);
+      case 'f'.code:
+        expect('alse', false, false) & VBool(false);
+      case 'n'.code:
+        expect('ull', false, false) & VNull;
+      case '.'.code:
+        pos--;
+        VNumber(parseNumber().toFloat());
+      case v if (isDigit(v)):
+        pos--;
+        VNumber(parseNumber().toFloat());
+      case invalid: 
+        invalidChar(invalid);
+    }  
+
+  function skipValue() 
     switch nextChar() {
       case '{'.code:
-        
         if (allow('}'))
           return;
                   

@@ -222,6 +222,7 @@ class ParserTest extends TestCase {
     var o:Option2 = tink.Json.parse('"none"');
     var o:Option<Int> = tink.Json.parse('{"Some":{"v":1}}');
     structEq(Some(1), o);
+    var v:Value = tink.Json.parse(tink.Json.stringify(o));
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {
@@ -303,9 +304,8 @@ class ParserTest extends TestCase {
 class FruitParser {
   public function new(_) {}
 
-  public function parse(o:{name:String, weight:Float}) {
+  public function parse(o:Value) 
     return new Fruit(o.name, o.weight);
-  }
 }
 
 @:jsonParse(ParserTest.FruitParser)
