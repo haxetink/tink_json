@@ -232,6 +232,11 @@ class ParserTest extends TestCase {
     var o:Option<Int> = tink.Json.parse('{"Some":{"v":1}}');
     structEq(Some(1), o);
     var v:Value = tink.Json.parse(tink.Json.stringify(o));
+    
+    var s = '{"default":1}';
+    var o:{@:json('default') var _default:Int;} = tink.Json.parse(s);
+    structEq({_default:1}, o);
+    assertEquals(s, tink.Json.stringify(o));
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {
