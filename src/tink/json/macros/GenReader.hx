@@ -306,8 +306,15 @@ class GenReader {
       }
   }
   
-  public function enumAbstract(names:Array<String>, e:Expr):Expr {
-    throw 'not implemented';
+  public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
+    return macro @:pos(pos) {
+      var v:$ct = cast $e;
+      ${ESwitch(
+        macro v, 
+        [{expr: macro v, values: names}], 
+        macro throw new tink.core.Error(422, 'Unrecognized enum value: ' + v)
+      ).at(pos)}
+    }
   }
   
   public function dyn(e, ct) 

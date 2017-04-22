@@ -233,10 +233,16 @@ class ParserTest extends TestCase {
     structEq(Some(1), o);
     var v:Value = tink.Json.parse(tink.Json.stringify(o));
     
+    // native keys
     var s = '{"default":1}';
     var o:{@:json('default') var _default:Int;} = tink.Json.parse(s);
     structEq({_default:1}, o);
     assertEquals(s, tink.Json.stringify(o));
+    
+    // enum abstract
+    assertEquals('"aaa"', tink.Json.stringify(MyEnumAbstract.A));
+    assertEquals(MyEnumAbstract.A, tink.Json.parse('"aaa"'));
+    assertFalse(tink.Json.parse(('"abc"':MyEnumAbstract)).isSuccess());
   }
   
 	function fail( reason:String, ?c : PosInfos ) : Void {
@@ -367,4 +373,11 @@ abstract MyAbstract(Iterable<Int>) {
   
   @:to function toRepresentation():Representation<Array<Int>> 
     return new Representation(Lambda.array(this));
+}
+
+@:enum
+abstract MyEnumAbstract(String) {
+  var A = 'aaa';
+  var B = 'bbb';
+  var C = 'ccc';
 }

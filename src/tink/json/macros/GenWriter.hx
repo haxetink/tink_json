@@ -162,8 +162,11 @@ class GenWriter {
     return ESwitch(macro (value:$ct), cases, null).at();
   }
   
-  static public function enumAbstract(names:Array<String>, e:Expr):Expr {
-    throw 'not implemented';
+  static public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
+    return macro @:pos(pos) {
+      var value = cast value;
+      $e;
+    }
   }
   
   static public function dyn(e, ct) 
