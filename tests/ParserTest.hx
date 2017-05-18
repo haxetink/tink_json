@@ -49,7 +49,7 @@ class ParserTest {
   }
   
   public function custom() {
-    var f:Fruit = tink.Json.parse(tink.Json.stringify(new Fruit('apple', .2)));
+    var f:Fruit = parse(stringify(new Fruit('apple', .2)));
     return assert(f.name == 'apple' && f.weight == .2);
   }
   

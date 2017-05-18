@@ -26,7 +26,7 @@ class WriterTest {
   
   public function emptyAnon() {
     var data:{} = {};
-    return assert(tink.Json.stringify(data) == '{}');
+    return assert(stringify(data) == '{}');
   }
   
   public function backSlash() {
@@ -59,31 +59,4 @@ class WriterTest {
   public function enumAbstract() {
     return assert(stringify(MyEnumAbstract.A) == '"aaa"');
   }
-  
-}
-
-class RocketWriter {
-  public function new(v:Dynamic) {}
-  public function prepare(r:Rocket) {
-    return { alt: r.altitude };
-  }
-}
-
-class RocketWriter2 {
-  public function new(v:Dynamic) {}
-  public function prepare(r:Rocket) {
-    return VArray([VNumber(r.altitude)]);
-  }
-}
-
-@:jsonStringify(WriterTest.RocketWriter2)
-abstract Rocket2(Rocket) from Rocket to Rocket {
-  public inline function new(alt) this = new Rocket(alt);
-}
-
-@:jsonStringify(WriterTest.RocketWriter)
-class Rocket {
-  public var altitude(default, null):Float;
-  public function new(altitude)
-    this.altitude = altitude;
 }

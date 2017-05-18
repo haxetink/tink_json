@@ -1,6 +1,7 @@
 package;
 
 import tink.json.Representation;
+import tink.json.Value;
 
 enum Option2 {
   @:json("none") None2;
@@ -94,4 +95,31 @@ abstract MyEnumAbstract(String) {
   var A = 'aaa';
   var B = 'bbb';
   var C = 'ccc';
+}
+
+
+class RocketWriter {
+  public function new(v:Dynamic) {}
+  public function prepare(r:Rocket) {
+    return { alt: r.altitude };
+  }
+}
+
+class RocketWriter2 {
+  public function new(v:Dynamic) {}
+  public function prepare(r:Rocket) {
+    return VArray([VNumber(r.altitude)]);
+  }
+}
+
+@:jsonStringify(Types.RocketWriter2)
+abstract Rocket2(Rocket) from Rocket to Rocket {
+  public inline function new(alt) this = new Rocket(alt);
+}
+
+@:jsonStringify(Types.RocketWriter)
+class Rocket {
+  public var altitude(default, null):Float;
+  public function new(altitude)
+    this.altitude = altitude;
 }
