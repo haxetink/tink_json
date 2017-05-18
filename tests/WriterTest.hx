@@ -51,6 +51,15 @@ class WriterTest {
     return asserts.done();
   }
   
+  public function native() {
+    var o:{@:json('default') var _default:Int;} = {_default:1};
+    return assert(stringify(o) == '{"default":1}');
+  }
+  
+  public function enumAbstract() {
+    return assert(stringify(MyEnumAbstract.A) == '"aaa"');
+  }
+  
 }
 
 class RocketWriter {

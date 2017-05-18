@@ -7,8 +7,11 @@ class RunTests {
 
   static function main() {
     Runner.run(TestBatch.make([
+      new ParserTest(),
       new WriterTest(),
       new RoundTripTest(),
+      new SerializedTest(),
+      new CacheTest(),
     ])).handle(Runner.exit);
   }
   

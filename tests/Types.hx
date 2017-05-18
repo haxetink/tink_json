@@ -42,7 +42,7 @@ class FruitParser {
     return new Fruit(o.name, o.weight);
 }
 
-@:jsonParse(ParserTest.FruitParser)
+@:jsonParse(Types.FruitParser)
 class Fruit {
   public var name(default, null):String;
   public var weight(default, null):Float;
