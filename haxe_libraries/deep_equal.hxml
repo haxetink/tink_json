@@ -1,0 +1,4 @@
+# @install: lix --silent download https://github.com/kevinresol/deep_equal/archive/f30acdf243ea12a6c4ab490f6b93a5b603a40a6f.tar.gz into deep_equal/0.2.0/github/f30acdf243ea12a6c4ab490f6b93a5b603a40a6f
+-D deep_equal=0.2.0
+# -cp ${HAXESHIM_LIBCACHE}/deep_equal/0.2.0/github/f30acdf243ea12a6c4ab490f6b93a5b603a40a6f/src
+-cp ../deep_equal/src

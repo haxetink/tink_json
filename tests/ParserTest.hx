@@ -9,33 +9,6 @@ import tink.json.*;
 
 using tink.CoreApi;
 
-typedef Foo = { foo:Float, bar:Array<{ flag: Bool, ?buzz:Array<{ word: String }> }> };
-typedef Cons<T> = Null<{
-  head:T,
-  ?tail:Cons<T>
-}>;
-
-enum Color {
-  Rgb(a:Int, b:Int, c:Int);
-  Hsv(hsv:{ hue:Float, saturation:Float, value:Float });
-  Hsl(value:{ hue:Float, saturation:Float, lightness:Float });
-}
-
-abstract Hitpoints(Int) from Int to Int {
-  
-}
-
-enum PotionEffect {
-  Heals(hp:Hitpoints);
-  Restores(mana:Int);
-}
-
-enum Item {
-  @:json({ type: 'sword' }) Sword(damage:{max:Int});
-  @:json({ type: 'shield' }) Shield(shield:{armor:Int});
-  @:json({ type: 'staff' }) Staff(block:Float, ?magic:Int);
-  Potion(effect:PotionEffect);
-}
 
 class ParserTest extends TestCase {
   

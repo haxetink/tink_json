@@ -1,3 +1,5 @@
 -cp tests
 -main RunTests
 #-main Benchmark
+-lib tink_unittest
+-lib deep_equal

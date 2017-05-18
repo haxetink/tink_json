@@ -1,17 +1,15 @@
 package;
 
-import haxe.unit.TestRunner;
+import tink.testrunner.*;
+import tink.unit.*;
 
 class RunTests {
 
   static function main() {
-    var t = new TestRunner();
-    t.add(new ParserTest());
-    t.add(new WriterTest());
-    travix.Logger.exit(
-      if (t.run()) 0
-      else 500
-    );
+    Runner.run(TestBatch.make([
+      new WriterTest(),
+      new RoundTripTest(),
+    ])).handle(Runner.exit);
   }
   
 }

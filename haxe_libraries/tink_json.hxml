@@ -1,0 +1,3 @@
+-D tink_json
+-cp src
+-lib tink_typecrawler
