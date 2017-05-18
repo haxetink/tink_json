@@ -1,75 +1,62 @@
 package;
 
-import haxe.unit.TestCase;
 import tink.json.Value;
-import tink.Json;
+import tink.unit.Assert.*;
+import tink.Json.*;
+import Types;
 
 using tink.CoreApi;
 
-
-class WriterTest extends TestCase {
+@:asserts
+class WriterTest {
   
-  function testEmptyEnum() {
-    var o:Option<Int> = None;
-    assertEquals('"None"', tink.Json.stringify(o));
-    assertEquals('"none"', tink.Json.stringify(Option2.None2));
-    assertEquals('{"Some2":{}}', tink.Json.stringify(Option2.Some2({})));
-    o = Some(1);
-    assertEquals('{"Some":{"v":1}}', tink.Json.stringify(o));
+  public function new() {}
+  
+  @:variant(None, '"None"')
+  @:variant(Some(1), '{"Some":{"v":1}}')
+  public function option(o:Option<Int>, v:String) {
+    return assert(stringify(o) == v);
   }
   
-  function testEmptyAnon() {
+  @:variant(None2, '"none"')
+  @:variant(Some2({}),  '{"Some2":{}}')
+  public function option2(o:Option2, v:String) {
+    return assert(stringify(o) == v);
+  }
+  
+  public function emptyAnon() {
     var data:{} = {};
-    assertEquals('{}', tink.Json.stringify(data));
+    return assert(stringify(data) == '{}');
   }
   
-  function testBackSlash() {
+  public function backSlash() {
     var data:{key:String} = {key: '\\s'};
-    var s = tink.Json.stringify(data);
-    assertEquals('{"key":"\\\\s"}', s);
-    data = tink.Json.parse(s);
-    assertEquals('\\s', data.key);
-  }
-
-  function testDynamic() {
-    var o:Dynamic = {}
-    assertEquals('{}', tink.Json.stringify(o));
-  }
-
-  function testValue() {
-    var v:Value = VObject([new Named("foo", VArray([VNumber(4)]))]);
-    assertEquals('{"foo":[4]}', tink.Json.stringify(v));
-  }
-
-  function testCustom() {
-    assertEquals('{"alt":100}', tink.Json.stringify(new Rocket(100)));
-    assertEquals('[100]', tink.Json.stringify(new Rocket2(100)));
+    return assert(stringify(data) == '{"key":"\\\\s"}');
   }
   
-}
-
-class RocketWriter {
-  public function new(v:Dynamic) {}
-  public function prepare(r:Rocket) {
-    return { alt: r.altitude };
+  @:describe('dynamic')
+  @:variant({}, '{}')
+  public function dyn(o:Dynamic, v:String) {
+    return assert(stringify(o) == v);
   }
-}
 
-class RocketWriter2 {
-  public function new(v:Dynamic) {}
-  public function prepare(r:Rocket) {
-    return VArray([VNumber(r.altitude)]);
+  public function value() {
+    var v:Value = VObject([new Named("foo", VArray([VNumber(4)]))]);
+    return assert(stringify(v) == '{"foo":[4]}');
   }
-}
 
-@:jsonStringify(WriterTest.RocketWriter2)
-abstract Rocket2(Rocket) from Rocket to Rocket {
-  public inline function new(alt) this = new Rocket(alt);
-}
-
-@:jsonStringify(WriterTest.RocketWriter)
-class Rocket {
-  public var altitude(default, null):Float;
-  public function new(altitude)
-    this.altitude = altitude;
+  public function custom() {
+    asserts.assert(stringify(new Rocket(100)) == '{"alt":100}');
+    asserts.assert(stringify(new Rocket2(100)) == '[100]');
+    return asserts.done();
+  }
+  
+  public function native() {
+    var o:{@:json('default') var _default:Int;} = {_default:1};
+    return assert(stringify(o) == '{"default":1}');
+  }
+  
+  public function enumAbstract() {
+    return assert(stringify(MyEnumAbstract.A) == '"aaa"');
+  }
 }
