@@ -30,6 +30,29 @@ class ParserTest {
     return assert(typedCompare(o, parse(v)));
   }
   
+  public function emptyAnon() {
+    return assert(typedCompare({}, parse('{}')));
+  }
+  
+  public function backSlash() {
+    return assert(typedCompare({key: '\\s'}, parse('{"key":"\\\\s"}')));
+  }
+  
+  @:describe('dynamic')
+  @:variant({}, '{}')
+  @:variant('s', '"s"')
+  @:variant(1, '1')
+  @:variant(1.2, '1.2')
+  @:variant(['a',1.2], '["a",1.2]')
+  public function dyn(o:Dynamic, v:String) {
+    return assert(compare(o, parse(v)));
+  }
+  
+  public function value() {
+    var v:Value = VObject([new Named("foo", VArray([VNumber(4)]))]);
+    return assert(typedCompare(v, parse('{"foo":[4]}')));
+  }
+  
   public function enums() {
     return assert(typedCompare([Sword({max:100}), Shield({armor:50})], parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "armor": 50 }]')));
   }
@@ -49,8 +72,8 @@ class ParserTest {
   }
   
   public function custom() {
-    var f:Fruit = parse(stringify(new Fruit('apple', .2)));
-    return assert(f.name == 'apple' && f.weight == .2);
+    var f:Fruit = parse('{"name":"apple","weight":0.2}');
+    return assert(Std.is(f, Fruit) && f.name == 'apple' && f.weight == .2);
   }
   
   public function type() {

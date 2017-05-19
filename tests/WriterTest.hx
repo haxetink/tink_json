@@ -36,6 +36,10 @@ class WriterTest {
   
   @:describe('dynamic')
   @:variant({}, '{}')
+  @:variant('s', '"s"')
+  @:variant(1, '1')
+  @:variant(1.2, '1.2')
+  @:variant(['a',1.2], '["a",1.2]')
   public function dyn(o:Dynamic, v:String) {
     return assert(stringify(o) == v);
   }
@@ -45,11 +49,6 @@ class WriterTest {
     return assert(stringify(v) == '{"foo":[4]}');
   }
 
-  public function custom() {
-    asserts.assert(stringify(new Rocket(100)) == '{"alt":100}');
-    asserts.assert(stringify(new Rocket2(100)) == '[100]');
-    return asserts.done();
-  }
   
   public function native() {
     var o:{@:json('default') var _default:Int;} = {_default:1};
@@ -58,5 +57,15 @@ class WriterTest {
   
   public function enumAbstract() {
     return assert(stringify(MyEnumAbstract.A) == '"aaa"');
+  }
+  
+  public function custom() {
+    asserts.assert(stringify(new Rocket(100)) == '{"alt":100}');
+    asserts.assert(stringify(new Rocket2(100)) == '[100]');
+    return asserts.done();
+  }
+  
+  public function custom2() {
+    return assert(stringify(new Fruit('apple', .2)) == '{"name":"apple","weight":0.2}');
   }
 }
