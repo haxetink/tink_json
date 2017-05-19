@@ -29,4 +29,5 @@ jobs:
   include:
     - stage: deploy
       os: linux
-      script: npm run --silent travix release
+      script: skip
+      after_success: npm run --silent travix release
