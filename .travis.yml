@@ -6,6 +6,7 @@ node_js: 6
 
 os:
   - linux
+  - osx
       
 install:
   - npm install
@@ -27,4 +28,5 @@ env:
 jobs:
   include:
     - stage: deploy
+      os: linux
       script: npm run --silent travix release
