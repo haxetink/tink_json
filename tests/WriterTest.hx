@@ -68,4 +68,16 @@ class WriterTest {
   public function custom2() {
     return assert(stringify(new Fruit('apple', .2)) == '{"name":"apple","weight":0.2}');
   }
+  
+  public function either() {
+    var e:Either<String, Int> = Left('aa');
+    asserts.assert(stringify(e) == '"aa"');
+    var e:Either<String, Int> = Right(123);
+    asserts.assert(stringify(e) == '123');
+    var e:Either<String, {id:String}> = Left('aa');
+    asserts.assert(stringify(e) == '"aa"');
+    var e:Either<String, {id:String}> = Right({id: 'aa'});
+    asserts.assert(stringify(e) == '{"id":"aa"}');
+    return asserts.done();
+  }
 }

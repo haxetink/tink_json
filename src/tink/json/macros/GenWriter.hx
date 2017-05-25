@@ -250,11 +250,18 @@ class GenWriter {
     
   static public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return
-      switch type {
+      switch type.reduce() {
         case TDynamic(null): macro @:pos(pos) 
           this.writeDynamic(value);
         case TEnum(_.get().module => 'tink.json.Value', _): 
           macro @:pos(pos) this.writeValue(value);
+        case TEnum(_.get().module => 'haxe.ds.Either', [left, right]):
+          var lct = left.toComplex();
+          var rct = right.toComplex();
+          macro @:pos(pos) switch value {
+            case Left(v): this.output(tink.Json.stringify((v:$lct)));
+            case Right(v): this.output(tink.Json.stringify((v:$rct)));
+          }
         case TAbstract(_.get().module => 'tink.json.Serialized', _): 
           macro @:pos(pos) this.output(value);
         case v:
