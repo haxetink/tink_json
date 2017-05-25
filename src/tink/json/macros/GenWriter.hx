@@ -255,6 +255,13 @@ class GenWriter {
           this.writeDynamic(value);
         case TEnum(_.get().module => 'tink.json.Value', _): 
           macro @:pos(pos) this.writeValue(value);
+        case TEnum(_.get().module => 'haxe.ds.Either', [left, right]) | TType(_.get() => {pack: ['tink'], name: 'Either'}, [left, right]):
+          var lct = left.toComplex();
+          var rct = right.toComplex();
+          macro @:pos(pos) switch value {
+            case Left(v): this.output(tink.Json.stringify((v:$lct)));
+            case Right(v): this.output(tink.Json.stringify((v:$rct)));
+          }
         case TAbstract(_.get().module => 'tink.json.Serialized', _): 
           macro @:pos(pos) this.output(value);
         case v:
