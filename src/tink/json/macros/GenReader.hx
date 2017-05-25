@@ -364,7 +364,7 @@ class GenReader {
     
   public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return 
-      switch type {
+      switch type.reduce() {
         case TDynamic(null): 
           macro @:pos(pos) this.parseDynamic();
         case TEnum(_.get().module => 'tink.json.Value', _): 
