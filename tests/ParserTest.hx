@@ -37,6 +37,13 @@ class ParserTest {
   public function backSlash() {
     return assert(typedCompare({key: '\\s'}, parse('{"key":"\\\\s"}')));
   }
+
+  public function float() {
+    return assert(
+      parse(('{ "foo": [1.2345, .123e+6], "bar": true }' : { bar : Bool })).isSuccess() 
+        &&
+      !parse(('"3.4"' : Float)).isSuccess());
+  }
   
   @:describe('dynamic')
   @:variant({}, '{}')

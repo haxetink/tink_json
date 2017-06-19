@@ -100,7 +100,7 @@ class BasicParser {
   }
 
   function parseString():JsonString 
-    return expect('"') & parseRestOfString();
+    return expect('"', "string") & parseRestOfString();
 
   function parseRestOfString():JsonString
     return slice(skipString(), pos - 1);
@@ -130,8 +130,18 @@ class BasicParser {
     
   static inline function isDigit(char:Int)
     return char < 58 && char > 47;
+
+  static inline function startsNumber(char:Int)
+    return char == '.'.code || isDigit(char);
   
   function parseNumber():JsonString 
+    return
+      if (startsNumber(source.fastCodeAt(pos)))
+        doParseNumber();
+      else 
+        die("number expected");
+
+  function doParseNumber():JsonString 
     return slice(skipNumber(source.fastCodeAt(pos++)), pos);
 
   function invalidNumber( start : Int )
@@ -231,14 +241,12 @@ class BasicParser {
         expect('alse', false, false) & VBool(false);
       case 'n'.code:
         expect('ull', false, false) & VNull;
-      case '.'.code:
-        pos--;
-        VNumber(parseNumber().toFloat());
-      case v if (isDigit(v)):
-        pos--;
-        VNumber(parseNumber().toFloat());
-      case invalid: 
-        invalidChar(invalid);
+      case char:
+        if (startsNumber(char)) {
+          pos--;
+          VNumber(doParseNumber().toFloat());
+        } 
+        else invalidChar(char);
     }  
 
   function skipValue() 
@@ -279,12 +287,11 @@ class BasicParser {
         expect('alse', false, false);
       case 'n'.code:
         expect('ull', false, false);
-      case '.'.code:
-        skipNumber('.'.code);
-      case v if (isDigit(v)):
-        skipNumber(v);
-      case invalid: 
-        invalidChar(invalid);
+      case char: 
+        if (startsNumber(char))
+          skipNumber(char);
+        else
+          invalidChar(char);
     }  
   
   function invalidChar(c:Int) 
@@ -321,8 +328,9 @@ class BasicParser {
   }
   #end
   
-  macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
-    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected $s') else null : tink.json.Parser.ContinueParsing);
+  macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String) {
+    if (expected == null) expected = s;
+    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected $expected') else null : tink.json.Parser.ContinueParsing);
   }
   
   macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
