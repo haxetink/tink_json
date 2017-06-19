@@ -11,8 +11,8 @@
 		"back2dos"
 	],
 	"website": "http://haxetink.org/tink_json/",
-	"releasenote": "Implement abstract enum",
-	"version": "0.6.1",
+	"releasenote": "Support serializing Either. Slightly better error reporting.",
+	"version": "0.6.2",
 	"url": "http://haxetink.org/tink_json",
 	"dependencies": {
 		"tink_typecrawler": ""
