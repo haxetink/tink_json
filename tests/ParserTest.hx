@@ -90,6 +90,13 @@ class ParserTest {
     return assert(Std.is(f, Fruit) && f.name == 'apple' && f.weight == .2);
   }
   
+  public function date() {
+    asserts.assert(parse(('1498484919000':Date)).sure().getTime() == 1498484919000);
+    asserts.assert(parse(('0':Date)).sure().getTime() == 0);
+    asserts.assert(!parse(('-1':Date)).isSuccess());
+    return asserts.done();
+  }
+  
   public function type() {
     var r = new Parser<{ optional: { ?foo: Int }, mandatory: { foo: Int }}>();
     asserts.assert(r.tryParse('{ "optional": {}, "mandatory": { "foo" : 5 } }').isSuccess());
