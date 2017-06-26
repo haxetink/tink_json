@@ -41,6 +41,14 @@ class ParserTest {
   public function float() {
     asserts.assert(parse(('{ "foo": [1.2345, .123e+6], "bar": true }' : { bar : Bool })).isSuccess());
     asserts.assert(!parse(('"3.4"' : Float)).isSuccess());
+    asserts.assert(!parse(('a' : Float)).isSuccess());
+    // asserts.assert(!parse(('1a' : Float)).isSuccess());
+    asserts.assert(!parse(('1.a' : Float)).isSuccess());
+    // asserts.assert(!parse(('1.0a' : Float)).isSuccess());
+    asserts.assert(!parse(('-a' : Float)).isSuccess());
+    // asserts.assert(!parse(('-1a' : Float)).isSuccess());
+    asserts.assert(!parse(('-1.a' : Float)).isSuccess());
+    // asserts.assert(!parse(('-1.0a' : Float)).isSuccess());
     asserts.assert(parse(('3.4' : Float)).sure() == 3.4);
     asserts.assert(parse(('-3.4' : Float)).sure() == -3.4);
     return asserts.done();
