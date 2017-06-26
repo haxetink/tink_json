@@ -39,10 +39,11 @@ class ParserTest {
   }
 
   public function float() {
-    return assert(
-      parse(('{ "foo": [1.2345, .123e+6], "bar": true }' : { bar : Bool })).isSuccess() 
-        &&
-      !parse(('"3.4"' : Float)).isSuccess());
+    asserts.assert(parse(('{ "foo": [1.2345, .123e+6], "bar": true }' : { bar : Bool })).isSuccess());
+    asserts.assert(!parse(('"3.4"' : Float)).isSuccess());
+    asserts.assert(parse(('3.4' : Float)).sure() == 3.4);
+    asserts.assert(parse(('-3.4' : Float)).sure() == -3.4);
+    return asserts.done();
   }
   
   @:describe('dynamic')
@@ -92,8 +93,7 @@ class ParserTest {
   
   public function date() {
     asserts.assert(parse(('1498484919000':Date)).sure().getTime() == 1498484919000);
-    asserts.assert(parse(('0':Date)).sure().getTime() == 0);
-    asserts.assert(!parse(('-1':Date)).isSuccess());
+    asserts.assert(parse(('-1498484919000':Date)).sure().getTime() == -1498484919000);
     return asserts.done();
   }
   

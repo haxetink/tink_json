@@ -39,11 +39,7 @@ class GenReader {
     return macro this.parseBool();
     
   public function date() 
-    return macro {
-      var timestamp = this.parseNumber().toFloat();
-      if(timestamp < 0) throw new tink.core.Error(422, 'Timestamp must be a positive number');
-      Date.fromTime(timestamp);
-    }
+    return macro Date.fromTime(this.parseNumber().toFloat());
     
   public function bytes() 
     return macro haxe.crypto.Base64.decode(this.parseString().toString());
