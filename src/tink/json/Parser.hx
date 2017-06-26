@@ -132,7 +132,7 @@ class BasicParser {
     return char < 58 && char > 47;
 
   static inline function startsNumber(char:Int)
-    return char == '.'.code || isDigit(char);
+    return char == '.'.code || char == '-'.code || isDigit(char);
   
   function parseNumber():JsonString 
     return
