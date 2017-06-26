@@ -75,7 +75,14 @@ class ParserTest {
   }
   
   public function invalidEnumAbstract() {
-    return assert(!parse(('"abc"':MyEnumAbstract)).isSuccess());
+    switch parse(('"abc"':MyEnumAbstract)) {
+      case Success(_):
+        asserts.fail('Expected failure');
+      case Failure(e): 
+        asserts.assert(e.code == 422);
+        asserts.assert(e.message == 'Unrecognized enum value: abc. Accepted values are: ["aaa","bbb","ccc"]');
+    }
+    return asserts.done();
   }
   
   public function custom() {

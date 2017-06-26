@@ -312,7 +312,10 @@ class GenReader {
       ${ESwitch(
         macro v, 
         [{expr: macro v, values: names}], 
-        macro throw new tink.core.Error(422, 'Unrecognized enum value: ' + v)
+        macro {
+          var list = $a{names};
+          throw new tink.core.Error(422, 'Unrecognized enum value: ' + v + '. Accepted values are: ' + tink.Json.stringify(list));
+        }
       ).at(pos)}
     }
   }
