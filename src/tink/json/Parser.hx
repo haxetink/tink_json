@@ -249,6 +249,17 @@ class BasicParser {
         else invalidChar(char);
     }  
 
+  function skipArray() {
+    if (allow(']')) 
+      return;
+        
+    do {
+      skipValue();
+    } while (allow(','));
+        
+    expect(']', true, false);  
+  }
+  
   function skipValue() 
     switch nextChar() {
       case '{'.code:
@@ -271,14 +282,7 @@ class BasicParser {
         expect('}', true, false);
         
       case '['.code:
-        if (allow(']')) 
-          return;
-        
-        do {
-          skipValue();
-        } while (allow(','));
-        
-        expect(']', true, false);
+        skipArray();
       case '"'.code:
         skipString();
       case 't'.code:
