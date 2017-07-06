@@ -58,6 +58,28 @@ class WriterTest {
   public function enumAbstract() {
     return assert(stringify(MyEnumAbstract.A) == '"aaa"');
   }
+
+  public function optional() {
+    var o:{
+      ?xxxxx:Int,
+      yyyyy:Int,
+      ?zzzzz:Int,
+    } = { yyyyy: 5 };
+    assert(stringify(o) == '{"yyyyy":5}'); 
+    o.zzzzz = 4;
+    assert(stringify(o) == '{"yyyyy":5,"zzzzz":4}'); 
+
+    var o:{
+      ?xxxxx:Int,
+      ?yyyyy:Int,
+      ?zzzzz:Int,
+    } = {};
+    assert(stringify(o) == '{}'); 
+    o.yyyyy = 5;
+    assert(stringify(o) == '{"yyyyy":5}'); 
+    
+    return asserts.done();
+  }
   
   public function custom() {
     asserts.assert(stringify(new Rocket(100)) == '{"alt":100}');

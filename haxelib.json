@@ -10,7 +10,6 @@
 	"contributors": [
 		"back2dos"
 	],
-	"website": "http://haxetink.org/tink_json/",
 	"releasenote": "Support serializing Either. Slightly better error reporting.",
 	"version": "0.6.2",
 	"url": "http://haxetink.org/tink_json",

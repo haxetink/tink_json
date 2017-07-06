@@ -1,4 +1,0 @@
-tests.hxml
--js bin/node/tests.js
--lib hxnodejs
--lib travix

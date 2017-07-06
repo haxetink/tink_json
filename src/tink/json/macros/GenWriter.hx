@@ -64,24 +64,63 @@ class GenWriter {
   static public function anon(fields:Array<FieldInfo>, ct) 
     return if(fields.length == 0)
       macro this.output('{}');
-    else
-      macro {
+    else {
+      fields = fields.copy();
+      fields.sort(function (a, b)
+        return switch [a.optional, b.optional] {
+          case [false, true]: -1;
+          case [true, false]: 1;
+          case [x, y]: Reflect.compare(a.name, b.name);
+        }
+      );
+      
+      var hasMandatory = !fields[0].optional;
+      if (!hasMandatory) macro {
+        var __first = true;
+        
+        this.char('{'.code);
         $b{[for (f in fields) {
-          var name = f.name;
-          var field = (
-            if (f == fields[0]) '{'
-            else ','
-          ) + '"${Macro.nativeName(f)}":';
-          
-          macro {
+          var name = f.name,
+              field = '"${Macro.nativeName(f)}":';
+          macro switch @:privateAccess value.$name {
+            case null:
+            case v: 
+              if (__first)
+                __first = false;
+              else
+                this.char(','.code);
+              this.output($v{field});
+              var value = @:privateAccess value.$name;
+              ${f.expr};              
+          }          
+        }]};
+        this.char('}'.code);
+      }
+      else macro {
+        $b{[for (f in fields) {
+          var name = f.name,
+              field = (
+                if (f == fields[0]) '{'
+                else ','
+              ) + '"${Macro.nativeName(f)}":';
+
+          var write = macro {
             this.output($v{field});
             var value = @:privateAccess value.$name;
             ${f.expr};
           }
+
+          if (f.optional)
+            macro switch @:privateAccess value.$name {
+              case null:
+              case v: $write;
+            }
+          else write;
         }]};
         this.char('}'.code);
       };
-    
+    }
+
   static public function array(e) 
     return macro {
       this.char('['.code);
