@@ -39,10 +39,19 @@ class ParserTest {
   }
 
   public function float() {
-    return assert(
-      parse(('{ "foo": [1.2345, .123e+6], "bar": true }' : { bar : Bool })).isSuccess() 
-        &&
-      !parse(('"3.4"' : Float)).isSuccess());
+    asserts.assert(parse(('{ "foo": [1.2345, .123e+6], "bar": true }' : { bar : Bool })).isSuccess());
+    asserts.assert(!parse(('"3.4"' : Float)).isSuccess());
+    asserts.assert(!parse(('a' : Float)).isSuccess());
+    // asserts.assert(!parse(('1a' : Float)).isSuccess());
+    asserts.assert(!parse(('1.a' : Float)).isSuccess());
+    // asserts.assert(!parse(('1.0a' : Float)).isSuccess());
+    asserts.assert(!parse(('-a' : Float)).isSuccess());
+    // asserts.assert(!parse(('-1a' : Float)).isSuccess());
+    asserts.assert(!parse(('-1.a' : Float)).isSuccess());
+    // asserts.assert(!parse(('-1.0a' : Float)).isSuccess());
+    asserts.assert(parse(('3.4' : Float)).sure() == 3.4);
+    asserts.assert(parse(('-3.4' : Float)).sure() == -3.4);
+    return asserts.done();
   }
   
   @:describe('dynamic')
@@ -75,12 +84,25 @@ class ParserTest {
   }
   
   public function invalidEnumAbstract() {
-    return assert(!parse(('"abc"':MyEnumAbstract)).isSuccess());
+    switch parse(('"abc"':MyEnumAbstract)) {
+      case Success(_):
+        asserts.fail('Expected failure');
+      case Failure(e): 
+        asserts.assert(e.code == 422);
+        asserts.assert(e.message == 'Unrecognized enum value: abc. Accepted values are: ["aaa","bbb","ccc"]');
+    }
+    return asserts.done();
   }
   
   public function custom() {
     var f:Fruit = parse('{"name":"apple","weight":0.2}');
     return assert(Std.is(f, Fruit) && f.name == 'apple' && f.weight == .2);
+  }
+  
+  public function date() {
+    asserts.assert(parse(('1498484919000':Date)).sure().getTime() == 1498484919000);
+    asserts.assert(parse(('-1498484919000':Date)).sure().getTime() == -1498484919000);
+    return asserts.done();
   }
   
   public function type() {
