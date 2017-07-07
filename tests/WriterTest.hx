@@ -65,18 +65,18 @@ class WriterTest {
       yyyyy:Int,
       ?zzzzz:Int,
     } = { yyyyy: 5 };
-    assert(stringify(o) == '{"yyyyy":5}'); 
+    asserts.assert(stringify(o) == '{"yyyyy":5}'); 
     o.zzzzz = 4;
-    assert(stringify(o) == '{"yyyyy":5,"zzzzz":4}'); 
+    asserts.assert(stringify(o) == '{"yyyyy":5,"zzzzz":4}'); 
 
     var o:{
       ?xxxxx:Int,
       ?yyyyy:Int,
       ?zzzzz:Int,
     } = {};
-    assert(stringify(o) == '{}'); 
+    asserts.assert(stringify(o) == '{}'); 
     o.yyyyy = 5;
-    assert(stringify(o) == '{"yyyyy":5}'); 
+    asserts.assert(stringify(o) == '{"yyyyy":5}'); 
     
     return asserts.done();
   }
