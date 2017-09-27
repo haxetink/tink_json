@@ -105,15 +105,25 @@ class Macro {
   static function parsed(ctx:BuildContext):TypeDefinition {
     return switch ctx.type {
       case TAnonymous(_.get() => a):
-        var name = ctx.name;
+        var absname = ctx.name;
+        var basename = ctx.name + 'Base';
         var ct = ctx.type.toComplex();
-        var def = macro class $name {
+        
+        var base = macro class $basename {
           var data:$ct;
           var fields:tink.json.Parsed.ParsedFields<$ct>;
         }
-        def.pack = ['tink', 'json'];
-        def.kind = TDStructure;
-        def;
+        base.pack = ['tink', 'json'];
+        base.kind = TDStructure;
+        Context.defineType(base);
+        
+        var abs = macro class $absname {
+          @:noCompletion @:to public inline function toData():$ct return this.data;
+        }
+        abs.pack = ['tink', 'json'];
+        abs.kind = TDAbstract(macro:tink.json.$basename, [], []);
+        abs.meta = [{name: ':forward', pos: ctx.pos}];
+        abs;
       default: ctx.pos.error('Only supports anonymous structure');
     }
   }
