@@ -121,7 +121,7 @@ class Macro {
           @:noCompletion @:to public inline function toData():$ct return this.data;
         }
         abs.pack = ['tink', 'json'];
-        abs.kind = TDAbstract(macro:tink.json.$basename, [], []);
+        abs.kind = TDAbstract(macro:tink.json.$basename, [macro:tink.json.$basename], [macro:tink.json.$basename]);
         abs.meta = [{name: ':forward', pos: ctx.pos}];
         abs;
       default: ctx.pos.error('Only supports anonymous structure');
