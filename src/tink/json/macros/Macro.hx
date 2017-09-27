@@ -99,6 +99,54 @@ class Macro {
     return cl;
   }
   
+  static public function buildParsed()
+    return BuildCache.getType('tink.json.Parsed', parsed);
+    
+  static function parsed(ctx:BuildContext):TypeDefinition {
+    return switch ctx.type {
+      case TAnonymous(_.get() => a):
+        var name = ctx.name;
+        var ct = ctx.type.toComplex();
+        var def = macro class $name {
+          var data:$ct;
+          var fields:tink.json.Parsed.ParsedFields<$ct>;
+        }
+        def.pack = ['tink', 'json'];
+        def.kind = TDStructure;
+        def;
+      default: ctx.pos.error('Only supports anonymous structure');
+    }
+  }
+  
+  static public function buildParsedFields()
+    return BuildCache.getType('tink.json.ParsedFields', parsedFields);
+    
+  static function parsedFields(ctx:BuildContext):TypeDefinition {
+    return switch ctx.type {
+      case TAnonymous(_.get() => a):
+        var name = ctx.name;
+        var def = macro class $name {}
+        for(field in a.fields) {
+          var type = switch field.type {
+            case TAnonymous(_):
+              var ct = field.type.toComplex();
+              macro:{exists:Bool,fields:tink.json.Parsed.ParsedFields<$ct>};
+            default:
+              macro:{exists:Bool};
+          }
+          def.fields.push({
+            name: field.name,
+            pos: field.pos,
+            kind: FVar(type, null),
+          });
+        }
+        def.pack = ['tink', 'json'];
+        def.kind = TDStructure;
+        def;
+      default: ctx.pos.error('Only supports anonymous structure');
+    }
+  }
+  
   static public function getRepresentation(t:Type, pos:Position) {
 
     switch t.reduce() {
