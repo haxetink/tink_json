@@ -31,6 +31,38 @@ class Macro {
           throw 'assert';
       }      
 
+  static public function buildParsedParser():Type
+    return BuildCache.getType('tink.json.ParsedParser', parsedParser);
+
+  static function parsedParser(ctx:BuildContext):TypeDefinition {
+     var name = ctx.name,
+        ct = ctx.type.toComplex();
+        
+    var cl = macro class $name extends tink.json.Parser.BasicParser {
+      public function new() super();
+    } 
+    
+    function add(t:TypeDefinition)
+      cl.fields = cl.fields.concat(t.fields);
+      
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenParsed.inst);
+    cl.fields = cl.fields.concat(ret.fields);  
+    
+    add(macro class { 
+      public function parse(source):tink.json.Parsed<$ct> @:pos(ret.expr.pos) {
+        this.init(source);
+        return {
+          data: new tink.json.Parser<$ct>().parse(source),
+          fields: ${ret.expr},
+        }
+      }
+      public function tryParse(source)
+        return tink.core.Error.catchExceptions(function () return parse(source));
+    });
+    
+    return cl;
+  }
+  
   static public function buildParser():Type
     return BuildCache.getType('tink.json.Parser', parser);
 
@@ -55,7 +87,6 @@ class Macro {
       cl.fields = cl.fields.concat(t.fields);
       
     var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader.inst);
-    
     cl.fields = cl.fields.concat(ret.fields);  
     
     add(macro class { 
@@ -66,16 +97,6 @@ class Macro {
       public function tryParse(source)
         return tink.core.Error.catchExceptions(function () return parse(source));
         
-      public function parsed(source):tink.json.Parsed<$ct> @:pos(ret.expr.pos) {
-        var data = parse(source);
-        return {
-          data: data,
-          fields: null, // TODO
-        }
-      }
-      
-      public function tryParsed(source)
-        return tink.core.Error.catchExceptions(function () return parsed(source));
     });
     
     return cl;
@@ -135,13 +156,8 @@ class Macro {
     switch ctx.type {
       case TAnonymous(_.get() => a):
         for(field in a.fields) {
-          var type = switch field.type {
-            case TAnonymous(_):
-              var ct = field.type.toComplex();
-              macro:{exists:Bool,fields:tink.json.Parsed.ParsedFields<$ct>};
-            default:
-              macro:{exists:Bool};
-          }
+          var ct = field.type.toComplex();
+          var type = macro:{exists:Bool, fields:tink.json.Parsed.ParsedFields<$ct>}
           def.fields.push({
             name: field.name,
             pos: field.pos,

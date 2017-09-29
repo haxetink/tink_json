@@ -113,5 +113,19 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function parsed() {
+    var r = tink.Json.parse(('{"a":1,"sub":{"c":true}}':Parsed<{a:Int, ?b:String, sub:{c:Bool}, ?sub2:{?d:Float}}>));
+    asserts.assert(r.isSuccess());
+    var r = r.sure();
+    asserts.assert(r.data.a == 1);
+    asserts.assert(r.fields.a.exists);
+    asserts.assert(!r.fields.b.exists);
+    asserts.assert(r.fields.sub.exists);
+    asserts.assert(r.fields.sub.fields.c.exists);
+    asserts.assert(!r.fields.sub2.exists);
+    asserts.assert(r.fields.sub2.fields == null);
+    return asserts.done();
+  }
+  
 }
 

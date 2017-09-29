@@ -11,6 +11,13 @@ class Parser<T> {
   
 }
 
+#if !macro
+@:genericBuild(tink.json.macros.Macro.buildParsedParser())
+#end
+class ParsedParser<T> {
+  
+}
+
 private class SliceData {
   
   public var source(default, null):String;
