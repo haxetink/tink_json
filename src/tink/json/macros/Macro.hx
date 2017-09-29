@@ -65,6 +65,17 @@ class Macro {
       }
       public function tryParse(source)
         return tink.core.Error.catchExceptions(function () return parse(source));
+        
+      public function parsed(source):tink.json.Parsed<$ct> @:pos(ret.expr.pos) {
+        var data = parse(source);
+        return {
+          data: data,
+          fields: null, // TODO
+        }
+      }
+      
+      public function tryParsed(source)
+        return tink.core.Error.catchExceptions(function () return parsed(source));
     });
     
     return cl;
@@ -103,39 +114,26 @@ class Macro {
     return BuildCache.getType('tink.json.Parsed', parsed);
     
   static function parsed(ctx:BuildContext):TypeDefinition {
-    return switch ctx.type {
-      case TAnonymous(_.get() => a):
-        var absname = ctx.name;
-        var basename = ctx.name + 'Base';
-        var ct = ctx.type.toComplex();
-        
-        var base = macro class $basename {
-          var data:$ct;
-          var fields:tink.json.Parsed.ParsedFields<$ct>;
-        }
-        base.pack = ['tink', 'json'];
-        base.kind = TDStructure;
-        Context.defineType(base);
-        
-        var abs = macro class $absname {
-          @:noCompletion @:to public inline function toData():$ct return this.data;
-        }
-        abs.pack = ['tink', 'json'];
-        abs.kind = TDAbstract(macro:tink.json.$basename, [macro:tink.json.$basename], [macro:tink.json.$basename]);
-        abs.meta = [{name: ':forward', pos: ctx.pos}];
-        abs;
-      default: ctx.pos.error('Only supports anonymous structure');
+    var ct = ctx.type.toComplex();
+    var name = ctx.name;
+    var base = macro:tink.json.Parsed.ParsedBase<$ct, tink.json.Parsed.ParsedFields<$ct>>;
+    var def = macro class $name {
+      @:noCompletion @:to public inline function toData():$ct return this.data;
     }
+    def.pack = ['tink', 'json'];
+    def.kind = TDAbstract(base, [base], [base]);
+    def.meta = [{name: ':forward', pos: ctx.pos}];
+    return def;
   }
   
   static public function buildParsedFields()
     return BuildCache.getType('tink.json.ParsedFields', parsedFields);
     
   static function parsedFields(ctx:BuildContext):TypeDefinition {
-    return switch ctx.type {
+    var name = ctx.name;
+    var def = macro class $name {}
+    switch ctx.type {
       case TAnonymous(_.get() => a):
-        var name = ctx.name;
-        var def = macro class $name {}
         for(field in a.fields) {
           var type = switch field.type {
             case TAnonymous(_):
@@ -150,11 +148,12 @@ class Macro {
             kind: FVar(type, null),
           });
         }
-        def.pack = ['tink', 'json'];
-        def.kind = TDStructure;
-        def;
-      default: ctx.pos.error('Only supports anonymous structure');
+      default:
+        // do nothing
     }
+    def.pack = ['tink', 'json'];
+    def.kind = TDStructure;
+    return def;
   }
   
   static public function getRepresentation(t:Type, pos:Position) {
