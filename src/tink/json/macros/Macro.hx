@@ -153,7 +153,7 @@ class Macro {
   static function parsedFields(ctx:BuildContext):TypeDefinition {
     var name = ctx.name;
     var def = macro class $name {}
-    switch ctx.type {
+    switch ctx.type.reduce() {
       case TAnonymous(_.get() => a):
         for(field in a.fields) {
           var ct = field.type.toComplex();
