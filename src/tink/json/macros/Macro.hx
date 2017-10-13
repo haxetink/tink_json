@@ -31,6 +31,38 @@ class Macro {
           throw 'assert';
       }      
 
+  static public function buildParsedParser():Type
+    return BuildCache.getType('tink.json.ParsedParser', parsedParser);
+
+  static function parsedParser(ctx:BuildContext):TypeDefinition {
+     var name = ctx.name,
+        ct = ctx.type.toComplex();
+        
+    var cl = macro class $name extends tink.json.Parser.BasicParser {
+      public function new() super();
+    } 
+    
+    function add(t:TypeDefinition)
+      cl.fields = cl.fields.concat(t.fields);
+      
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenParsed.inst);
+    cl.fields = cl.fields.concat(ret.fields);  
+    
+    add(macro class { 
+      public function parse(source):tink.json.Parsed<$ct> @:pos(ret.expr.pos) {
+        this.init(source);
+        return {
+          data: new tink.json.Parser<$ct>().parse(source),
+          fields: ${ret.expr},
+        }
+      }
+      public function tryParse(source)
+        return tink.core.Error.catchExceptions(function () return parse(source));
+    });
+    
+    return cl;
+  }
+  
   static public function buildParser():Type
     return BuildCache.getType('tink.json.Parser', parser);
 
@@ -55,7 +87,6 @@ class Macro {
       cl.fields = cl.fields.concat(t.fields);
       
     var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader.inst);
-    
     cl.fields = cl.fields.concat(ret.fields);  
     
     add(macro class { 
@@ -65,6 +96,7 @@ class Macro {
       }
       public function tryParse(source)
         return tink.core.Error.catchExceptions(function () return parse(source));
+        
     });
     
     return cl;
@@ -97,6 +129,47 @@ class Macro {
     });
     
     return cl;
+  }
+  
+  static public function buildParsed()
+    return BuildCache.getType('tink.json.Parsed', parsed);
+    
+  static function parsed(ctx:BuildContext):TypeDefinition {
+    var ct = ctx.type.toComplex();
+    var name = ctx.name;
+    var base = macro:tink.json.Parsed.ParsedBase<$ct, tink.json.Parsed.ParsedFields<$ct>>;
+    var def = macro class $name {
+      @:noCompletion @:to public inline function toData():$ct return this.data;
+    }
+    def.pack = ['tink', 'json'];
+    def.kind = TDAbstract(base, [base], [base]);
+    def.meta = [{name: ':forward', pos: ctx.pos}];
+    return def;
+  }
+  
+  static public function buildParsedFields()
+    return BuildCache.getType('tink.json.ParsedFields', parsedFields);
+    
+  static function parsedFields(ctx:BuildContext):TypeDefinition {
+    var name = ctx.name;
+    var def = macro class $name {}
+    switch ctx.type.reduce() {
+      case TAnonymous(_.get() => a):
+        for(field in a.fields) {
+          var ct = field.type.toComplex();
+          var type = macro:{exists:Bool, fields:tink.json.Parsed.ParsedFields<$ct>}
+          def.fields.push({
+            name: field.name,
+            pos: field.pos,
+            kind: FVar(type, null),
+          });
+        }
+      default:
+        // do nothing
+    }
+    def.pack = ['tink', 'json'];
+    def.kind = TDStructure;
+    return def;
   }
   
   static public function getRepresentation(t:Type, pos:Position) {
