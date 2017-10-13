@@ -15,7 +15,7 @@ class Json {
       switch e {
         case macro ($v : $ct):
           switch ct.toType() {
-            case Success(t = TAbstract(_.get() => {type: TType(_, [_.toComplex() => ct, _])}, _)) if(t.getID().startsWith('tink.json.Parsed')):
+            case Success(_.reduce() => t = TAbstract(_.get() => {type: TType(_, [_.toComplex() => ct, _])}, _)) if(t.getID().startsWith('tink.json.Parsed')):
               macro @:pos(e.pos) new tink.json.Parser.ParsedParser<$ct>().tryParse($v);
             default:
               macro @:pos(e.pos) new tink.json.Parser<$ct>().tryParse($v);
@@ -24,7 +24,7 @@ class Json {
           switch Context.getExpectedType() {
             case null:
               e.reject('Cannot determine expected type');
-            case t = TAbstract(_.get() => {type: TType(_, [_.toComplex() => ct, _])}, _) if(t.getID().startsWith('tink.json.Parsed')):
+            case _.reduce() => t = TAbstract(_.get() => {type: TType(_, [_.toComplex() => ct, _])}, _) if(t.getID().startsWith('tink.json.Parsed')):
               macro @:pos(e.pos) new tink.json.Parser.ParsedParser<$ct>().tryParse($e);
             case _.toComplex() => ct:
               macro @:pos(e.pos) new tink.json.Parser<$ct>().parse($e);
