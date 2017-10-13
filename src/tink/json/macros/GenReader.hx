@@ -71,13 +71,31 @@ class GenReader {
           jsonName = Macro.nativeName(f),
           optional = f.optional;
          
+      var option = switch f.type.reduce() {
+        case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]): Some(v);
+        default: None;
+      }
       var hasName = 'has$name';
 
       read = macro @:pos(f.pos) 
         if (__name__ == $v{jsonName}) {
           
-          $i{name} = ${f.expr};
-            
+          ${
+            switch option {
+              case Some(t):
+                var ct = t.toComplex();
+                macro {
+                  var start = this.pos;
+                  this.skipValue();
+                  $i{name} = switch this.source.substring(start, pos) {
+                    case 'null': Some(null);
+                    case v: Some(new tink.json.Parser<$ct>().parse(v));
+                  }
+                }
+              default:
+                macro $i{name} = ${f.expr};
+            }
+          }
           ${
             if (optional) macro $b{[]}
             else macro $i{hasName} = true
@@ -88,8 +106,18 @@ class GenReader {
       obj.push({
         field: f.name,
         expr: 
-          if (optional) macro $i{name}
-          else macro if ($i{hasName}) $i{name} else __missing__($v{jsonName}),
+          switch option {
+            case Some(v):
+              if (optional)
+                macro switch $i{name} {
+                  case null: None;
+                  case v: v;
+                }
+              else macro if ($i{hasName}) $i{name} else None;
+            case None:
+              if (optional) macro $i{name}
+              else macro if ($i{hasName}) $i{name} else __missing__($v{jsonName});
+          },
       });
 
       if (optional) 

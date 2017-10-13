@@ -113,5 +113,27 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function optionInAnon() {
+    var s1 = '{}';
+    var s2 = '{"o":null}';
+    var s3 = '{"o":1}';
+    
+    var e:{o:Option<Int>} = parse(s1);
+    asserts.assert(e.o == None);
+    var e:{o:Option<Int>} = parse(s2);
+    asserts.assert(e.o.match(Some(null)));
+    var e:{o:Option<Int>} = parse(s3);
+    asserts.assert(e.o.match(Some(1)));
+    
+    var e:{?o:Option<Int>} = parse(s1);
+    asserts.assert(e.o == None);
+    var e:{?o:Option<Int>} = parse(s2);
+    asserts.assert(e.o.match(Some(null)));
+    var e:{?o:Option<Int>} = parse(s3);
+    asserts.assert(e.o.match(Some(1)));
+    
+    return asserts.done();
+  }
+  
 }
 
