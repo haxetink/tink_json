@@ -82,40 +82,64 @@ class GenWriter {
         $b{[for (f in fields) {
           var name = f.name,
               field = '"${Macro.nativeName(f)}":';
-          macro switch @:privateAccess value.$name {
-            case null:
-            case v: 
-              if (__first)
-                __first = false;
-              else
-                this.char(','.code);
-              this.output($v{field});
-              var value = @:privateAccess value.$name;
-              ${f.expr};              
-          }          
-        }]};
-        this.char('}'.code);
-      }
-      else macro {
-        $b{[for (f in fields) {
-          var name = f.name,
-              field = (
-                if (f == fields[0]) '{'
-                else ','
-              ) + '"${Macro.nativeName(f)}":';
-
+            
           var write = macro {
+            if (__first)
+              __first = false;
+            else
+              this.char(','.code);
             this.output($v{field});
             var value = @:privateAccess value.$name;
-            ${f.expr};
+            ${f.expr};    
           }
-
-          if (f.optional)
+          
+          if(f.type.getID() == 'haxe.ds.Option')
+            macro switch @:privateAccess value.$name {
+              case null | None:
+              case Some(v): $write;
+            }
+          else
             macro switch @:privateAccess value.$name {
               case null:
               case v: $write;
             }
-          else write;
+        }]};
+        this.char('}'.code);
+      }
+      else macro {
+        var __first = true;
+        this.char('{'.code);
+        
+        $b{[for (f in fields) {
+          var name = f.name,
+              field = '"${Macro.nativeName(f)}":';
+
+          var write = macro {
+            if(__first) __first = false;
+            else this.char(','.code);
+            this.output($v{field});
+            ${f.expr};
+          }
+        
+          if(f.type.getID() == 'haxe.ds.Option')
+            macro switch @:privateAccess value.$name {
+              case null | None:
+              case Some(value):
+                if(__first) __first = false;
+                else this.char(','.code);
+                this.output($v{field});
+                this.output(tink.Json.stringify(value));
+            }
+          else if (f.optional)
+            macro switch @:privateAccess value.$name {
+              case null:
+              case value: $write;
+            }
+          else 
+            macro {
+              var value = @:privateAccess value.$name;
+              $write;
+            }
         }]};
         this.char('}'.code);
       };

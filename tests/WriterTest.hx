@@ -102,4 +102,43 @@ class WriterTest {
     asserts.assert(stringify(e) == '{"id":"aa"}');
     return asserts.done();
   }
+  
+  public function optionInAnon() {
+    var e:{o:Option<String>} = {o: null};
+    asserts.assert(stringify(e) == '{}');
+    var e:{o:Option<String>} = {o: None};
+    asserts.assert(stringify(e) == '{}');
+    var e:{o:Option<String>} = {o: Some(null)};
+    asserts.assert(stringify(e) == '{"o":null}');
+    var e:{o:Option<String>} = {o: Some('s')};
+    asserts.assert(stringify(e) == '{"o":"s"}');
+  
+    var e:{?o:Option<String>} = {o: null};
+    asserts.assert(stringify(e) == '{}');
+    var e:{?o:Option<String>} = {o: None};
+    asserts.assert(stringify(e) == '{}');
+    var e:{?o:Option<String>} = {o: Some(null)};
+    // asserts.assert(stringify(e) == '{"o":null}'); // TODO: what is the specification here?
+    var e:{?o:Option<String>} = {o: Some('s')};
+    // asserts.assert(stringify(e) == '{"o":"s"}'); // TODO: what is the specification here?
+    
+    var e:{a:Int, o:Option<String>} = {a:1, o: null};
+    asserts.assert(stringify(e) == '{"a":1}');
+    var e:{a:Int, o:Option<String>} = {a:1, o: None};
+    asserts.assert(stringify(e) == '{"a":1}');
+    var e:{a:Int, o:Option<String>} = {a:1, o: Some(null)};
+    asserts.assert(stringify(e) == '{"a":1,"o":null}');
+    var e:{a:Int, o:Option<String>} = {a:1, o: Some('s')};
+    asserts.assert(stringify(e) == '{"a":1,"o":"s"}');
+    
+    var e:{z:Int, o:Option<String>} = {z:1, o: null};
+    asserts.assert(stringify(e) == '{"z":1}');
+    var e:{z:Int, o:Option<String>} = {z:1, o: None};
+    asserts.assert(stringify(e) == '{"z":1}');
+    var e:{z:Int, o:Option<String>} = {z:1, o: Some(null)};
+    asserts.assert(stringify(e) == '{"o":null,"z":1}');
+    var e:{z:Int, o:Option<String>} = {z:1, o: Some('s')};
+    asserts.assert(stringify(e) == '{"o":"s","z":1}');
+    return asserts.done();
+  }
 }
