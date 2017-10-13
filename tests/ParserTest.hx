@@ -120,14 +120,14 @@ class ParserTest {
     
     var e:{o:Option<Int>} = parse(s1);
     asserts.assert(e.o == None);
-    var e:{o:Option<Int>} = parse(s2);
+    var e:{o:Option<Null<Int>>} = parse(s2);
     asserts.assert(e.o.match(Some(null)));
     var e:{o:Option<Int>} = parse(s3);
     asserts.assert(e.o.match(Some(1)));
     
     var e:{?o:Option<Int>} = parse(s1);
     asserts.assert(e.o == None);
-    var e:{?o:Option<Int>} = parse(s2);
+    var e:{?o:Option<Null<Int>>} = parse(s2);
     asserts.assert(e.o.match(Some(null)));
     var e:{?o:Option<Int>} = parse(s3);
     asserts.assert(e.o.match(Some(1)));
