@@ -87,10 +87,7 @@ class GenReader {
                 macro {
                   var start = this.pos;
                   this.skipValue();
-                  $i{name} = switch this.source.substring(start, pos) {
-                    case 'null': Some(null);
-                    case v: Some(new tink.json.Parser<$ct>().parse(v));
-                  }
+                  $i{name} = Some(new tink.json.Parser<$ct>().parse(this.source.substring(start, pos)));
                 }
               default:
                 macro $i{name} = ${f.expr};
