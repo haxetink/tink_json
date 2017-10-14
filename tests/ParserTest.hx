@@ -113,5 +113,11 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function nullable() {
+    asserts.assert(parse(('null':Null<Int>)).match(Success(null)));
+    asserts.assert(parse(('{"Some":{"v":null}}':Option<Null<Int>>)).match(Success(Some(null))));
+    return asserts.done();
+  }
+
 }
 
