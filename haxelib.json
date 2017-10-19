@@ -10,8 +10,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "Support serializing Either. Slightly better error reporting.",
-	"version": "0.6.2",
+	"releasenote": "Fix bugs related to whitespace in strings.",
+	"version": "0.6.3",
 	"url": "http://haxetink.org/tink_json",
 	"dependencies": {
 		"tink_typecrawler": ""
