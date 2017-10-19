@@ -100,7 +100,7 @@ class BasicParser {
   }
 
   function parseString():JsonString 
-    return expect('"', "string") & parseRestOfString();
+    return expect('"', true, false, "string") & parseRestOfString();
 
   function parseRestOfString():JsonString
     return slice(skipString(), pos - 1);

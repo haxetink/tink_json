@@ -93,6 +93,14 @@ class ParserTest {
     }
     return asserts.done();
   }
+
+  public function escape() {
+    var data = { foo: "    bar\n\n" };
+    var data2 = data;
+    data2 = parse(stringify(data));
+    asserts.assert(data.foo == data2.foo);
+    return asserts.done();
+  }
   
   public function custom() {
     var f:Fruit = parse('{"name":"apple","weight":0.2}');
