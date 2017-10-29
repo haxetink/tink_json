@@ -9,32 +9,38 @@ import tink.typecrawler.Generator;
 using haxe.macro.Tools;
 using tink.MacroApi;
 
-class GenWriter {
-  static public function wrap(placeholder:Expr, ct:ComplexType):Function
+class GenWriter extends GenBase {
+  static public var inst(default, null) = new GenWriter();
+
+  function new() {
+    super(':jsonStringify');
+  }
+
+  public function wrap(placeholder:Expr, ct:ComplexType):Function
     return placeholder.func(['value'.toArg(ct)], false);
     
-  static public function nullable(e) 
+  public function nullable(e) 
     return macro if (value == null) this.output('null') else $e;
     
-  static public function string() 
+  public function string() 
     return macro this.writeString(value);
     
-  static public function int() 
+  public function int() 
     return macro this.writeInt(value);
     
-  static public function float() 
+  public function float() 
     return macro this.writeFloat(value);
     
-  static public function bool() 
+  public function bool() 
     return macro this.writeBool(value);
     
-  static public function date() 
+  public function date() 
     return macro this.writeFloat(value.getTime());
     
-  static public function bytes() 
+  public function bytes() 
     return macro this.writeString(haxe.crypto.Base64.encode(value));
     
-  static public function map(k, v)               
+  public function map(k, v)               
     return macro {
       this.char('['.code);
       var first = true;
@@ -61,7 +67,7 @@ class GenWriter {
       this.char(']'.code);  
     }
     
-  static public function anon(fields:Array<FieldInfo>, ct) 
+  public function anon(fields:Array<FieldInfo>, ct) 
     return if(fields.length == 0)
       macro this.output('{}');
     else {
@@ -145,7 +151,7 @@ class GenWriter {
       };
     }
 
-  static public function array(e) 
+  public function array(e) 
     return macro {
       this.char('['.code);
       var first = true;
@@ -159,7 +165,7 @@ class GenWriter {
       this.char(']'.code);  
     };
     
-  static public function enm(constructors:Array<EnumConstructor>, ct, _, _) {
+  public function enm(constructors:Array<EnumConstructor>, ct, _, _) {
     var cases = [];
     for (c in constructors) {
       var cfields = c.fields,
@@ -225,20 +231,20 @@ class GenWriter {
     return ESwitch(macro (value:$ct), cases, null).at();
   }
   
-  static public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
+  public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
     return macro @:pos(pos) {
       var value = cast value;
       $e;
     }
   }
   
-  static public function dyn(e, ct) 
+  public function dyn(e, ct) 
     return macro {
       var value:haxe.DynamicAccess<$ct> = value;
       $e;
     }
     
-  static public function dynAccess(e)
+  public function dynAccess(e)
     return macro {
       var first = true;
           
@@ -260,7 +266,7 @@ class GenWriter {
       this.char('}'.code);
     }
     
-  static public function rescue(t:Type, pos:Position, gen:GenType):Option<Expr>
+  override public function rescue(t:Type, pos:Position, gen:GenType):Option<Expr>
     return 
       switch t.reduce() {
         
@@ -281,36 +287,46 @@ class GenWriter {
           Some(anon(a, t.toComplex()));
           
         default:
-          
-          switch Macro.getRepresentation(t, pos) {
-            case Some(v):
-              
-              var ct = v.toComplex();
-              
-              Some(macro @:pos(pos) {
-                var value = (value : tink.json.Representation<$ct>).get();
-                ${gen(v, pos)};
-              });
-              
-            default:
-              
-              None;
-          }                  
+          super.rescue(t, pos, gen);             
       }    
       
-  static public function reject(t:Type) 
+  public function reject(t:Type) 
     return 'Cannot stringify ${t.toString()}';
-    
-  static public function shouldIncludeField(c:ClassField, owner:Option<ClassType>):Bool
-    return Helper.shouldIncludeField(c, owner);
-    
-  static public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
+
+  override function processRepresentation(pos:Position, actual:Type, representation:Type, value:Expr):Expr {
+    var ct = representation.toComplex();
+    return macro @:pos(pos) {
+      var value = (value : tink.json.Representation<$ct>).get();
+      $value;
+    }
+  }
+
+  override function processDynamic(pos:Position):Expr
+    return macro @:pos(pos) this.writeDynamic(value);
+
+  override function processValue(pos:Position):Expr
+    return macro @:pos(pos) this.writeValue(value);
+
+  override function processSerialized(pos:Position):Expr
+    return macro @:pos(pos) this.output(value);
+
+  override function processCustom(writer:Expr, gen:Type->Expr):Expr {
+    var path = writer.toString().asTypePath();
+
+    var rep = 
+      switch (macro @:pos(writer.pos) new $path(null).prepare).typeof().sure().reduce() {
+        case TFun([{ t: t }], ret): ret;
+        default: writer.reject('field `prepare` has wrong signature');
+      }
+    return macro @:pos(writer.pos) {
+      var value = this.plugins.get($writer).prepare(value);
+      ${gen(rep)};
+    }     
+  }
+
+  override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return
       switch type.reduce() {
-        case TDynamic(null): macro @:pos(pos) 
-          this.writeDynamic(value);
-        case TEnum(_.get().module => 'tink.json.Value', _): 
-          macro @:pos(pos) this.writeValue(value);
         case TEnum(_.get().module => 'haxe.ds.Either', [left, right]):
           var lct = left.toComplex();
           var rct = right.toComplex();
@@ -318,30 +334,6 @@ class GenWriter {
             case Left(v): this.output(tink.Json.stringify((v:$lct)));
             case Right(v): this.output(tink.Json.stringify((v:$rct)));
           }
-        case TAbstract(_.get().module => 'tink.json.Serialized', _): 
-          macro @:pos(pos) this.output(value);
-        case v:
-          switch type.getMeta().filter(function (m) return m.has(':jsonStringify')) {
-            case []: gen(type, pos);
-            case v: 
-              switch v[0].extract(':jsonStringify')[0] {
-                case { params: [writer] }: 
-                  
-                  var path = writer.toString().asTypePath();
-
-                  var rep = 
-                    switch (macro @:pos(writer.pos) new $path(null).prepare).typeof().sure().reduce() {
-                      case TFun([{ t: t }], ret): ret;
-                      default: writer.reject('field `prepare` has wrong signature');
-                    }
-                    //throw rep;
-                  macro @:pos(writer.pos) {
-                    var value = this.plugins.get($writer).prepare(value);
-                    ${drive(rep, pos, gen)};
-                  }
-                case v: v.pos.error('@:jsonStringify must have exactly one parameter');
-              }
-          }
-        }
-
+        default: super.drive(type, pos, gen);
+      }
 }

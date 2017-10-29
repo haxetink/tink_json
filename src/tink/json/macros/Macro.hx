@@ -81,7 +81,7 @@ class Macro {
       public function new() super();
     } 
     
-    var ret = Crawler.crawl(ctx.type, ctx.pos, GenWriter);
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenWriter.inst);
     
     cl.fields = cl.fields.concat(ret.fields);
     

@@ -12,10 +12,13 @@ using haxe.macro.Tools;
 using tink.MacroApi;
 using tink.CoreApi;
 
-class GenReader {
+class GenReader extends GenBase {
   static public var inst = new GenReader();
   
-  function new() {}
+  function new() {
+    super(':jsonParse');
+  }
+
   static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
   
   public function wrap(placeholder:Expr, ct:ComplexType):Function
@@ -342,65 +345,47 @@ class GenReader {
       }    
       __ret;
     }
-    
-  public function rescue(t:Type, pos:Position, gen:GenType) 
-    return 
-      switch Macro.getRepresentation(t, pos) {
-        case Some(v):
-          var rt = t.toComplex();
-          var ct = v.toComplex();
-          
-          Some(macro @:pos(pos) {
-            var __start__ = this.pos,
-                rep = ${gen(v, pos)};
-                
-            try {
-              (new tink.json.Representation<$ct>(rep) : $rt);
-            }
-            catch (e:Dynamic) {
-              this.die(Std.string(e), __start__);
-            }
-          });
-          
-        default:
-          None;
+  
+  override function processDynamic(pos) 
+    return macro @:pos(pos) this.parseDynamic();  
+
+  override function processValue(pos) 
+    return macro @:pos(pos) this.parseValue();
+
+  override function processSerialized(pos) 
+    return macro @:pos(pos) this.parseSerialized();
+
+  override function processCustom(parser:Expr, gen:Type->Expr) {
+    var path = parser.toString().asTypePath();
+
+    var rep = 
+      switch (macro @:pos(parser.pos) new $path(null).parse).typeof().sure().reduce() {
+        case TFun([{ t: t }], ret): t;
+        default: parser.reject('field `parse` has wrong signature');
       }
+
+    return macro @:pos(parser.pos) this.plugins.get($parser).parse(${gen(rep)});
+  }
+
+  override function processRepresentation(pos:Position, actual:Type, representation:Type, value:Expr):Expr {
+    var rt = actual.toComplex();
+    var ct = representation.toComplex();
+    
+    return macro @:pos(pos) {
+      var __start__ = this.pos,
+          rep = $value;
+          
+      try {
+        (new tink.json.Representation<$ct>(rep) : $rt);
+      }
+      catch (e:Dynamic) {
+        this.die(Std.string(e), __start__);
+      }
+    };  
+  }
     
   public function reject(t:Type) 
     return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-abstracts';
-    
-  public function shouldIncludeField(c:ClassField, owner:Option<ClassType>):Bool
-    return Helper.shouldIncludeField(c, owner);
-    
-  public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
-    return 
-      switch type.getMeta().filter(function (m) return m.has(':jsonParse')) {
-        case []: 
-          switch type.reduce() {
-            case TDynamic(null): 
-              macro @:pos(pos) this.parseDynamic();
-            case TEnum(_.get().module => 'tink.json.Value', _): 
-              macro @:pos(pos) this.parseValue();
-            case TAbstract(_.get().module => 'tink.json.Serialized', _): 
-              macro @:pos(pos) this.parseSerialized();
-            default: 
-              gen(type, pos);
-          }
-        case v: 
-          switch v[0].extract(':jsonParse')[0] {
-            case { params: [parser] }: 
-              
-              var path = parser.toString().asTypePath();
-
-              var rep = 
-                switch (macro @:pos(parser.pos) new $path(null).parse).typeof().sure().reduce() {
-                  case TFun([{ t: t }], ret): t;
-                  default: parser.reject('field `parse` has wrong signature');
-                }
-              macro @:pos(parser.pos) this.plugins.get($parser).parse(${drive(rep, pos, gen)});
-            case v: v.pos.error('@:jsonParse must have exactly one parameter');
-          }
-      }       
 
 }
 
