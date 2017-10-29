@@ -82,6 +82,12 @@ class ParserTest {
     var e:MyEnumAbstract = parse('"aaa"');
     return assert(e == A);
   }
+
+  public function representationPriority() {
+    var c:Contraption = parse('[12]');
+    asserts.assert(c.foo == 12);
+    return asserts.done();
+  }
   
   public function invalidEnumAbstract() {
     switch parse(('"abc"':MyEnumAbstract)) {

@@ -79,6 +79,15 @@ abstract UpperCase(String) {
     return new UpperCase(s.toUpperCase());
 }
 
+@:forward
+abstract Contraption({ foo: Int }) from { foo: Int } to { foo: Int } {
+  @:from static function ofRepresentation(rep:Representation<Array<Int>>):Contraption
+    return { foo: rep.get()[0] };
+  
+  @:to function toRepresentation():Representation<Array<Int>> 
+    return new Representation([this.foo]);  
+}
+
 abstract MyAbstract(Iterable<Int>) {
   
   public inline function new(vec) this = vec;
