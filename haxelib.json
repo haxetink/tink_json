@@ -1,19 +1,19 @@
 {
 	"name": "tink_json",
-	"license": "MIT",
+	"classPath": "src",
+	"dependencies": {
+		"tink_typecrawler": ""
+	},
+	"url": "http://haxetink.org/tink_json",
+	"contributors": [
+		"back2dos"
+	],
+	"version": "0.7.0",
+	"releasenote": "Use Option<T> to distinguish between undefined fields and fields defined as null.",
 	"tags": [
 		"tink",
 		"cross",
 		"json"
 	],
-	"classPath": "src",
-	"contributors": [
-		"back2dos"
-	],
-	"releasenote": "Fix bugs related to whitespace in strings.",
-	"version": "0.6.3",
-	"url": "http://haxetink.org/tink_json",
-	"dependencies": {
-		"tink_typecrawler": ""
-	}
+	"license": "MIT"
 }
