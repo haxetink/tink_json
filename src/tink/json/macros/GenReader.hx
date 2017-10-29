@@ -392,32 +392,33 @@ class GenReader {
     
   public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return 
-      switch type.reduce() {
-        case TDynamic(null): 
-          macro @:pos(pos) this.parseDynamic();
-        case TEnum(_.get().module => 'tink.json.Value', _): 
-          macro @:pos(pos) this.parseValue();
-        case TAbstract(_.get().module => 'tink.json.Serialized', _): 
-          macro @:pos(pos) this.parseSerialized();
-        case v:
-          switch type.getMeta().filter(function (m) return m.has(':jsonParse')) {
-            case []: gen(type, pos);
-            case v: 
-              switch v[0].extract(':jsonParse')[0] {
-                case { params: [parser] }: 
-                  
-                  var path = parser.toString().asTypePath();
-
-                  var rep = 
-                    switch (macro @:pos(parser.pos) new $path(null).parse).typeof().sure().reduce() {
-                      case TFun([{ t: t }], ret): t;
-                      default: parser.reject('field `parse` has wrong signature');
-                    }
-                  macro @:pos(parser.pos) this.plugins.get($parser).parse(${drive(rep, pos, gen)});
-                case v: v.pos.error('@:jsonParse must have exactly one parameter');
-              }
+      switch type.getMeta().filter(function (m) return m.has(':jsonParse')) {
+        case []: 
+          switch type.reduce() {
+            case TDynamic(null): 
+              macro @:pos(pos) this.parseDynamic();
+            case TEnum(_.get().module => 'tink.json.Value', _): 
+              macro @:pos(pos) this.parseValue();
+            case TAbstract(_.get().module => 'tink.json.Serialized', _): 
+              macro @:pos(pos) this.parseSerialized();
+            default: 
+              gen(type, pos);
           }
-        }
+        case v: 
+          switch v[0].extract(':jsonParse')[0] {
+            case { params: [parser] }: 
+              
+              var path = parser.toString().asTypePath();
+
+              var rep = 
+                switch (macro @:pos(parser.pos) new $path(null).parse).typeof().sure().reduce() {
+                  case TFun([{ t: t }], ret): t;
+                  default: parser.reject('field `parse` has wrong signature');
+                }
+              macro @:pos(parser.pos) this.plugins.get($parser).parse(${drive(rep, pos, gen)});
+            case v: v.pos.error('@:jsonParse must have exactly one parameter');
+          }
+      }       
 
 }
 
