@@ -269,20 +269,13 @@ class GenWriter {
           pos.error('Interfaces cannot be stringified. ');
         
         case TInst(_.get() => cl, params):
-          
+          //TODO: this should be handled by converting the class to an anonymous type and handing that off to `gen`
           var a = new Array<FieldInfo>();
           
           for (f in cl.fields.get()) 
             if (Macro.shouldSerialize(f)) {
               var ft = f.type.applyTypeParameters(cl.params, params);
-              a.push({
-                name: f.name,
-                meta: f.meta.get(),
-                type: ft,
-                expr: gen(ft, f.pos),
-                optional: false,
-                pos: f.pos
-              });
+              a.push(new FieldInfo({ name: f.name, pos: f.pos, type: ft }, gen, false, f.meta.get()));
             }
           
           Some(anon(a, t.toComplex()));

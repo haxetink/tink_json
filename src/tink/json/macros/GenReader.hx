@@ -78,17 +78,11 @@ class GenReader {
       var hasName = 'has$name';
 
       read = macro @:pos(f.pos) 
-        if (__name__ == $v{jsonName}) {
-          
+        if (__name__ == $v{jsonName}) {          
           ${
             switch option {
               case Some(t):
-                var ct = t.toComplex();
-                macro {
-                  var start = this.pos;
-                  this.skipValue();
-                  $i{name} = Some(new tink.json.Parser<$ct>().parse(this.source.substring(start, pos)));
-                }
+                macro $i{name} = Some(${f.as(t)});
               default:
                 macro $i{name} = ${f.expr};
             }
@@ -196,18 +190,6 @@ class GenReader {
         if (f.charAt(0).toUpperCase() == f.charAt(0)) '__'+f.toLowerCase()
         else f
       };      
-      
-    function mkOpt(f:FieldInfo):FieldInfo
-      return
-        if (f.optional) f;
-        else {
-          name: f.name,
-          optional: true,
-          type: f.type,
-          meta: f.meta,
-          expr: f.expr,
-          pos: f.pos,
-        } 
         
     function add(f:LiteInfo) 
       switch fields[f.name] {
@@ -273,7 +255,7 @@ class GenReader {
               guard = macro true;
             
           for (f in cfields) {
-            add(mkOpt(f));
+            add(f.makeOptional());
             if (!f.optional)
               guard = macro $guard && ${captured(f.name)} != null;
             
@@ -424,8 +406,8 @@ class GenReader {
 
 
 private typedef LiteInfo = {
-  name:String,
-  pos:Position,
-  type:Type,
-  optional:Bool
+  var name(default, never):String;
+  var pos(default, never):Position;
+  var type(default, never):Type;
+  var optional(default, never):Bool;
 }
