@@ -66,7 +66,7 @@ class GenReader extends GenBase {
     
     var read = macro this.skipValue(),
         vars:Array<Var> = [],
-        obj:Array<{ field:String, expr:Expr }> = [];
+        obj:Array<#if (haxe_ver >= 4) ObjectField #else { field:String, expr:Expr } #end> = [];
         
     for (f in fields) {
       var ct = f.type.toComplex(),
