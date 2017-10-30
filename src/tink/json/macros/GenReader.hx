@@ -69,7 +69,7 @@ class GenReader extends GenBase {
         obj:Array<{ field:String, expr:Expr }> = [];
         
     for (f in fields) {
-      var ct = f.type.reduce().toComplex(),
+      var ct = f.type.toComplex(),
           name = 'v_' + f.name,
           jsonName = Macro.nativeName(f),
           optional = f.optional;
