@@ -126,26 +126,29 @@ class GenWriter extends GenBase {
             this.output($v{field});
             ${f.expr};
           }
-        
-          if(f.type.getID() == 'haxe.ds.Option')
-            macro switch @:privateAccess value.$name {
-              case null | None:
-              case Some(value):
-                if(__first) __first = false;
-                else this.char(','.code);
-                this.output($v{field});
-                this.output(tink.Json.stringify(value));
-            }
-          else if (f.optional)
-            macro switch @:privateAccess value.$name {
-              case null:
-              case value: $write;
-            }
-          else 
-            macro {
-              var value = @:privateAccess value.$name;
-              $write;
-            }
+          
+          switch f.type.reduce() {
+            case TEnum(_.get() => {name: 'Option', pack: ['haxe', 'ds']}, [t]):
+              macro switch @:privateAccess value.$name {
+                case null | None:
+                case Some(value):
+                  if(__first) __first = false;
+                  else this.char(','.code);
+                  this.output($v{field});
+                  ${f.as(t)};
+              }
+            default:
+              if (f.optional)
+                macro switch @:privateAccess value.$name {
+                  case null:
+                  case value: $write;
+                }
+              else 
+                macro {
+                  var value = @:privateAccess value.$name;
+                  $write;
+                }
+          }
         }]};
         this.char('}'.code);
       };
