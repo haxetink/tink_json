@@ -141,4 +141,12 @@ class WriterTest {
     asserts.assert(stringify(e) == '{"o":"s","z":1}');
     return asserts.done();
   }
+  
+  public function nullableDate() {
+    // var e:{date:Option<Date>} = {date: Some(Date.fromTime(0))};
+    // asserts.assert(stringify(e) == '{"date":0}');
+    var e:{date:Option<Null<Date>>} = {date: Some(null)};
+    asserts.assert(stringify(e) == '{"date":null}');
+    return asserts.done();
+  }
 }
