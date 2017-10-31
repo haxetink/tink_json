@@ -143,10 +143,10 @@ class WriterTest {
   }
   
   public function nullableDate() {
-    // var e:{date:Option<Date>} = {date: Some(Date.fromTime(0))};
-    // asserts.assert(stringify(e) == '{"date":0}');
-    var e:{date:Option<Null<Date>>} = {date: Some(null)};
-    asserts.assert(stringify(e) == '{"date":null}');
+    // var e:Date = Date.fromTime(0);
+    // asserts.assert(stringify(e) == '0');
+    var e:Null<Date> = null;
+    asserts.assert(stringify(e) == 'null');
     return asserts.done();
   }
 }
