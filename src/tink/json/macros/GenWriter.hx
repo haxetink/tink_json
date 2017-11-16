@@ -313,14 +313,11 @@ class GenWriter extends GenBase {
   override function processSerialized(pos:Position):Expr
     return macro @:pos(pos) this.output(value);
 
-  override function processCustom(writer:Expr, gen:Type->Expr):Expr {
+  override function processCustom(writer:Expr, original:Type, gen:Type->Expr):Expr {
     var path = writer.toString().asTypePath();
-
-    var rep = 
-      switch (macro @:pos(writer.pos) new $path(null).prepare).typeof().sure().reduce() {
-        case TFun([{ t: t }], ret): ret;
-        default: writer.reject('field `prepare` has wrong signature');
-      }
+    var original = original.toComplex();
+    var rep = (macro @:pos(writer.pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
+    
     return macro @:pos(writer.pos) {
       var value = this.plugins.get($writer).prepare(value);
       ${gen(rep)};

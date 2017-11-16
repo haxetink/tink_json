@@ -355,15 +355,13 @@ class GenReader extends GenBase {
   override function processSerialized(pos) 
     return macro @:pos(pos) this.parseSerialized();
 
-  override function processCustom(parser:Expr, gen:Type->Expr) {
+  override function processCustom(parser:Expr, original:Type, gen:Type->Expr) {
     var path = parser.toString().asTypePath();
+    
+    var original = original.toComplex();
 
-    var rep = 
-      switch (macro @:pos(parser.pos) new $path(null).parse).typeof().sure().reduce() {
-        case TFun([{ t: t }], ret): t;
-        default: parser.reject('field `parse` has wrong signature');
-      }
-
+    var rep = (macro @:pos(parser.pos) { var f = null; (new $path(null).parse(f()) : $original); f(); }).typeof().sure();
+    
     return macro @:pos(parser.pos) this.plugins.get($parser).parse(${gen(rep)});
   }
 
