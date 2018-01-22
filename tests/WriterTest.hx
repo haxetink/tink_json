@@ -113,14 +113,16 @@ class WriterTest {
     var e:{o:Option<String>} = {o: Some('s')};
     asserts.assert(stringify(e) == '{"o":"s"}');
   
+    var e:{?o:Option<String>} = {};
+    asserts.assert(stringify(e) == '{}');
     var e:{?o:Option<String>} = {o: null};
     asserts.assert(stringify(e) == '{}');
     var e:{?o:Option<String>} = {o: None};
     asserts.assert(stringify(e) == '{}');
     var e:{?o:Option<String>} = {o: Some(null)};
-    // asserts.assert(stringify(e) == '{"o":null}'); // TODO: what is the specification here?
+    asserts.assert(stringify(e) == '{"o":null}');
     var e:{?o:Option<String>} = {o: Some('s')};
-    // asserts.assert(stringify(e) == '{"o":"s"}'); // TODO: what is the specification here?
+    asserts.assert(stringify(e) == '{"o":"s"}');
     
     var e:{a:Int, o:Option<String>} = {a:1, o: null};
     asserts.assert(stringify(e) == '{"a":1}');
