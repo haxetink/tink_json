@@ -77,6 +77,11 @@ class ParserTest {
     var o:{@:json('default') var _default:Int;} = parse('{"default":1}');
     return assert(compare({_default:1}, o));
   }
+
+  public function exprParam() {
+    var res:Input = tink.Json.parse('{"a": "text"}');
+    return assert(res.a == 'text');
+  }
   
   public function enumAbstract() {
     var e:MyEnumAbstract = parse('"aaa"');

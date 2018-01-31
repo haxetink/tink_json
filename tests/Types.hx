@@ -14,6 +14,12 @@ typedef Cons<T> = Null<{
   ?tail:Cons<T>
 }>;
 
+typedef VarChar<@:const L> = String;
+
+typedef Input = {
+  a: VarChar<255>
+}
+
 enum Color {
   Rgb(a:Int, b:Int, c:Int);
   Hsv(hsv:{ hue:Float, saturation:Float, value:Float });
