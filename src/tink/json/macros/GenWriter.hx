@@ -89,25 +89,28 @@ class GenWriter extends GenBase {
           var name = f.name,
               field = '"${Macro.nativeName(f)}":';
             
-          var write = macro {
-            if (__first)
-              __first = false;
-            else
-              this.char(','.code);
-            this.output($v{field});
-            var value = @:privateAccess value.$name;
-            ${f.expr};    
-          }
-          
-          if(f.type.getID() == 'haxe.ds.Option')
-            macro switch @:privateAccess value.$name {
-              case null | None:
-              case Some(v): $write;
+          function write(value, expr) 
+            return macro {
+              if (__first)
+                __first = false;
+              else
+                this.char(','.code);
+              this.output($v{field});
+              var value = $value;
+              $expr;
             }
-          else
-            macro switch @:privateAccess value.$name {
-              case null:
-              case v: $write;
+          
+          switch f.type.reduce() {
+            case TEnum(_.get() => {name: 'Option', pack: ['haxe', 'ds']}, [t]):
+              macro switch @:privateAccess value.$name {
+                case null | None:
+                case Some(v): ${write(macro v, f.as(t))};
+              }
+            default:
+              macro switch @:privateAccess value.$name {
+                case null:
+                case v: ${write(macro @:privateAccess value.$name, f.expr)};
+              }
             }
         }]};
         this.char('}'.code);
