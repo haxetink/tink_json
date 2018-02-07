@@ -144,8 +144,10 @@ If you want to explicitly control when a value should be encoded or omitted, wra
 ```haxe
 var o:{a:Option<Null<Int>>} = {a: None}
 tink.Json.stringify(o) == '{}'; // true
+
 var o:{a:Option<Null<Int>>} = {a: Some(null)}
 tink.Json.stringify(o) == '{"a":null}'; // true
+
 var o:{a:Option<Null<Int>>} = {a: Some(1)}
 tink.Json.stringify(o) == '{"a":1}'; // true
 ```
