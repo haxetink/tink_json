@@ -123,6 +123,36 @@ abstract UpperCase(String) {
 
 Notice how strings used as JSON representation are treated differently from ordinary strings.
 
+### Optional Fields and Nulls
+
+By default `tink_json` will not encode an optional field if the value is `null`. In code that means:
+
+```haxe
+var o:{?a:Int} = {a: null}
+tink.Json.stringify(o) == '{}'; // true
+```
+
+If you want `null` to be encoded as well, you can remove the optional notation and wrap the type with `Null`, e.g.
+
+```haxe
+var o:{a:Null<Int>} = {a: null}
+tink.Json.stringify(o) == '{"a":null}'; // true
+```
+
+If you want to explicitly control when a value should be encoded or omitted, wrap the type with `haxe.ds.Option`. When the value is `None`, the field will be omitted. When the value is `Some(data)`, the field will always be encoded, even `data` is null. e.g.
+
+```haxe
+var o:{a:Option<Null<Int>>} = {a: None}
+tink.Json.stringify(o) == '{}'; // true
+
+var o:{a:Option<Null<Int>>} = {a: Some(null)}
+tink.Json.stringify(o) == '{"a":null}'; // true
+
+var o:{a:Option<Null<Int>>} = {a: Some(1)}
+tink.Json.stringify(o) == '{"a":1}'; // true
+```
+
+
 ## Performance
 
 Here are the benchmark results of the current state of this library:
@@ -149,3 +179,4 @@ Using `tink_json` adds a lot more safety to your application. You get a validati
 The most important thing to be aware of though is that roundtripping JSON through `tink_json` will discard all the things it does not know about. So if you want to load some JSON, modify a field and then write the JSON back, this library will cause data elimination. This may be a good way to get rid of stale data, but also an awesome way to shoot someone else (relying on the data you don't know about) in the foot. You have been warned.
 
 This library generates quite a lot of code. The overhead is reasonable, but if you use it to parse complex data structures only to access very few values, you might find it too high. OTOH hand if you reduce the type declaration to the bits you need, only the necessary code is generated and also all the noise is discarded while parsing, resulting in better overall performance.
+
