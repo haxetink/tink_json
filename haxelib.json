@@ -8,8 +8,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.7.0",
-	"releasenote": "Use Option<T> to distinguish between undefined fields and fields defined as null.",
+	"version": "0.7.1",
+	"releasenote": "Add -D tink_json_compact_code",
 	"tags": [
 		"tink",
 		"cross",
