@@ -49,9 +49,13 @@ private abstract JsonString(SliceData) from SliceData {
         StdParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
   
-  public inline function get() 
+  #if tink_json_compact_code
+  @:native('g')
+  #else
+  inline 
+  #end
+  public function get() 
     return this.source.substring(this.min, this.max);
-  
         
   public inline function toInt() 
     return Std.parseInt(get());
@@ -60,7 +64,12 @@ private abstract JsonString(SliceData) from SliceData {
     return Std.parseFloat(get());
     
   @:commutative @:op(a == b) 
-  static public inline function equalsString(a:JsonString, b:String):Bool {
+  #if tink_json_compact_code
+  @:native('e')
+  #else
+  inline 
+  #end
+  static public function equalsString(a:JsonString, b:String):Bool {
     return b.length == (a.max - a.min) && 
       #if nodejs
         (a.source : Dynamic).startsWith(b, a.min);
@@ -71,6 +80,9 @@ private abstract JsonString(SliceData) from SliceData {
     
 }
 
+#if !macro
+@:build(tink.json.macros.Macro.compact())
+#end
 class BasicParser { 
   
   public var plugins(default, null):Annex<BasicParser>;
@@ -88,8 +100,10 @@ class BasicParser {
      this.max = source.length;
      skipIgnored();
   }
-  
-  inline function skipIgnored()
+  #if !tink_json_compact_code
+  inline 
+  #end
+  function skipIgnored()
     while (pos < max && source.fastCodeAt(pos) < 33) pos++;
   
   #if !macro
@@ -99,7 +113,8 @@ class BasicParser {
     return StdParser.parse(this.source.substring(start, pos));
   }
 
-  function parseString():JsonString 
+
+  function parseString():JsonString
     return expect('"', true, false, "string") & parseRestOfString();
 
   function parseRestOfString():JsonString
@@ -332,6 +347,20 @@ class BasicParser {
   }
   #end
   
+  #if tink_json_compact_code
+  function allow(s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
+    if (skipBefore) skipIgnored();
+    var l = s.length;
+    var found = source.substr(pos, l) == s;
+    if (found) pos += l;
+    if (skipAfter) skipIgnored();
+    return found;
+  }
+  function expect(s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String):ContinueParsing {
+    if (expected == null) expected = s;
+    return if (!allow(s, skipBefore, skipAfter)) die('Expected $expected') else null;
+  }
+  #else
   macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String) {
     if (expected == null) expected = s;
     return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected $expected') else null : tink.json.Parser.ContinueParsing);
@@ -359,6 +388,7 @@ class BasicParser {
       else false;
     }
   }
+  #end
   #if !macro    
   function parseBool() 
     return 

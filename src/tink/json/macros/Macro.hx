@@ -9,9 +9,33 @@ import tink.macro.BuildCache;
 import tink.typecrawler.*;
 
 using haxe.macro.Tools;
+using StringTools;
 using tink.MacroApi;
 
 class Macro {
+  
+  static function compact(?prefix:String = '', ?fields:Array<Field>) {
+    #if tink_json_compact_code
+    if (fields == null)
+      fields = Context.getBuildFields();
+    for (i in 0...fields.length) {
+      var f = fields[i];
+
+      var meta = {
+        name: ':native',
+        params: [macro $v{prefix + i.shortIdent()}],
+        pos: f.pos,
+      }
+      switch f.meta {
+        case null: f.meta = [meta];
+        case v: v.push(meta);
+      }
+    }      
+    return fields;
+    #else
+    return null;
+    #end
+  }
     
   static public function nativeName(f:FieldInfo)
     return
@@ -66,10 +90,11 @@ class Macro {
       public function tryParse(source)
         return tink.core.Error.catchExceptions(function () return parse(source));
     });
-    
+
+    compact('p', cl.fields);
     return cl;
   }
-    
+
   static public function buildWriter():Type
     return BuildCache.getType('tink.json.Writer', writer);
       
@@ -95,7 +120,7 @@ class Macro {
         return cast this.buf.toString();
       }
     });
-    
+    compact('w', cl.fields);
     return cl;
   }
   

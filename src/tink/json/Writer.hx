@@ -5,6 +5,9 @@ using tink.CoreApi;
 @:genericBuild(tink.json.macros.Macro.buildWriter())
 class Writer<T> {}
 
+#if !macro
+@:build(tink.json.macros.Macro.compact())
+#end
 class BasicWriter {
   public var plugins(default, null):Annex<BasicWriter>;
 
@@ -20,7 +23,7 @@ class BasicWriter {
   inline function output(s:String) 
     buf.add(s);
     
-  inline function char(c:Int)
+  inline function char(c:Char)
     buf.addChar(c);
     
   inline function writeInt(v:Int)
@@ -84,8 +87,8 @@ private abstract StringBuf(String) {
   public inline function new() 
     this = '';
     
-  public inline function addChar(c) 
-    this += String.fromCharCode(c);
+  public inline function addChar(c:Char) 
+    this += c.toString();
     
   public inline function add(s:String)
     this += s;

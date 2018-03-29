@@ -3,6 +3,8 @@ package;
 import tink.testrunner.*;
 import tink.unit.*;
 
+using tink.CoreApi;
+
 class RunTests {
 
   static function main() {
