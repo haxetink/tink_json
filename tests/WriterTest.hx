@@ -83,6 +83,7 @@ class WriterTest {
   
   public function custom() {
     asserts.assert(stringify(new Rocket(100)) == '{"alt":100}');
+    asserts.assert(stringify(new Rocket3(100)) == '{"alt":100}');
     asserts.assert(stringify(new Rocket2(100)) == '[100]');
     return asserts.done();
   }

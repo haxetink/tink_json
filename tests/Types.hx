@@ -121,13 +121,22 @@ class RocketWriter {
 }
 
 class RocketWriter2 {
-  public function new(v:Dynamic) {}
+  public function new(v:tink.json.Writer.BasicWriter) {}
   public function prepare(r:Rocket) {
     return VArray([VNumber(r.altitude)]);
   }
 }
 
+@:jsonParse(function (o) return new Types.Rocket(o.alt))
+@:jsonStringify(function (r) return { alt: r.altitude })
+@:forward
+abstract Rocket3(Rocket) from Rocket to Rocket {
+  public inline function new(alt) this = new Rocket(alt);
+}
+
+
 @:jsonStringify(Types.RocketWriter2)
+@:forward
 abstract Rocket2(Rocket) from Rocket to Rocket {
   public inline function new(alt) this = new Rocket(alt);
 }

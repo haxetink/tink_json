@@ -316,15 +316,25 @@ class GenWriter extends GenBase {
   override function processSerialized(pos:Position):Expr
     return macro @:pos(pos) this.output(value);
 
-  override function processCustom(writer:Expr, original:Type, gen:Type->Expr):Expr {
-    var path = writer.toString().asTypePath();
+  override function processCustom(c:CustomRule, original:Type, gen:Type->Expr):Expr {
     var original = original.toComplex();
-    var rep = (macro @:pos(writer.pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
-    
-    return macro @:pos(writer.pos) {
-      var value = this.plugins.get($writer).prepare(value);
-      ${gen(rep)};
-    }     
+    return switch c {
+      case WithClass(writer):
+        var path = writer.toString().asTypePath();
+        var rep = (macro @:pos(writer.pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
+        
+        return macro @:pos(writer.pos) {
+          var value = this.plugins.get($writer).prepare(value);
+          ${gen(rep)};
+        }    
+      case WithFunction(e):
+        //TODO: the two cases look suspiciously similar
+        var rep = (macro @:pos(e.pos) { var f = null; $e((f():$original)); }).typeof().sure();
+        return macro @:pos(e.pos) {
+          var value = $e(value);
+          ${gen(rep)};
+        }    
+    }
   }
 
   override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr

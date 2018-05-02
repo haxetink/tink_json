@@ -101,7 +101,7 @@ class Macro {
   static function writer(ctx:BuildContext):TypeDefinition {
     var name = ctx.name,
         ct = ctx.type.toComplex();
-    
+        
     var cl = macro class $name extends tink.json.Writer.BasicWriter {
       public function new() super();
     } 

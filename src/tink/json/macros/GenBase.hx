@@ -31,7 +31,7 @@ class GenBase {
   function processSerialized(pos:Position):Expr
     return throw 'abstract';
 
-  function processCustom(custom:Expr, original:Type, gen:Type->Expr):Expr
+  function processCustom(custom:CustomRule, original:Type, gen:Type->Expr):Expr
     return throw 'abstract';
 
   public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
@@ -54,7 +54,14 @@ class GenBase {
               }
             case v: 
               switch v[0].extract(customMeta)[0] {
-                case { params: [custom] }: processCustom(custom, type, drive.bind(_, pos, gen));
+                case { params: [custom] }: 
+                  var rule:CustomRule = 
+                    switch custom {
+                      case { expr: EFunction(_, _) }: WithFunction(custom);
+                      case _.typeof().sure().reduce() => TFun(_, _): WithFunction(custom);
+                      default: WithClass(custom);
+                    }
+                  processCustom(rule, type, drive.bind(_, pos, gen));
                 case v: v.pos.error('@$customMeta must have exactly one parameter');
               }
           }       

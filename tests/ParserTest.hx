@@ -115,7 +115,14 @@ class ParserTest {
   
   public function custom() {
     var f:Fruit = parse('{"name":"apple","weight":0.2}');
-    return assert(Std.is(f, Fruit) && f.name == 'apple' && f.weight == .2);
+    asserts.assert(Std.is(f, Fruit) && f.name == 'apple' && f.weight == .2);
+    // var r:Rocket = parse('{"alt":100}');
+    // asserts.assert(r.altitude == 100);
+    // var r:Rocket2 = parse('[100]');
+    // asserts.assert(r.altitude == 100);
+    var r:Rocket3 = parse('{"alt":100}');
+    asserts.assert(r.altitude == 100);
+    return asserts.done();
   }
   
   public function date() {

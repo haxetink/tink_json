@@ -152,6 +152,44 @@ var o:{a:Option<Null<Int>>} = {a: Some(1)}
 tink.Json.stringify(o) == '{"a":1}'; // true
 ```
 
+### Custom parsers
+
+Using `@:jsonParse` on a type, you can specify how it should be parsed. The metadata must have exactly on argument:
+
+- a function that consumes the data as it is expected to be found in the JSON document and must produce the type to be parsed.
+- a class that must provide an instance method called `parse` with the same signature and also have a constructor that accepts a `tink.json.Parser.BasicParser` - which will reference the parser from which your custom parser is invoked. You can use it's `plugins` field to share state between custom parsers. See the [tink_core documentation](https://haxetink.github.io/#/tink_core) for more details on that.
+
+Example:
+
+```haxe
+@:jsonParse(function (json) return new Car(json.speed, json.make));
+class Car {
+  public var speed(default, null):Int;
+  public var make(default, null):String;
+  public function new(speed:Int, make:String) {
+    this.speed = speed;
+    this.make = make;
+  }
+}
+```
+
+**Note**: Imports and usings have no effect on the code in `@:jsonParse`, so you must use fully qualified paths at all times.
+
+### Custom serializers
+
+Similarly to `@:jsonParse`, you can use `@:jsonStringify` on a type to control how it should be parsed. The metadata must have exactly on argument: 
+
+- a function that consumes the data to be serialized and produces the data that should be serialized into the final JSON document.
+- a class that must provide an instance method called `prepared` with the same signature and also have a constructor that accepts a `tink.json.Writer.BasicWriter`, that again allows you to share state between custom parsers through its `plugins`.
+
+Example:
+
+```haxe
+@:jsonStringify(function (car:Car) return { speed: car.speed, make: car.make })
+class Car { 
+  // implementation the same as above
+}
+```
 
 ## Performance
 
