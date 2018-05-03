@@ -161,11 +161,13 @@ class ParserTest {
     return asserts.done();
   }
   
+  #if (!cs || erase_generics)
   public function nullable() {
     asserts.assert(parse(('null':Null<Int>)).match(Success(null)));
     asserts.assert(parse(('{"Some":{"v":null}}':Option<Null<Int>>)).match(Success(Some(null))));
     return asserts.done();
   }
+  #end
 
 }
 

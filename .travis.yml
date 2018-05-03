@@ -20,6 +20,7 @@ script:
   #- npm run --silent travix flash
   - npm run --silent -- travix java
   - npm run --silent -- travix cpp
+  - npm run --silent -- travix cs -D erase-generics
   - npm run --silent -- travix cs
   - npm run --silent -- travix php
 
