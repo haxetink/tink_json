@@ -9,6 +9,6 @@
     "postinstall": "lix download && npm install -g switchx && switchx"
   },
   "dependencies": {
-    "lix.pm": "=15.1.0-rc.2"
+    "lix": "=15.1.0-rc.2"
   }
 }
