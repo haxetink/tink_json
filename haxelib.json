@@ -8,8 +8,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.7.1",
-	"releasenote": "Add -D tink_json_compact_code",
+	"version": "0.8.0",
+	"releasenote": "Simplify custom serialization and parsing.",
 	"tags": [
 		"tink",
 		"cross",
