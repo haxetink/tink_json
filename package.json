@@ -3,12 +3,10 @@
   "version": "0.0.0",
   "description": "",
   "scripts": {
-    "haxelib": "haxelib",
-    "haxe": "haxe",
     "travix": "haxelib run travix",
-    "postinstall": "lix download && npm install -g switchx && switchx"
+    "postinstall": "lix download"
   },
   "dependencies": {
-    "lix": "=15.1.0-rc.2"
+    "lix": "=15.1.1"
   }
 }

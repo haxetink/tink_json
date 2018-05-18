@@ -78,6 +78,16 @@ class GenReader extends GenBase {
         case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]): Some(v);
         default: None;
       }
+
+      var defaultValue = switch f.meta.getValues(':default') {
+        case []: None;
+        case [[v]]: 
+          if (option == None) 
+            Some(v)
+          else v.reject('Cannot specify default for `Option`');
+        case v: f.pos.error('more than one @:default');
+      }
+      
       var hasName = 'has$name';
 
       read = macro @:pos(f.pos) 
@@ -109,17 +119,24 @@ class GenReader extends GenBase {
                 }
               else macro if ($i{hasName}) $i{name} else None;
             case None:
-              if (optional) macro $i{name}
+              if (optional || defaultValue != None) macro $i{name}
               else macro if ($i{hasName}) $i{name} else __missing__($v{jsonName});
           },
       });
 
       if (optional) 
-        vars.push({
-          name: name,
-          expr: macro null,
-          type: macro : Null<$ct>
-        })
+        vars.push(switch defaultValue {
+          case None: {
+            name: name,
+            expr: macro null,
+            type: macro : Null<$ct>
+          }
+          case Some(v): {
+            name: name,
+            expr: v,
+            type: ct
+          }
+        });
       else {
 
         var valType = 
@@ -130,11 +147,14 @@ class GenReader extends GenBase {
 
         vars.push({
           name: name,
-          expr: switch valType.getID() {
-            case 'Bool': macro false;
-            case 'Int': macro 0;
-            case 'Float': macro .0;
-            default: macro null;
+          expr: switch defaultValue {
+            case Some(v): v;
+            default: switch valType.getID() {
+              case 'Bool': macro false;
+              case 'Int': macro 0;
+              case 'Float': macro .0;
+              default: macro null;
+            }
           },
           type: ct,
         });

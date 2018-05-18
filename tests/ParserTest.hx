@@ -169,5 +169,10 @@ class ParserTest {
   }
   #end
 
-}
+  public function defaults() {
+    asserts.assert(parse(('{}':{ @:default(15) var foo:Int; })).match(Success({ foo: 15 })));
+    asserts.assert(parse(('{}':{ @:default(42) @:optional var foo:Int; })).match(Success({ foo: 42 })));
+    return asserts.done();
+  }
 
+}
