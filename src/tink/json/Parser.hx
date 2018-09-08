@@ -339,8 +339,9 @@ class BasicParser {
             s.substr(0, maxLength) + ' ...';
         else 
           s;
-            
-    var center = (pos + end) >> 1;
+
+    var p:Int = pos + end;
+    var center = p >> 1;
     var context = clip(source.substring(0, pos), 20, true) + '  ---->  ' + clip(source.substring(pos, center), 20, false) + clip(source.substring(center, end), 20, true) + '  <----  ' + clip(source.substring(end), 20, false);
             
     return Error.withData(UnprocessableEntity, s+' at $range in $context', { source: source, start: pos, end: end }).throwSelf();
