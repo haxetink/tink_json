@@ -8,8 +8,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.8.0",
-	"releasenote": "Simplify custom serialization and parsing.",
+	"version": "0.9.0",
+	"releasenote": "Support default values.",
 	"tags": [
 		"tink",
 		"cross",
