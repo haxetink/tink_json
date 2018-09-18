@@ -25,10 +25,10 @@ script:
   - lix run travix node
   - lix run travix node -D tink_json_compact_code
   # - lix run travix flash
-  - lix run travix java
+  # - lix run travix java
+  # - lix run travix cs -D erase-generics
+  # - lix run travix cs
   - lix run travix cpp
-  - lix run travix cs -D erase-generics
-  - lix run travix cs
   - lix run travix php
 
 jobs:
