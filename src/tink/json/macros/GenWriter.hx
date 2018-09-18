@@ -297,7 +297,7 @@ class GenWriter extends GenBase {
       }    
       
   public function reject(t:Type) 
-    return 'Cannot stringify ${t.toString()}';
+    return 'tink_json cannot stringify ${t.toString()}';
 
   override function processRepresentation(pos:Position, actual:Type, representation:Type, value:Expr):Expr {
     var ct = representation.toComplex();
