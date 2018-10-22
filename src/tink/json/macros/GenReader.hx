@@ -311,11 +311,19 @@ class GenReader extends GenBase {
           }
           
           function read(f:FieldInfo) {
+            var e = captured(f.name);
             return if(fields[f.name].type.getID() == 'tink.json.Serialized') {
               var ct = f.type.toComplex();
-              macro (cast ${captured(f.name)}:tink.json.Serialized<$ct>).parse();
+              if(f.optional) {
+                macro {
+                  var s = $e;
+                  s == null ? null : (cast s:tink.json.Serialized<$ct>).parse();
+                }
+              } else {
+                macro (cast $e:tink.json.Serialized<$ct>).parse();
+              }
             } else {
-              macro ${captured(f.name)} 
+              e;
             }
           }
           

@@ -151,11 +151,15 @@ class Rocket {
 enum InlineConflictType {
   A(a:{type:String});
   B(b:{type:Int});
+  C(c:{?type:String});
+  D(d:{type:Null<Int>});
 }
 
 enum TaggedInlineConflictType {
   @:json({kind:'a'}) A(a:{type:String});
   @:json({kind:'b'}) B(b:{type:Int});
+  @:json({kind:'c'}) C(c:{?type:String});
+  @:json({kind:'d'}) D(d:{type:Null<Int>});
 }
 
 enum ConflictType {
