@@ -278,7 +278,7 @@ class GenWriter extends GenBase {
         
         case TInst(_.get() => { isInterface: true }, _):
           
-          pos.error('Interfaces cannot be stringified. ');
+          pos.error('[tink_json] ${t.getID()} is an interface and cannot be stringified. ');
         
         case TInst(_.get() => cl, params):
           //TODO: this should be handled by converting the class to an anonymous type and handing that off to `gen`
