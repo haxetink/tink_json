@@ -225,7 +225,12 @@ class GenReader extends GenBase {
             optional: same.optional || f.optional,
           }
         case other: 
-          pos.error('conflict for field ${f.name}');
+          fields[f.name] = {
+            pos: f.pos,
+            name: f.name,
+            type: (macro:tink.json.Serialized<tink.core.Any>).toType().sure(),
+            optional: other.optional || f.optional,
+          }
       }        
       
     function mkComplex(fields:Iterable<LiteInfo>):ComplexType
@@ -273,32 +278,9 @@ class GenReader extends GenBase {
           });
 
         case [{ params:[{ expr: EObjectDecl(obj) }] }]:
-          
-          var pat = obj.copy(),
-              guard = macro true;
-            
           for (f in cfields) {
             add(f.makeOptional());
-            if (!f.optional)
-              guard = macro $guard && ${captured(f.name)} != null;
-            
-            pat.push({ field: f.name, expr: macro ${captured(f.name)}});
           }
-          
-          var args = 
-            if (inlined) [EObjectDecl([for (f in cfields) { field: f.name, expr: macro ${captured(f.name)} }]).at(pos)];
-            else [for (f in cfields) macro ${captured(f.name)}];
-          
-          var call = switch args {
-            case []: macro ($i{name} : $ct);
-            case _: macro ($i{name}($a{args}) : $ct);
-          }
-          
-          cases.push({
-            values: [EObjectDecl(pat).at()],
-            guard: guard,
-            expr: call
-          });
           
           for (f in obj)
             add({
@@ -312,6 +294,48 @@ class GenReader extends GenBase {
           c.pos.error('invalid use of @:json');
       }      
     }
+    
+    // second pass for @:json
+    for (c in constructors) {
+      switch c.ctor.meta.extract(':json') {
+        case [{ params:[{ expr: EObjectDecl(obj) }] }]:
+          
+          var pat = obj.copy(),
+              guard = macro true;
+              
+          for(f in c.fields) {
+            if (!f.optional)
+              guard = macro $guard && ${captured(f.name)} != null;
+            
+            pat.push({ field: f.name, expr: macro ${captured(f.name)}});
+          }
+          
+          function read(f:FieldInfo) {
+            return if(fields[f.name].type.getID() == 'tink.json.Serialized') {
+              var ct = f.type.toComplex();
+              macro (cast ${captured(f.name)}:tink.json.Serialized<$ct>).parse();
+            } else {
+              macro ${captured(f.name)} 
+            }
+          }
+          
+          var args = 
+            if (c.inlined) [EObjectDecl([for (f in c.fields) { field: f.name, expr: read(f) }]).at(pos)];
+            else [for (f in c.fields) read(f)];
+          
+          var call = switch args {
+            case []: macro ($i{c.ctor.name} : $ct);
+            case _: macro ($i{c.ctor.name}($a{args}) : $ct);
+          }
+          
+          cases.push({
+            values: [EObjectDecl(pat).at()],
+            guard: guard,
+            expr: call
+          });
+        case _:
+      }
+    } 
       
     var ret = macro {
       var __ret = ${gen(mkComplex(fields).toType().sure(), pos)};

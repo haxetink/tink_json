@@ -147,3 +147,23 @@ class Rocket {
   public function new(altitude)
     this.altitude = altitude;
 }
+
+enum InlineConflictType {
+  A(a:{type:String});
+  B(b:{type:Int});
+}
+
+enum TaggedInlineConflictType {
+  @:json({kind:'a'}) A(a:{type:String});
+  @:json({kind:'b'}) B(b:{type:Int});
+}
+
+enum ConflictType {
+  A(type:String);
+  B(type:Int);
+}
+
+enum TaggedConflictType {
+  @:json({kind:'a'}) A(type:String);
+  @:json({kind:'b'}) B(type:Int);
+}

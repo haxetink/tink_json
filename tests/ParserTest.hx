@@ -174,5 +174,17 @@ class ParserTest {
     asserts.assert(parse(('{}':{ @:default(42) @:optional var foo:Int; })).match(Success({ foo: 42 })));
     return asserts.done();
   }
+  
+  public function conflictTypes() {
+    asserts.assert(parse(('{"A":{"type":"1"}}':InlineConflictType)).match(Success(A({type:'1'}))));
+    asserts.assert(parse(('{"B":{"type":1}}':InlineConflictType)).match(Success(B({type:1}))));
+    asserts.assert(parse(('{"kind":"a","type":"1"}':TaggedInlineConflictType)).match(Success(A({type:'1'}))));
+    asserts.assert(parse(('{"kind":"b","type":1}':TaggedInlineConflictType)).match(Success(B({type:1}))));
+    asserts.assert(parse(('{"A":{"type":"1"}}':ConflictType)).match(Success(A('1'))));
+    asserts.assert(parse(('{"B":{"type":1}}':ConflictType)).match(Success(B(1))));
+    asserts.assert(parse(('{"kind":"a","type":"1"}':TaggedConflictType)).match(Success(A('1'))));
+    asserts.assert(parse(('{"kind":"b","type":1}':TaggedConflictType)).match(Success(B(1))));
+    return asserts.done();
+  }
 
 }
