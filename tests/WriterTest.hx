@@ -152,4 +152,14 @@ class WriterTest {
     asserts.assert(stringify(e) == 'null');
     return asserts.done();
   }
+  
+  public function argLessEnum() {
+    var o:ArgLess = A;
+    asserts.assert(stringify(o) == '"a"');
+    var o:ArgLess = B;
+    asserts.assert(stringify(o) == '{"name":"b"}');
+    var o:ArgLess = C(1);
+    asserts.assert(stringify(o) == '{"C":{"c":1}}');
+    return asserts.done();
+  }
 }

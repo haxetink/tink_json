@@ -240,19 +240,20 @@ class GenReader extends GenBase {
         meta: if (f.optional) OPTIONAL else [],
         kind: FVar(f.type.toComplex()),
       }]);
-    var argLess = [];  
+    
+    var argLess = [];
     for (c in constructors) {
       
       var inlined = c.inlined,
           cfields = c.fields,
           c = c.ctor,
-          name = c.name;
-
-      if (c.type.reduce().match(TEnum(_,_))) 
-        argLess.push(new Named(name, Macro.nameNiladic(c)));
-      else switch c.meta.extract(':json') {
-        case []:
+          name = c.name,
+          hasArgs = !c.type.reduce().match(TEnum(_,_));
           
+      switch c.meta.extract(':json') {
+        case [] if(!hasArgs):
+            argLess.push(new Named(name, name));
+        case []:
           add({
             name: name,
             optional: true,
@@ -276,10 +277,15 @@ class GenReader extends GenBase {
               }
             }
           });
+          
+        case [{ params:[{ expr: EConst(CString(v)) }]}] if(!hasArgs):
+          argLess.push(new Named(name, v));
 
         case [{ params:[{ expr: EObjectDecl(obj) }] }]:
-          for (f in cfields) {
-            add(f.makeOptional());
+          if(hasArgs) {
+            for (f in cfields) {
+              add(f.makeOptional());
+            }
           }
           
           for (f in obj)
@@ -292,7 +298,7 @@ class GenReader extends GenBase {
           
         case v:
           c.pos.error('invalid use of @:json');
-      }      
+      }
     }
     
     // second pass for @:json

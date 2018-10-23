@@ -194,5 +194,12 @@ class ParserTest {
     
     return asserts.done();
   }
+  
+  public function argLessEnum() {
+    asserts.assert(parse(('"a"':ArgLess)).match(Success(A)));
+    asserts.assert(parse(('{"name":"b"}':ArgLess)).match(Success(B)));
+    asserts.assert(parse(('{"C":{"c":1}}':ArgLess)).match(Success(C(1))));
+    return asserts.done();
+  }
 
 }

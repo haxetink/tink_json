@@ -171,3 +171,9 @@ enum TaggedConflictType {
   @:json({kind:'a'}) A(type:String);
   @:json({kind:'b'}) B(type:Int);
 }
+
+enum ArgLess {
+  @:json('a') A;
+  @:json({name: 'b'}) B;
+  C(c:Int);
+}

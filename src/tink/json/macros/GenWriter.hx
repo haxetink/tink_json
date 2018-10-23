@@ -181,10 +181,17 @@ class GenWriter extends GenBase {
           postfix = '}',
           first = true;      
       cases.push(
-        if (c.type.reduce().match(TEnum(_,_))) 
+        if (c.type.reduce().match(TEnum(_,_)))
           {
             values: [macro $i{name}],
-            expr: (macro this.output($v{haxe.format.JsonPrinter.print(Macro.nameNiladic(c))})),
+            expr: (macro this.output($v{haxe.format.JsonPrinter.print(
+              switch c.meta.extract(':json') {
+                case []: c.name;
+                case [{ params:[{ expr: EConst(CString(v)) }]}]: v;
+                case [{ params:[{ expr: EObjectDecl(obj) }] }]: ExprTools.getValue(EObjectDecl(obj).at());
+                case _: c.pos.error('invalid use of @:json');
+              }
+            )})),
           }
         else {
           var prefix = 
