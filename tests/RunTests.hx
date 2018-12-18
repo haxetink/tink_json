@@ -14,7 +14,8 @@ class RunTests {
       new RoundTripTest(),
       new SerializedTest(),
       new CacheTest(),
+      new T57Test(),
     ])).handle(Runner.exit);
   }
-  
+
 }
