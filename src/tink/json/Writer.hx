@@ -36,10 +36,10 @@ class BasicWriter {
     output(if (b) 'true' else 'false');
     
   inline function writeString(s:String) 
-    output(StdWriter.stringify(s));
+    output(StringWriter.stringify(s));
   
   function writeDynamic(value:Dynamic) 
-    output(StdWriter.stringify(value));
+    output(DynamicWriter.stringify(value));
   
   function writeValue(value:Value)
     switch value {
@@ -95,12 +95,77 @@ private abstract StringBuf(String) {
 }
 
 @:native("JSON")
-extern private class StdWriter {
+extern private class StringWriter {
+  static function stringify(v:String):String;
+}
+
+@:native("JSON")
+extern private class DynamicWriter {
   static function stringify(v:Dynamic):String;
 }
 #else
-private class StdWriter {
+private class StringWriter {
+  static public function stringify(v:String):String {
+    var buf = new StringBuf();
+    quote(v, buf);
+    return buf.toString();
+  }
+  
+  static function quote( s:String, buf:StringBuf ) {
+    #if (neko || php || cpp)
+    if( s.length != haxe.Utf8.length(s) ) {
+      quoteUtf8(s, buf);
+      return;
+    }
+    #end
+    buf.addChar('"'.code);
+    var i = 0;
+    while( true ) {
+      var c = StringTools.fastCodeAt(s, i++);
+      if( StringTools.isEof(c) ) break;
+      switch( c ) {
+      case '"'.code: buf.add('\\"');
+      case '\\'.code: buf.add('\\\\');
+      case '\n'.code: buf.add('\\n');
+      case '\r'.code: buf.add('\\r');
+      case '\t'.code: buf.add('\\t');
+      case 8: buf.add('\\b');
+      case 12: buf.add('\\f');
+      default:
+        #if flash
+        if( c >= 128 ) add(String.fromCharCode(c)) else buf.addChar(c);
+        #else
+        buf.addChar(c);
+        #end
+      }
+    }
+    buf.addChar('"'.code);
+  }
+
+  #if (neko || php || cpp)
+  static function quoteUtf8( s:String, buf:StringBuf ) {
+    var u = new haxe.Utf8();
+    haxe.Utf8.iter(s,function(c) {
+      switch( c ) {
+      case '\\'.code, '"'.code: u.addChar('\\'.code); u.addChar(c);
+      case '\n'.code: u.addChar('\\'.code); u.addChar('n'.code);
+      case '\r'.code: u.addChar('\\'.code); u.addChar('r'.code);
+      case '\t'.code: u.addChar('\\'.code); u.addChar('t'.code);
+      case 8: u.addChar('\\'.code); u.addChar('b'.code);
+      case 12: u.addChar('\\'.code); u.addChar('f'.code);
+      default: u.addChar(c);
+      }
+    });
+    buf.add('"');
+    buf.add(u.toString());
+    buf.add('"');
+  }
+  #end
+
+}
+private class DynamicWriter {
   static public inline function stringify(v:Dynamic):String
     return haxe.format.JsonPrinter.print(v);
 }
 #end
+
