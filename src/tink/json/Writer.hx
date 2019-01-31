@@ -106,6 +106,7 @@ extern private class DynamicWriter {
 #else
 private class StringWriter {
   static public function stringify(v:String):String {
+    if(v == null) return 'null';
     var buf = new StringBuf();
     quote(v, buf);
     return buf.toString();
