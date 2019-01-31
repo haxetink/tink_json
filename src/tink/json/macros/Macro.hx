@@ -20,6 +20,8 @@ class Macro {
       fields = Context.getBuildFields();
     for (i in 0...fields.length) {
       var f = fields[i];
+      
+      if(f.name == 'new') continue;
 
       var meta = {
         name: ':native',
