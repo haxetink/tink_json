@@ -24,6 +24,8 @@ script:
   - lix run travix python
   - lix run travix node
   - lix run travix node -D tink_json_compact_code
+  - lix run travix lua
+  - lix run travix lua -D tink_json_compact_code
   # - lix run travix flash
   # - lix run travix java
   # - lix run travix cs -D erase-generics
