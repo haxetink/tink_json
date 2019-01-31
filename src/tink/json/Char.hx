@@ -6,6 +6,10 @@ abstract Char(String) from String to String {
   @:from macro static function ofAny(i:Int) 
     return macro $v{String.fromCharCode(i)};
   
+
+  @:to inline function toCharCode():Int 
+    return StringTools.fastCodeAt(this, 0);
+  
   public inline function toString()
     return this;
 }
