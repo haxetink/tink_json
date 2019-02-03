@@ -162,7 +162,7 @@ Using `@:jsonParse` on a type, you can specify how it should be parsed. The meta
 Example:
 
 ```haxe
-@:jsonParse(function (json) return new Car(json.speed, json.make));
+@:jsonParse(function (json) return new Car(json.speed, json.make))
 class Car {
   public var speed(default, null):Int;
   public var make(default, null):String;
