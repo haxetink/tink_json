@@ -201,5 +201,13 @@ class ParserTest {
     asserts.assert(parse(('{"C":{"c":1}}':ArgLess)).match(Success(C(1))));
     return asserts.done();
   }
+  
+  #if haxe4
+  public function optionalFinal() {
+    asserts.assert(parse(('{"Opt":{"i":1}}':Content)).match(Success(Opt({i:1}))));
+    return asserts.done();
+    
+  }
+  #end
 
 }

@@ -177,3 +177,13 @@ enum ArgLess {
   @:json({name: 'b'}) B;
   C(c:Int);
 }
+
+#if haxe4
+enum Content {
+	Opt(opt:OptionalFinal);
+}
+
+typedef OptionalFinal = {
+  @:optional final i:Int;
+}
+#end
