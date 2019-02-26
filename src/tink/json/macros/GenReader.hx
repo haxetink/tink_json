@@ -265,7 +265,7 @@ class GenReader extends GenBase {
             values: [macro { $name : o }],
             guard: macro o != null,
             expr: {
-              var args = if (inlined) [macro o];
+              var args = if (inlined) [macro cast o]; // FIXME: this cast is a workaround for https://github.com/haxetink/tink_json/issues/56
               else [for (f in cfields) {
                 var name = f.name;
                 macro o.$name;
