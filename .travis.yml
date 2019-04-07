@@ -27,8 +27,8 @@ script:
   - lix run travix lua
   - lix run travix lua -D tink_json_compact_code
   # - lix run travix flash
-  # - lix run travix java
-  # - lix run travix cs -D erase-generics
+  - lix run travix java
+  - lix run travix cs -D erase-generics
   # - lix run travix cs
   - lix run travix cpp
   - lix run travix php
