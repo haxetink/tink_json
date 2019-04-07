@@ -60,6 +60,13 @@ private abstract JsonString(SliceData) from SliceData {
   public inline function toInt() 
     return Std.parseInt(get());
   
+  public function toUInt() {
+    var ret:UInt = 0;
+    var v = get();
+    for(i in 0...v.length) ret += Std.parseInt(v.charAt(i)) * Std.int(Math.pow(10, v.length - i - 1));
+    return ret;
+  }
+  
   public inline function toFloat() 
     return Std.parseFloat(get());
     

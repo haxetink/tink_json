@@ -202,6 +202,16 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function uint() {
+    asserts.assert(parse(('{"u":1}':{u:UInt})).sure().u == 1);
+    // var u:UInt = 0x80000000; // generated as -2147483648
+    // asserts.assert(parse(('{"u":2147483648}':{u:UInt})).sure().u == u);
+    var u:UInt = 0x7fffffff;
+    u = u + 1;
+    asserts.assert(parse(('{"u":2147483648}':{u:UInt})).sure().u == u);
+    return asserts.done();
+  }
+  
   #if haxe4
   public function optionalFinal() {
     asserts.assert(parse(('{"Opt":{"i":1}}':Content)).match(Success(Opt({i:1}))));

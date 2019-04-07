@@ -162,4 +162,16 @@ class WriterTest {
     asserts.assert(stringify(o) == '{"C":{"c":1}}');
     return asserts.done();
   }
+  
+  public function uint() {
+    var o:{u:UInt} = {u: 1};
+    asserts.assert(stringify(o) == '{"u":1}');
+    var o:{u:UInt} = {u: 0x80000000};
+    asserts.assert(stringify(o) == '{"u":2147483648}');
+    var u:UInt = 0x7fffffff;
+    u = u + 1;
+    var o:{u:UInt} = {u: u};
+    asserts.assert(stringify(o) == '{"u":2147483648}');
+    return asserts.done();
+  }
 }

@@ -347,6 +347,13 @@ class GenWriter extends GenBase {
   override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return
       switch type.reduce() {
+        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
+          macro @:pos(pos) {
+            var v = Std.string((value:Float));
+            ${if(haxe.macro.Context.defined('lua')) macro v = v.split('.')[0] else macro null}
+            ${if(haxe.macro.Context.defined('java')) macro v = this.expandScientificNotation(v) else macro null}
+            this.output(v);
+          }
         case TEnum(_.get().module => 'haxe.ds.Either', [left, right]):
           var lct = left.toComplex();
           var rct = right.toComplex();

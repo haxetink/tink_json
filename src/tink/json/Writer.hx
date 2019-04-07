@@ -78,6 +78,19 @@ class BasicWriter {
         char('}'.code);      
       
     }
+    
+  function expandScientificNotation(v:String) {
+    return switch v.toLowerCase().split('e') {
+      case [d]: d;
+      case [d, e]:
+        switch d.split('.') {
+          case [v]: v + StringTools.rpad('', '0', Std.parseInt(e));
+          case [d, f]: d + StringTools.rpad(f, '0', Std.parseInt(e));
+          case _: throw 'Invalid value';
+        }
+      case _: throw 'Invalid value';
+    }
+  }
 }
 
 #if js
@@ -134,7 +147,7 @@ private class StringWriter {
       case 12: buf.add('\\f');
       default:
         #if flash
-        if( c >= 128 ) add(String.fromCharCode(c)) else buf.addChar(c);
+        if( c >= 128 ) buf.add(String.fromCharCode(c)) else buf.addChar(c);
         #else
         buf.addChar(c);
         #end

@@ -151,7 +151,7 @@ class GenReader extends GenBase {
             case Some(v): v;
             default: switch valType.getID() {
               case 'Bool': macro false;
-              case 'Int': macro 0;
+              case 'Int' | 'UInt': macro 0;
               case 'Float': macro .0;
               default: macro null;
             }
@@ -451,6 +451,13 @@ class GenReader extends GenBase {
   public function reject(t:Type) 
     return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-abstracts';
 
+  override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
+    return
+      switch type.reduce() {
+        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
+          macro this.parseNumber().toUInt();
+        default: super.drive(type, pos, gen);
+      }
 }
 
 
