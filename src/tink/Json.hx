@@ -8,7 +8,7 @@ using tink.MacroApi;
 
 class Json { 
 
-  static macro public function parse(e:Expr) 
+  static macro public function parse(e:Expr):ExprOf<String>
     return 
       switch e {
         case macro ($e : $ct):
@@ -22,7 +22,7 @@ class Json {
           }
       }
       
-  static macro public function stringify(e:Expr) {
+  static macro public function stringify(e:ExprOf<String>) {
     var ct = e.typeof().sure().toComplex();
     return macro @:pos(e.pos) new tink.json.Writer<$ct>().write($e);
   }
