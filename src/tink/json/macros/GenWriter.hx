@@ -171,7 +171,8 @@ class GenWriter extends GenBase {
       this.char(']'.code);  
     };
     
-  public function enm(constructors:Array<EnumConstructor>, ct, _, _) {
+  public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, _) {
+    if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
     var cases = [];
     for (c in constructors) {
       var cfields = c.fields,

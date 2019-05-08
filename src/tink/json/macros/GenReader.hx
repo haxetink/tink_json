@@ -204,7 +204,8 @@ class GenReader extends GenBase {
       __ret;
     }
     
-  public function enm(constructors:Array<EnumConstructor>, ct, pos:Position, gen:GenType) {
+  public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, gen:GenType) {
+    if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
     var fields = new Map<String, LiteInfo>(),
         cases = new Array<Case>();
         
