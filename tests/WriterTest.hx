@@ -43,6 +43,16 @@ class WriterTest {
   public function dyn(o:Dynamic, v:String) {
     return assert(stringify(o) == v);
   }
+  
+  @:describe('Any')
+  @:variant({}, '{}')
+  @:variant('s', '"s"')
+  @:variant(1, '1')
+  @:variant(1.2, '1.2')
+  @:variant((['a',1.2]:Array<Dynamic>), '["a",1.2]')
+  public function any(o:Any, v:String) {
+    return assert(stringify(o) == v);
+  }
 
   public function value() {
     var v:Value = VObject([new Named("foo", VArray([VNumber(4)]))]);
