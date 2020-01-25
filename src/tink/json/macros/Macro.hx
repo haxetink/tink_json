@@ -129,7 +129,7 @@ class Macro {
   static public function getRepresentation(t:Type, pos:Position) {
 
     switch t.reduce() {
-      case TDynamic(null) | TMono(_): return None;
+      case TDynamic(null) | TMono(_) | TAbstract(_.get() => {name: 'Any', pack: []}, _): return None;
       default: 
     }
     var ct = t.toComplex({ direct: true });

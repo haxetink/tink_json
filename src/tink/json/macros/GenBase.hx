@@ -43,7 +43,7 @@ class GenBase {
           switch type.getMeta().filter(function (m) return m.has(customMeta)) {
             case []: 
               switch type.reduce() {
-                case TDynamic(null): 
+                case TDynamic(null) | TAbstract(_.get() => {name: 'Any', pack: []}, _): 
                   processDynamic(pos);
                 case TEnum(_.get().module => 'tink.json.Value', _): 
                   processValue(pos);
