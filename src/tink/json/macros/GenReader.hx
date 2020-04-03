@@ -50,7 +50,7 @@ class GenReader extends GenBase {
   public function map(k, v)               
     return macro {
       this.expect('[');
-      var __ret = new Map();
+      var __ret = new #if haxe4 haxe.ds.Map #else Map #end();
       if (!allow(']')) {
         do {
           this.expect('[');
