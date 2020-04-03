@@ -154,7 +154,7 @@ tink.Json.stringify(o) == '{"a":1}'; // true
 
 ### Custom parsers
 
-Using `@:jsonParse` on a type, you can specify how it should be parsed. The metadata must have exactly on argument:
+Using `@:jsonParse` on a type, you can specify how it should be parsed. The metadata must have exactly one argument, that is either of the following:
 
 - a function that consumes the data as it is expected to be found in the JSON document and must produce the type to be parsed.
 - a class that must provide an instance method called `parse` with the same signature and also have a constructor that accepts a `tink.json.Parser.BasicParser` - which will reference the parser from which your custom parser is invoked. You can use it's `plugins` field to share state between custom parsers. See the [tink_core documentation](https://haxetink.github.io/#/tink_core) for more details on that.
