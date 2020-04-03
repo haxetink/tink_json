@@ -54,7 +54,7 @@ class GenReader extends GenBase {
       if (!allow(']')) {
         do {
           this.expect('[');
-          __ret[$k] = this.expect(',') & $v;
+          __ret.set($k, this.expect(',') & $v);
           this.expect(']');
         } while (allow(','));
         expect(']');
