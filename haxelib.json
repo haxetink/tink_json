@@ -8,8 +8,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.10.0",
-	"releasenote": "Various fixes.",
+	"version": "0.10.1",
+	"releasenote": "Better autocompletion.",
 	"tags": [
 		"tink",
 		"cross",
