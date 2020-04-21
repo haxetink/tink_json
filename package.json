@@ -7,6 +7,6 @@
     "postinstall": "lix download"
   },
   "dependencies": {
-    "lix": "=15.1.1"
+    "lix": "=15.8.15"
   }
 }
