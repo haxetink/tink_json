@@ -312,7 +312,7 @@ class GenReader extends GenBase {
               guard = macro true;
 
           for(f in c.fields) {
-            if (!f.optional)
+            if (!(f.optional || isNullable(f.type)))
               guard = macro $guard && ${captured(f.name)} != null;
 
             pat.push({ field: f.name, expr: macro ${captured(f.name)}});

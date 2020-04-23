@@ -69,5 +69,14 @@ class GenBase {
               }
           }
       }
+
+  function isNullable(t:Type)
+    return switch t {
+      case TAbstract(_.get() => { pack: [], name: 'Null' }, _),
+           TType(_.get() => { pack: [], name: 'Null' }, _): true;
+      case TType(_) | TLazy(_):
+        isNullable(t.reduce());
+      default: false;
+    }
 }
 #end
