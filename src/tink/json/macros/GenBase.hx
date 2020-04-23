@@ -1,5 +1,6 @@
 package tink.json.macros;
 
+#if macro
 import haxe.macro.Type;
 import haxe.macro.Expr;
 import tink.typecrawler.Generator;
@@ -13,9 +14,9 @@ class GenBase {
   function new(customMeta) {
     this.customMeta = customMeta;
   }
-  public function rescue(t:Type, pos:Position, gen:GenType) 
+  public function rescue(t:Type, pos:Position, gen:GenType)
     return None;
-      
+
   public function shouldIncludeField(c:ClassField, owner:Option<ClassType>):Bool
     return Helper.shouldIncludeField(c, owner);
 
@@ -23,10 +24,10 @@ class GenBase {
     return throw 'abstract';
 
   function processDynamic(pos:Position):Expr
-    return throw 'abstract';    
+    return throw 'abstract';
 
   function processValue(pos:Position):Expr
-    return throw 'abstract';    
+    return throw 'abstract';
 
   function processSerialized(pos:Position):Expr
     return throw 'abstract';
@@ -35,27 +36,27 @@ class GenBase {
     return throw 'abstract';
 
   public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
-    return 
+    return
       switch Macro.getRepresentation(type, pos) {
         case Some(v):
           processRepresentation(pos, type, v, gen(v, pos));
         case None:
           switch type.getMeta().filter(function (m) return m.has(customMeta)) {
-            case []: 
+            case []:
               switch type.reduce() {
-                case TDynamic(null) | TAbstract(_.get() => {name: 'Any', pack: []}, _): 
+                case TDynamic(null) | TAbstract(_.get() => {name: 'Any', pack: []}, _):
                   processDynamic(pos);
-                case TEnum(_.get().module => 'tink.json.Value', _): 
+                case TEnum(_.get().module => 'tink.json.Value', _):
                   processValue(pos);
-                case TAbstract(_.get().module => 'tink.json.Serialized', _): 
+                case TAbstract(_.get().module => 'tink.json.Serialized', _):
                   processSerialized(pos);
-                default: 
+                default:
                   gen(type, pos);
               }
-            case v: 
+            case v:
               switch v[0].extract(customMeta)[0] {
-                case { params: [custom] }: 
-                  var rule:CustomRule = 
+                case { params: [custom] }:
+                  var rule:CustomRule =
                     switch custom {
                       case { expr: EFunction(_, _) }: WithFunction(custom);
                       case _.typeof().sure().reduce() => TFun(_, _): WithFunction(custom);
@@ -64,7 +65,7 @@ class GenBase {
                   processCustom(rule, type, drive.bind(_, pos, gen));
                 case v: v.pos.error('@$customMeta must have exactly one parameter');
               }
-          }       
-      }    
-          
+          }
+      }
 }
+#end

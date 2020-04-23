@@ -1,5 +1,6 @@
 package tink.json.macros;
 
+#if macro
 import haxe.ds.Option;
 import haxe.macro.Type;
 import haxe.macro.Expr;
@@ -18,29 +19,29 @@ class GenWriter extends GenBase {
 
   public function wrap(placeholder:Expr, ct:ComplexType):Function
     return placeholder.func(['value'.toArg(ct)], false);
-    
-  public function nullable(e) 
+
+  public function nullable(e)
     return macro if (value == null) this.output('null') else $e;
-    
-  public function string() 
+
+  public function string()
     return macro this.writeString(value);
-    
-  public function int() 
+
+  public function int()
     return macro this.writeInt(value);
-    
-  public function float() 
+
+  public function float()
     return macro this.writeFloat(value);
-    
-  public function bool() 
+
+  public function bool()
     return macro this.writeBool(value);
-    
-  public function date() 
+
+  public function date()
     return macro this.writeFloat(value.getTime());
-    
-  public function bytes() 
+
+  public function bytes()
     return macro this.writeString(haxe.crypto.Base64.encode(value));
-    
-  public function map(k, v)               
+
+  public function map(k, v)
     return macro {
       this.char('['.code);
       var first = true;
@@ -49,25 +50,25 @@ class GenWriter extends GenBase {
           first = false;
         else
           this.char(','.code);
-          
+
         this.char('['.code);
         {
           var value = k;
           $k;
         }
-        
+
         this.char(','.code);
         {
           var value = value.get(k);
           $v;
         }
-        
+
         this.char(']'.code);
       }
-      this.char(']'.code);  
+      this.char(']'.code);
     }
-    
-  public function anon(fields:Array<FieldInfo>, ct) 
+
+  public function anon(fields:Array<FieldInfo>, ct)
     return if(fields.length == 0)
       macro this.output('{}');
     else {
@@ -79,17 +80,17 @@ class GenWriter extends GenBase {
           case [x, y]: Reflect.compare(a.name, b.name);
         }
       );
-      
+
       var hasMandatory = !fields[0].optional;
       if (!hasMandatory) macro {
         var __first = true;
-        
+
         this.char('{'.code);
         $b{[for (f in fields) {
           var name = f.name,
               field = '"${Macro.nativeName(f)}":';
-            
-          function write(value, expr) 
+
+          function write(value, expr)
             return macro {
               if (__first)
                 __first = false;
@@ -99,7 +100,7 @@ class GenWriter extends GenBase {
               var value = $value;
               $expr;
             }
-          
+
           switch f.type.reduce() {
             case TEnum(_.get() => {name: 'Option', pack: ['haxe', 'ds']}, [t]):
               macro switch @:privateAccess value.$name {
@@ -118,7 +119,7 @@ class GenWriter extends GenBase {
       else macro {
         var __first = true;
         this.char('{'.code);
-        
+
         $b{[for (f in fields) {
           var name = f.name,
               field = '"${Macro.nativeName(f)}":';
@@ -129,7 +130,7 @@ class GenWriter extends GenBase {
             this.output($v{field});
             ${f.expr};
           }
-          
+
           switch f.type.reduce() {
             case TEnum(_.get() => {name: 'Option', pack: ['haxe', 'ds']}, [t]):
               macro switch @:privateAccess value.$name {
@@ -146,7 +147,7 @@ class GenWriter extends GenBase {
                   case null:
                   case value: $write;
                 }
-              else 
+              else
                 macro {
                   var value = @:privateAccess value.$name;
                   $write;
@@ -157,7 +158,7 @@ class GenWriter extends GenBase {
       };
     }
 
-  public function array(e) 
+  public function array(e)
     return macro {
       this.char('['.code);
       var first = true;
@@ -168,9 +169,9 @@ class GenWriter extends GenBase {
           this.char(','.code);
         $e;
       }
-      this.char(']'.code);  
+      this.char(']'.code);
     };
-    
+
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, _) {
     if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
     var cases = [];
@@ -180,7 +181,7 @@ class GenWriter extends GenBase {
           c = c.ctor,
           name = c.name,
           postfix = '}',
-          first = true;      
+          first = true;
       cases.push(
         if (c.type.reduce().match(TEnum(_,_)))
           {
@@ -195,27 +196,27 @@ class GenWriter extends GenBase {
             )})),
           }
         else {
-          var prefix = 
+          var prefix =
             switch c.meta.extract(':json') {
               case []:
-                
+
                 postfix = '}}';
                 '{"$name":{';
-                
-              case [{ params:[{ expr: EObjectDecl(obj) }] }]:                
-                
+
+              case [{ params:[{ expr: EObjectDecl(obj) }] }]:
+
                 first = false;
                 var ret = haxe.format.JsonPrinter.print(ExprTools.getValue(EObjectDecl(obj).at()));
                 ret.substr(0, ret.length - 1);
 
               default:
                 c.pos.error('invalid use of @:json');
-            } 
-            
-          var args = 
+            }
+
+          var args =
             if (inlined) [macro value]
             else [for (f in cfields) macro $i{f.name}];
-          
+
           {
             values: [macro @:pos(c.pos) ${args.length == 0 ? macro $i{name} : macro $i{name}($a{args})}],
             expr: macro {
@@ -238,73 +239,73 @@ class GenWriter extends GenBase {
               }]}
               this.output($v{postfix});
             },
-          };            
-        }    
+          };
+        }
       );
     }
     return ESwitch(macro (value:$ct), cases, null).at();
   }
-  
+
   public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
     return macro @:pos(pos) {
       var value = cast value;
       $e;
     }
   }
-  
-  public function dyn(e, ct) 
+
+  public function dyn(e, ct)
     return macro {
       var value:haxe.DynamicAccess<$ct> = value;
       $e;
     }
-    
+
   public function dynAccess(e)
     return macro {
       var first = true;
-          
+
       this.char('{'.code);
       for (k in value.keys()) {
         if (first)
           first = false;
         else
           this.char(','.code);
-          
+
         this.writeString(k);
         this.char(':'.code);
         {
           var value = value.get(k);
           $e;
         }
-        
+
       }
       this.char('}'.code);
     }
-    
+
   override public function rescue(t:Type, pos:Position, gen:GenType):Option<Expr>
-    return 
+    return
       switch t.reduce() {
-        
+
         case TInst(_.get() => { isInterface: true }, _):
-          
+
           pos.error('[tink_json] ${t.getID()} is an interface and cannot be stringified. ');
-        
+
         case TInst(_.get() => cl, params):
           //TODO: this should be handled by converting the class to an anonymous type and handing that off to `gen`
           var a = new Array<FieldInfo>();
-          
-          for (f in cl.fields.get()) 
+
+          for (f in cl.fields.get())
             if (Macro.shouldSerialize(f)) {
               var ft = f.type.applyTypeParameters(cl.params, params);
               a.push(new FieldInfo({ name: f.name, pos: f.pos, type: ft }, gen, false, f.meta.get()));
             }
-          
+
           Some(anon(a, t.toComplex()));
-          
+
         default:
-          super.rescue(t, pos, gen);             
-      }    
-      
-  public function reject(t:Type) 
+          super.rescue(t, pos, gen);
+      }
+
+  public function reject(t:Type)
     return 'tink_json cannot stringify ${t.toString()}';
 
   override function processRepresentation(pos:Position, actual:Type, representation:Type, value:Expr):Expr {
@@ -330,18 +331,18 @@ class GenWriter extends GenBase {
       case WithClass(writer):
         var path = writer.toString().asTypePath();
         var rep = (macro @:pos(writer.pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
-        
+
         return macro @:pos(writer.pos) {
           var value = this.plugins.get($writer).prepare(value);
           ${gen(rep)};
-        }    
+        }
       case WithFunction(e):
         //TODO: the two cases look suspiciously similar
         var rep = (macro @:pos(e.pos) { var f = null; $e((f():$original)); }).typeof().sure();
         return macro @:pos(e.pos) {
           var value = $e(value);
           ${gen(rep)};
-        }    
+        }
     }
   }
 
@@ -365,3 +366,4 @@ class GenWriter extends GenBase {
         default: super.drive(type, pos, gen);
       }
 }
+#end

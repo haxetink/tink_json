@@ -1,5 +1,6 @@
 package tink.json.macros;
 
+#if macro
 import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.macro.Expr;
@@ -14,40 +15,40 @@ using tink.CoreApi;
 
 class GenReader extends GenBase {
   static public var inst = new GenReader();
-  
+
   function new() {
     super(':jsonParse');
   }
 
   static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
-  
+
   public function wrap(placeholder:Expr, ct:ComplexType):Function
     return placeholder.func(ct);
-        
-  public function nullable(e) 
-    return macro 
+
+  public function nullable(e)
+    return macro
       if (this.allow('null')) null;
       else $e;
-    
-  public function string() 
+
+  public function string()
     return macro (this.parseString().toString() : String);
-    
-  public function int() 
+
+  public function int()
     return macro this.parseNumber().toInt();
-    
-  public function float() 
+
+  public function float()
     return macro this.parseNumber().toFloat();
-    
-  public function bool() 
+
+  public function bool()
     return macro this.parseBool();
-    
-  public function date() 
+
+  public function date()
     return macro Date.fromTime(this.parseNumber().toFloat());
-    
-  public function bytes() 
+
+  public function bytes()
     return macro haxe.crypto.Base64.decode(this.parseString().toString());
-    
-  public function map(k, v)               
+
+  public function map(k, v)
     return macro {
       this.expect('[');
       var __ret = new #if haxe4 haxe.ds.Map #else Map #end();
@@ -58,12 +59,12 @@ class GenReader extends GenBase {
           this.expect(']');
         } while (allow(','));
         expect(']');
-      }    
+      }
       __ret;
     }
-    
+
   public function anon(fields:Array<FieldInfo>, ct) {
-    
+
     var read = macro this.skipValue(),
         vars:Array<Var> = [],
         obj = [];
@@ -73,7 +74,7 @@ class GenReader extends GenBase {
           name = 'v_' + f.name,
           jsonName = Macro.nativeName(f),
           optional = f.optional;
-         
+
       var option = switch f.type.reduce() {
         case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]): Some(v);
         default: None;
@@ -81,17 +82,17 @@ class GenReader extends GenBase {
 
       var defaultValue = switch f.meta.getValues(':default') {
         case []: None;
-        case [[v]]: 
-          if (option == None) 
+        case [[v]]:
+          if (option == None)
             Some(v)
           else v.reject('Cannot specify default for `Option`');
         case v: f.pos.error('more than one @:default');
       }
-      
+
       var hasName = 'has$name';
 
-      read = macro @:pos(f.pos) 
-        if (__name__ == $v{jsonName}) {          
+      read = macro @:pos(f.pos)
+        if (__name__ == $v{jsonName}) {
           ${
             switch option {
               case Some(t):
@@ -104,12 +105,12 @@ class GenReader extends GenBase {
             if (optional) macro $b{[]}
             else macro $i{hasName} = true
           }
-        } 
+        }
         else $read;
 
       obj.push({
         field: f.name,
-        expr: 
+        expr:
           switch option {
             case Some(v):
               if (optional)
@@ -124,7 +125,7 @@ class GenReader extends GenBase {
           },
       });
 
-      if (optional) 
+      if (optional)
         vars.push(switch defaultValue {
           case None: {
             name: name,
@@ -139,11 +140,11 @@ class GenReader extends GenBase {
         });
       else {
 
-        var valType = 
+        var valType =
           switch Crawler.plainAbstract(f.type) {
             case Some(a): a;
             default: f.type;
-          }       
+          }
 
         vars.push({
           name: name,
@@ -165,13 +166,13 @@ class GenReader extends GenBase {
           expr: macro false,
         });
       }
-      
+
     };
-        
+
     return macro {
-      
+
       ${EVars(vars).at()};
-      
+
       var __start__ = this.pos;
       this.expect('{');
       if (!this.allow('}')) {
@@ -182,16 +183,16 @@ class GenReader extends GenBase {
         } while (this.allow(','));
         this.expect('}');
       }
-        
+
       function __missing__(field:String):Dynamic {
         return this.die('missing field "' + field + '"', __start__);
       };
 
       (${EObjectDecl(obj).at()} : $ct);
     };
-  }  
-  
-  public function array(e) 
+  }
+
+  public function array(e)
     return macro {
       this.expect('[');
       var __ret = [];
@@ -200,22 +201,22 @@ class GenReader extends GenBase {
           __ret.push($e);
         } while (allow(','));
         expect(']');
-      }    
+      }
       __ret;
     }
-    
+
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, gen:GenType) {
     if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
     var fields = new Map<String, LiteInfo>(),
         cases = new Array<Case>();
-        
+
     function captured(f:String)
       return macro @:pos(pos) $i{
         if (f.charAt(0).toUpperCase() == f.charAt(0)) '__'+f.toLowerCase()
         else f
-      };      
-        
-    function add(f:LiteInfo) 
+      };
+
+    function add(f:LiteInfo)
       switch fields[f.name] {
         case null: fields[f.name] = f;
         case same if (Crawler.typesEqual(same.type, f.type)):
@@ -225,15 +226,15 @@ class GenReader extends GenBase {
             type: f.type,
             optional: same.optional || f.optional,
           }
-        case other: 
+        case other:
           fields[f.name] = {
             pos: f.pos,
             name: f.name,
             type: (macro:tink.json.Serialized<tink.core.Any>).toType().sure(),
             optional: other.optional || f.optional,
           }
-      }        
-      
+      }
+
     function mkComplex(fields:Iterable<LiteInfo>):ComplexType
       return TAnonymous([for (f in fields) {
         name: f.name,
@@ -241,16 +242,16 @@ class GenReader extends GenBase {
         meta: if (f.optional) OPTIONAL else [],
         kind: FVar(f.type.toComplex()),
       }]);
-    
+
     var argLess = [];
     for (c in constructors) {
-      
+
       var inlined = c.inlined,
           cfields = c.fields,
           c = c.ctor,
           name = c.name,
           hasArgs = !c.type.reduce().match(TEnum(_,_));
-          
+
       switch c.meta.extract(':json') {
         case [] if(!hasArgs):
             argLess.push(new Named(name, name));
@@ -261,7 +262,7 @@ class GenReader extends GenBase {
             type: mkComplex(cfields).toType().sure(),
             pos: c.pos,
           });
-          
+
           cases.push({
             values: [macro { $name : o }],
             guard: macro o != null,
@@ -271,14 +272,14 @@ class GenReader extends GenBase {
                 var name = f.name;
                 macro o.$name;
               }];
-              
+
               switch args {
                 case []: macro ($i{name} : $ct);
                 case _: macro ($i{name}($a{args}) : $ct);
               }
             }
           });
-          
+
         case [{ params:[{ expr: EConst(CString(v)) }]}] if(!hasArgs):
           argLess.push(new Named(name, v));
 
@@ -288,35 +289,35 @@ class GenReader extends GenBase {
               add(f.makeOptional());
             }
           }
-          
+
           for (f in obj)
             add({
               pos: f.expr.pos,
-              name: f.field, 
+              name: f.field,
               type: f.expr.typeof().sure(),
               optional: true,
             });
-          
+
         case v:
           c.pos.error('invalid use of @:json');
       }
     }
-    
+
     // second pass for @:json
     for (c in constructors) {
       switch c.ctor.meta.extract(':json') {
         case [{ params:[{ expr: EObjectDecl(obj) }] }]:
-          
+
           var pat = obj.copy(),
               guard = macro true;
-              
+
           for(f in c.fields) {
             if (!f.optional)
               guard = macro $guard && ${captured(f.name)} != null;
-            
+
             pat.push({ field: f.name, expr: macro ${captured(f.name)}});
           }
-          
+
           function read(f:FieldInfo) {
             var e = captured(f.name);
             return if(fields[f.name].type.getID() == 'tink.json.Serialized') {
@@ -333,16 +334,16 @@ class GenReader extends GenBase {
               e;
             }
           }
-          
-          var args = 
+
+          var args =
             if (c.inlined) [EObjectDecl([for (f in c.fields) { field: f.name, expr: read(f) }]).at(pos)];
             else [for (f in c.fields) read(f)];
-          
+
           var call = switch args {
             case []: macro ($i{c.ctor.name} : $ct);
             case _: macro ($i{c.ctor.name}($a{args}) : $ct);
           }
-          
+
           cases.push({
             values: [EObjectDecl(pat).at()],
             guard: guard,
@@ -350,13 +351,13 @@ class GenReader extends GenBase {
           });
         case _:
       }
-    } 
-      
+    }
+
     var ret = macro {
       var __ret = ${gen(mkComplex(fields).toType().sure(), pos)};
       ${ESwitch(
-        macro __ret, 
-        cases, 
+        macro __ret,
+        cases,
         macro throw new tink.core.Error(422, 'Cannot process '+Std.string(__ret))
       ).at(pos)};
     }
@@ -364,7 +365,7 @@ class GenReader extends GenBase {
     return
       if (argLess.length == 0) ret;
       else {
-        
+
         var argLessSwitch = ESwitch(macro parseRestOfString().toString(), [for (a in argLess) {
           values: [macro $v{a.value}], expr: macro $i{a.name},
         }].concat([{
@@ -374,13 +375,13 @@ class GenReader extends GenBase {
         macro if (allow('"')) $argLessSwitch else $ret;
       }
   }
-  
+
   public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
     return macro @:pos(pos) {
       var v:$ct = cast $e;
       ${ESwitch(
-        macro v, 
-        [{expr: macro v, values: names}], 
+        macro v,
+        [{expr: macro v, values: names}],
         macro {
           var list = $a{names};
           throw new tink.core.Error(422, 'Unrecognized enum value: ' + v + '. Accepted values are: ' + tink.Json.stringify(list));
@@ -388,10 +389,10 @@ class GenReader extends GenBase {
       ).at(pos)}
     }
   }
-  
-  public function dyn(e, ct) 
+
+  public function dyn(e, ct)
     return macro ($e : Dynamic<$ct>);
-    
+
   public function dynAccess(e)
     return macro {
       this.expect('{');
@@ -401,17 +402,17 @@ class GenReader extends GenBase {
           __ret[this.parseString().toString()] = expect(':') & $e;
         } while (allow(','));
         expect('}');
-      }    
+      }
       __ret;
     }
-  
-  override function processDynamic(pos) 
-    return macro @:pos(pos) this.parseDynamic();  
 
-  override function processValue(pos) 
+  override function processDynamic(pos)
+    return macro @:pos(pos) this.parseDynamic();
+
+  override function processValue(pos)
     return macro @:pos(pos) this.parseValue();
 
-  override function processSerialized(pos) 
+  override function processSerialized(pos)
     return macro @:pos(pos) this.parseSerialized();
 
   override function processCustom(c:CustomRule, original:Type, gen:Type->Expr) {
@@ -422,12 +423,12 @@ class GenReader extends GenBase {
         var path = parser.toString().asTypePath();
 
         var rep = (macro @:pos(parser.pos) { var f = null; (new $path(null).parse(f()) : $original); f(); }).typeof().sure();
-        
+
         macro @:pos(parser.pos) this.plugins.get($parser).parse(${gen(rep)});
       case WithFunction(e):
 
         var rep = (macro @:pos(e.pos) { var f = null; ($e(f()) : $original); f(); }).typeof().sure();
-        
+
         macro @:pos(e.pos) $e(${gen(rep)});
     }
   }
@@ -435,21 +436,21 @@ class GenReader extends GenBase {
   override function processRepresentation(pos:Position, actual:Type, representation:Type, value:Expr):Expr {
     var rt = actual.toComplex();
     var ct = representation.toComplex();
-    
+
     return macro @:pos(pos) {
       var __start__ = this.pos,
           rep = $value;
-          
+
       try {
         (new tink.json.Representation<$ct>(rep) : $rt);
       }
       catch (e:Dynamic) {
         this.die(Std.string(e), __start__);
       }
-    };  
+    };
   }
-    
-  public function reject(t:Type) 
+
+  public function reject(t:Type)
     return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-abstracts';
 
   override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
@@ -461,10 +462,10 @@ class GenReader extends GenBase {
       }
 }
 
-
 private typedef LiteInfo = {
   var name(default, never):String;
   var pos(default, never):Position;
   var type(default, never):Type;
   var optional(default, never):Bool;
 }
+#end

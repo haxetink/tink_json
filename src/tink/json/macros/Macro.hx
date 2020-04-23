@@ -1,5 +1,6 @@
 package tink.json.macros;
 
+#if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
 import haxe.macro.Type;
@@ -159,3 +160,4 @@ class Macro {
         default: false;
       }
 }
+#end
