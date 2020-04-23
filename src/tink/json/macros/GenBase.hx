@@ -50,6 +50,8 @@ class GenBase {
                   processValue(pos);
                 case TAbstract(_.get().module => 'tink.json.Serialized', _):
                   processSerialized(pos);
+                case TMono(_):
+                  pos.error('failed to infer type');
                 default:
                   gen(type, pos);
               }
