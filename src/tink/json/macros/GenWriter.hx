@@ -296,7 +296,7 @@ class GenWriter extends GenBase {
           for (f in cl.fields.get())
             if (Macro.shouldSerialize(f)) {
               var ft = f.type.applyTypeParameters(cl.params, params);
-              a.push(new FieldInfo({ name: f.name, pos: f.pos, type: ft }, gen, false, f.meta.get()));
+              a.push(new FieldInfo({ name: f.name, pos: f.pos, type: ft }, gen, false, f.meta.get(), FieldInfo.fieldAccess(f)));
             }
 
           Some(anon(a, t.toComplex()));

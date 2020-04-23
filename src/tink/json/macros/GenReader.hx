@@ -223,6 +223,7 @@ class GenReader extends GenBase {
           fields[f.name] = {
             pos: f.pos,
             name: f.name,
+            access: f.access,
             type: f.type,
             optional: same.optional || f.optional,
           }
@@ -230,6 +231,7 @@ class GenReader extends GenBase {
           fields[f.name] = {
             pos: f.pos,
             name: f.name,
+            access: f.access,
             type: (macro:tink.json.Serialized<tink.core.Any>).toType().sure(),
             optional: other.optional || f.optional,
           }
@@ -240,7 +242,7 @@ class GenReader extends GenBase {
         name: f.name,
         pos: f.pos,
         meta: if (f.optional) OPTIONAL else [],
-        kind: FVar(f.type.toComplex()),
+        kind: FProp(f.access.get, f.access.set, f.type.toComplex()),
       }]);
 
     var argLess = [];
@@ -256,22 +258,25 @@ class GenReader extends GenBase {
         case [] if(!hasArgs):
             argLess.push(new Named(name, name));
         case []:
+
           add({
             name: name,
             optional: true,
             type: mkComplex(cfields).toType().sure(),
             pos: c.pos,
+            access: { get: 'default', set: 'default' },
           });
 
           cases.push({
             values: [macro { $name : o }],
             guard: macro o != null,
             expr: {
-              var args = if (inlined) [macro cast o]; // FIXME: this cast is a workaround for https://github.com/haxetink/tink_json/issues/56
-              else [for (f in cfields) {
-                var name = f.name;
-                macro o.$name;
-              }];
+              var args =
+                if (inlined) [macro o]; // FIXME: this cast is a workaround for https://github.com/haxetink/tink_json/issues/56
+                else [for (f in cfields) {
+                  var name = f.name;
+                  macro o.$name;
+                }];
 
               switch args {
                 case []: macro ($i{name} : $ct);
@@ -296,6 +301,7 @@ class GenReader extends GenBase {
               name: f.field,
               type: f.expr.typeof().sure(),
               optional: true,
+              access: { get: 'default', set: 'default' },
             });
 
         case v:
@@ -467,5 +473,6 @@ private typedef LiteInfo = {
   var pos(default, never):Position;
   var type(default, never):Type;
   var optional(default, never):Bool;
+  var access(default, never):FieldAccessInfo;
 }
 #end
