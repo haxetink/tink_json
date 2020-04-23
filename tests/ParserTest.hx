@@ -80,7 +80,10 @@ class ParserTest {
   }
 
   public function enums() {
-    return assert(typedCompare([Sword({max:100}), Shield({armor:50})], parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "armor": 50 }]')));
+    return assert(typedCompare(
+      [Sword({max:100}), Shield({armor:50}),  Cape(null)],
+      parse('[{ "type": "sword", "damage": { "max": 100 }},{ "type": "shield", "armor": 50 }, { "type": "cape", "color": null }]')
+    ));
   }
 
   public function native() {

@@ -27,7 +27,7 @@ enum Color {
 }
 
 abstract Hitpoints(Int) from Int to Int {
-  
+
 }
 
 enum PotionEffect {
@@ -39,13 +39,14 @@ enum Item {
   @:json({ type: 'sword' }) Sword(damage:{max:Int});
   @:json({ type: 'shield' }) Shield(shield:{armor:Int});
   @:json({ type: 'staff' }) Staff(block:Float, ?magic:Int);
+  @:json({ type: 'cape' }) Cape(color:Null<String>);
   Potion(effect:PotionEffect);
 }
 
 class FruitParser {
   public function new(_) {}
 
-  public function parse(o) 
+  public function parse(o)
     return new Fruit(o.name, o.weight);
 }
 
@@ -60,27 +61,27 @@ class Fruit {
 }
 
 abstract Test(String) {
-  
+
   public function new(s)
     this = s;
-  
-  @:to function toRepresentation():Representation<String> 
+
+  @:to function toRepresentation():Representation<String>
     return new Representation(this);
-    
+
   @:from static function ofRepresentation(r:Representation<String>):Test
     return new Test(r.get());
 }
 
 abstract UpperCase(String) {
-  
+
   inline function new(v) this = v;
-  
-  @:to function toRepresentation():Representation<String> 
+
+  @:to function toRepresentation():Representation<String>
     return new Representation(this);
-    
+
   @:from static function ofRepresentation(rep:Representation<String>)
     return new UpperCase(rep.get());
-  
+
   @:from static function ofString(s:String)
     return new UpperCase(s.toUpperCase());
 }
@@ -89,19 +90,19 @@ abstract UpperCase(String) {
 abstract Contraption({ foo: Int }) from { foo: Int } to { foo: Int } {
   @:from static function ofRepresentation(rep:Representation<Array<Int>>):Contraption
     return { foo: rep.get()[0] };
-  
-  @:to function toRepresentation():Representation<Array<Int>> 
-    return new Representation([this.foo]);  
+
+  @:to function toRepresentation():Representation<Array<Int>>
+    return new Representation([this.foo]);
 }
 
 abstract MyAbstract(Iterable<Int>) {
-  
+
   public inline function new(vec) this = vec;
-  
+
   @:from static function ofRepresentation(rep:Representation<Array<Int>>)
     return new MyAbstract(rep.get());
-  
-  @:to function toRepresentation():Representation<Array<Int>> 
+
+  @:to function toRepresentation():Representation<Array<Int>>
     return new Representation(Lambda.array(this));
 }
 
