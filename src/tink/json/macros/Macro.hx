@@ -91,7 +91,13 @@ class Macro {
         return ${ret.expr};
       }
       public function tryParse(source)
-        return tink.core.Error.catchExceptions(function () return parse(source));
+        return tink.core.Error.catchExceptions(function () {
+          var ret = parse(source);
+          skipIgnored();
+          if (pos < max)
+            die('Invalid data after JSON document');
+          return ret;
+        });
     });
 
     compact('p', cl.fields);

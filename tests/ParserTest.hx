@@ -92,7 +92,7 @@ class ParserTest {
   }
 
   public function exprParam() {
-    var res:Input = tink.Json.parse('{"a": "text"}');
+    var res:Input = parse('{"a": "text"}');
     return assert(res.a == 'text');
   }
 
@@ -233,16 +233,21 @@ class ParserTest {
   }
 
   public function issue51() {
-    asserts.assert(tink.Json.parse(('':E)).match(Failure(_)));
+    asserts.assert(parse(('':E)).match(Failure(_)));
     return asserts.done();
   }
   #end
 
   public function testIssue67() {
-    var l:{ foo: Lazy<Foo> } = tink.Json.parse('{ "foo": 123 }');
+    var l:{ foo: Lazy<Foo> } = parse('{ "foo": 123 }');
     asserts.assert(calls == 0);
     asserts.assert(l.foo.get().foo == 123);
     asserts.assert(calls == 1);
+    return asserts.done();
+  }
+
+  public function testIssue29() {
+    asserts.assert(!parse(('{}haha': {})).isSuccess());
     return asserts.done();
   }
 
