@@ -29,6 +29,9 @@ class GenBase {
   function processValue(pos:Position):Expr
     return throw 'abstract';
 
+  function processLazy(type:ComplexType, pos:Position):Expr
+    return throw 'abstract';
+
   function processSerialized(pos:Position):Expr
     return throw 'abstract';
 
@@ -48,6 +51,8 @@ class GenBase {
                   processDynamic(pos);
                 case TEnum(_.get().module => 'tink.json.Value', _):
                   processValue(pos);
+                case TAbstract(_.get().module => 'tink.core.Lazy', [t]):
+                  processLazy(t.toComplex(), pos);
                 case TAbstract(_.get().module => 'tink.json.Serialized', _):
                   processSerialized(pos);
                 case TMono(_):

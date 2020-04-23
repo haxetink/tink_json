@@ -238,6 +238,26 @@ class ParserTest {
   }
   #end
 
+  public function testIssue67() {
+    var l:{ foo: Lazy<Foo> } = tink.Json.parse('{ "foo": 123 }');
+    asserts.assert(calls == 0);
+    asserts.assert(l.foo.get().foo == 123);
+    asserts.assert(calls == 1);
+    return asserts.done();
+  }
+
+  static var calls = 0;
+  static public function parseFoo(i:Int) {
+    calls++;
+    return new Foo(i);
+  }
+}
+
+@:jsonParse(ParserTest.parseFoo)
+private class Foo {
+  public var foo:Int;
+  public function new(foo)
+    this.foo = foo;
 }
 
 #if haxe4

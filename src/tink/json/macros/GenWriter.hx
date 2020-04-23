@@ -325,6 +325,12 @@ class GenWriter extends GenBase {
   override function processSerialized(pos:Position):Expr
     return macro @:pos(pos) this.output(value);
 
+  override function processLazy(t, pos)
+    return macro @:pos(pos) {
+      var v:tink.json.Serialized<$t> = value.get();
+      this.output(v);
+    }
+
   override function processCustom(c:CustomRule, original:Type, gen:Type->Expr):Expr {
     var original = original.toComplex();
     return switch c {

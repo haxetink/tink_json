@@ -421,6 +421,12 @@ class GenReader extends GenBase {
   override function processSerialized(pos)
     return macro @:pos(pos) this.parseSerialized();
 
+  override function processLazy(t, pos)
+    return macro @:pos(pos) {
+      var v:tink.json.Serialized<$t> = this.parseSerialized();
+      tink.core.Lazy.ofFunc(function () return v.parse());
+    }
+
   override function processCustom(c:CustomRule, original:Type, gen:Type->Expr) {
     var original = original.toComplex();
 

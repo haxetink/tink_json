@@ -9,31 +9,31 @@ using tink.CoreApi;
 
 @:asserts
 class WriterTest {
-  
+
   public function new() {}
-  
+
   @:variant(None, '"None"')
   @:variant(Some(1), '{"Some":{"v":1}}')
   public function option(o:Option<Int>, v:String) {
     return assert(stringify(o) == v);
   }
-  
+
   @:variant(None2, '"none"')
   @:variant(Some2({}),  '{"Some2":{}}')
   public function option2(o:Option2, v:String) {
     return assert(stringify(o) == v);
   }
-  
+
   public function emptyAnon() {
     var data:{} = {};
     return assert(stringify(data) == '{}');
   }
-  
+
   public function backSlash() {
     var data:{key:String} = {key: '\\s'};
     return assert(stringify(data) == '{"key":"\\\\s"}');
   }
-  
+
   @:describe('dynamic')
   @:variant({}, '{}')
   @:variant('s', '"s"')
@@ -43,7 +43,7 @@ class WriterTest {
   public function dyn(o:Dynamic, v:String) {
     return assert(stringify(o) == v);
   }
-  
+
   @:describe('Any')
   @:variant({}, '{}')
   @:variant('s', '"s"')
@@ -59,12 +59,12 @@ class WriterTest {
     return assert(stringify(v) == '{"foo":[4]}');
   }
 
-  
+
   public function native() {
     var o:{@:json('default') var _default:Int;} = {_default:1};
     return assert(stringify(o) == '{"default":1}');
   }
-  
+
   public function enumAbstract() {
     return assert(stringify(MyEnumAbstract.A) == '"aaa"');
   }
@@ -75,33 +75,33 @@ class WriterTest {
       yyyyy:Int,
       ?zzzzz:Int,
     } = { yyyyy: 5 };
-    asserts.assert(stringify(o) == '{"yyyyy":5}'); 
+    asserts.assert(stringify(o) == '{"yyyyy":5}');
     o.zzzzz = 4;
-    asserts.assert(stringify(o) == '{"yyyyy":5,"zzzzz":4}'); 
+    asserts.assert(stringify(o) == '{"yyyyy":5,"zzzzz":4}');
 
     var o:{
       ?xxxxx:Int,
       ?yyyyy:Int,
       ?zzzzz:Int,
     } = {};
-    asserts.assert(stringify(o) == '{}'); 
+    asserts.assert(stringify(o) == '{}');
     o.yyyyy = 5;
-    asserts.assert(stringify(o) == '{"yyyyy":5}'); 
-    
+    asserts.assert(stringify(o) == '{"yyyyy":5}');
+
     return asserts.done();
   }
-  
+
   public function custom() {
     asserts.assert(stringify(new Rocket(100)) == '{"alt":100}');
     asserts.assert(stringify(new Rocket3(100)) == '{"alt":100}');
     asserts.assert(stringify(new Rocket2(100)) == '[100]');
     return asserts.done();
   }
-  
+
   public function custom2() {
     return assert(stringify(new Fruit('apple', .2)) == '{"name":"apple","weight":0.2}');
   }
-  
+
   public function either() {
     var e:Either<String, Int> = Left('aa');
     asserts.assert(stringify(e) == '"aa"');
@@ -113,7 +113,7 @@ class WriterTest {
     asserts.assert(stringify(e) == '{"id":"aa"}');
     return asserts.done();
   }
-  
+
   public function optionInAnon() {
     var e:{o:Option<String>} = {o: null};
     asserts.assert(stringify(e) == '{}');
@@ -123,7 +123,7 @@ class WriterTest {
     asserts.assert(stringify(e) == '{"o":null}');
     var e:{o:Option<String>} = {o: Some('s')};
     asserts.assert(stringify(e) == '{"o":"s"}');
-  
+
     var e:{?o:Option<String>} = {};
     asserts.assert(stringify(e) == '{}');
     var e:{?o:Option<String>} = {o: null};
@@ -134,7 +134,7 @@ class WriterTest {
     asserts.assert(stringify(e) == '{"o":null}');
     var e:{?o:Option<String>} = {o: Some('s')};
     asserts.assert(stringify(e) == '{"o":"s"}');
-    
+
     var e:{a:Int, o:Option<String>} = {a:1, o: null};
     asserts.assert(stringify(e) == '{"a":1}');
     var e:{a:Int, o:Option<String>} = {a:1, o: None};
@@ -143,7 +143,7 @@ class WriterTest {
     asserts.assert(stringify(e) == '{"a":1,"o":null}');
     var e:{a:Int, o:Option<String>} = {a:1, o: Some('s')};
     asserts.assert(stringify(e) == '{"a":1,"o":"s"}');
-    
+
     var e:{z:Int, o:Option<String>} = {z:1, o: null};
     asserts.assert(stringify(e) == '{"z":1}');
     var e:{z:Int, o:Option<String>} = {z:1, o: None};
@@ -154,7 +154,7 @@ class WriterTest {
     asserts.assert(stringify(e) == '{"o":"s","z":1}');
     return asserts.done();
   }
-  
+
   public function nullableDate() {
     // var e:Date = Date.fromTime(0);
     // asserts.assert(stringify(e) == '0');
@@ -162,7 +162,7 @@ class WriterTest {
     asserts.assert(stringify(e) == 'null');
     return asserts.done();
   }
-  
+
   public function argLessEnum() {
     var o:ArgLess = A;
     asserts.assert(stringify(o) == '"a"');
@@ -172,7 +172,7 @@ class WriterTest {
     asserts.assert(stringify(o) == '{"C":{"c":1}}');
     return asserts.done();
   }
-  
+
   public function uint() {
     var o:{u:UInt} = {u: 1};
     asserts.assert(stringify(o) == '{"u":1}');
@@ -182,6 +182,16 @@ class WriterTest {
     u = u + 1;
     var o:{u:UInt} = {u: u};
     asserts.assert(stringify(o) == '{"u":2147483648}');
+    return asserts.done();
+  }
+
+  public function testIssue67() {
+
+    var l:{ foo: Lazy<Int> } = { foo: function () return 42 };
+
+    var s = tink.Json.stringify(l);
+    asserts.assert(s == '{"foo":42}');
+
     return asserts.done();
   }
 }
