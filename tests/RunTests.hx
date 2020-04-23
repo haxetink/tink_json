@@ -16,5 +16,5 @@ class RunTests {
       new CacheTest(),
     ])).handle(Runner.exit);
   }
-  
+
 }
