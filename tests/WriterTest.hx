@@ -194,4 +194,16 @@ class WriterTest {
 
     return asserts.done();
   }
+
+  public function testIssue48() {
+    var o:{ foo: Opacity } = { foo: 0.5 };
+    asserts.assert(tink.Json.stringify(o) == '{"foo":0.5}');
+    return asserts.done();
+  }
+}
+
+abstract Opacity(Float) from Float to Float {
+  @:to public function toString():String {
+    return 'huh?';
+  }
 }
