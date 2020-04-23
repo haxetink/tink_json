@@ -6,24 +6,35 @@ import haxe.macro.*;
 using tink.MacroApi;
 #end
 
-class Json { 
+class Json {
 
-  static macro public function parse(e:Expr):ExprOf<String>
-    return 
+  static macro public function parse(e:Expr):ExprOf<String> {
+    function forceTyping(t:Type)
+      tink.json.macros.Macro.buildParser(t, e.pos);// workaround for https://github.com/HaxeFoundation/haxe/issues/9342
+    return
       switch e {
         case macro ($e : $ct):
+          forceTyping(ct.toType(e.pos).sure());
           macro new tink.json.Parser<$ct>().tryParse($e);
         case _:
           switch Context.getExpectedType() {
             case null:
               e.reject('Cannot determine expected type');
-            case _.toComplex() => ct:
-              macro @:pos(e.pos) new tink.json.Parser<$ct>().parse($e);
+            case t:
+              forceTyping(t);
+              var ct = t.toComplex();
+              macro @:pos(e.pos) (new tink.json.Parser<$ct>()).parse($e);
           }
       }
-      
+  }
+
   static macro public function stringify(e:ExprOf<String>) {
-    var ct = e.typeof().sure().toComplex();
+    var t = e.typeof().sure();
+
+    tink.json.macros.Macro.buildWriter(t, e.pos);// workaround for https://github.com/HaxeFoundation/haxe/issues/9342
+
+    var ct = t.toComplex();
+
     return macro @:pos(e.pos) new tink.json.Writer<$ct>().write($e);
   }
 }
