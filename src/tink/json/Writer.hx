@@ -118,10 +118,10 @@ class BasicWriter {
   }
 #elseif haxe4
   #if python
-    private typedef StringWriter = DynamicWriter;
-    private class DynamicWriter {
+    private typedef DynamicWriter = StdWriter;
+    private class StringWriter {
       static final encoder = new python.lib.json.JSONEncoder();
-      static public inline function stringify(v:Dynamic):String
+      static public inline function stringify(v:DyStringnamic):String
         return encoder.encode(v);
     }
   #elseif php
