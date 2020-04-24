@@ -59,7 +59,7 @@ class Macro {
       }
 
   static public function buildParser(?type, ?pos):Type
-    return BuildCache.getType('tink.json.Parser', type, pos, parser);
+    return BuildCache.getType('tink.json.Parser', type, pos, parser, TypeMap.keepNull);
 
   static public function nameNiladic(c:EnumField)
     return
@@ -105,7 +105,7 @@ class Macro {
   }
 
   static public function buildWriter(?type, ?pos):Type
-    return BuildCache.getType('tink.json.Writer', type, pos, writer);
+    return BuildCache.getType('tink.json.Writer', type, pos, writer, TypeMap.keepNull);
 
   static function writer(ctx:BuildContext):TypeDefinition {
     var name = ctx.name,
