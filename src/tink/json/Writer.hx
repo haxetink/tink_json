@@ -121,7 +121,7 @@ class BasicWriter {
     private typedef DynamicWriter = StdWriter;
     private class StringWriter {
       static final encoder = new python.lib.json.JSONEncoder();
-      static public inline function stringify(v:DyStringnamic):String
+      static public inline function stringify(v:String):String
         return encoder.encode(v);
     }
   #elseif php
