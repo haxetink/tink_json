@@ -1,0 +1,4 @@
+tests.hxml
+-lib travix
+-lib tink_json
+-php bin/php
