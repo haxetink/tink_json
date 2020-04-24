@@ -94,92 +94,51 @@ class BasicWriter {
 }
 
 #if js
-@:forward(toString)
-private abstract StringBuf(String) {
+  @:forward(toString)
+  private abstract StringBuf(String) {
 
-  public inline function new()
-    this = '';
+    public inline function new()
+      this = '';
 
-  public inline function addChar(c:Char)
-    this += c.toString();
+    public inline function addChar(c:Char)
+      this += c.toString();
 
-  public inline function add(s:String)
-    this += s;
-}
-
-@:native("JSON")
-extern private class StringWriter {
-  static function stringify(v:String):String;
-}
-
-@:native("JSON")
-extern private class DynamicWriter {
-  static function stringify(v:Dynamic):String;
-}
-#else
-private class StringWriter {
-  static public function stringify(v:String):String {
-    if(v == null) return 'null';
-    var buf = new StringBuf();
-    quote(v, buf);
-    return buf.toString();
+    public inline function add(s:String)
+      this += s;
   }
 
-  static function quote( s:String, buf:StringBuf ) {
-    #if (neko || php || cpp)
-    if( s.length != haxe.Utf8.length(s) ) {
-      quoteUtf8(s, buf);
-      return;
+  @:native("JSON")
+  extern private class StringWriter {
+    static function stringify(v:String):String;
+  }
+
+  @:native("JSON")
+  extern private class DynamicWriter {
+    static function stringify(v:Dynamic):String;
+  }
+#elseif haxe4
+  #if python
+    private typedef StringWriter = DynamicWriter;
+    private class DynamicWriter {
+      static final encoder = new python.lib.json.JSONEncoder();
+      static public inline function stringify(v:Dynamic):String
+        return encoder.encode(v);
     }
-    #end
-    buf.addChar('"'.code);
-    var i = 0;
-    while( true ) {
-      var c = StringTools.fastCodeAt(s, i++);
-      if( StringTools.isEof(c) ) break;
-      switch( c ) {
-      case '"'.code: buf.add('\\"');
-      case '\\'.code: buf.add('\\\\');
-      case '\n'.code: buf.add('\\n');
-      case '\r'.code: buf.add('\\r');
-      case '\t'.code: buf.add('\\t');
-      case 8: buf.add('\\b');
-      case 12: buf.add('\\f');
-      default:
-        #if flash
-        if( c >= 128 ) buf.add(String.fromCharCode(c)) else buf.addChar(c);
-        #else
-        buf.addChar(c);
-        #end
-      }
+  #elseif php
+    private class StringWriter {
+      static public inline function stringify(v:php.NativeString):String
+        return php.Syntax.code('json_encode({0})', v);
     }
-    buf.addChar('"'.code);
-  }
-
-  #if (neko || php || cpp)
-  static function quoteUtf8( s:String, buf:StringBuf ) {
-    var u = new haxe.Utf8();
-    haxe.Utf8.iter(s,function(c) {
-      switch( c ) {
-      case '\\'.code, '"'.code: u.addChar('\\'.code); u.addChar(c);
-      case '\n'.code: u.addChar('\\'.code); u.addChar('n'.code);
-      case '\r'.code: u.addChar('\\'.code); u.addChar('r'.code);
-      case '\t'.code: u.addChar('\\'.code); u.addChar('t'.code);
-      case 8: u.addChar('\\'.code); u.addChar('b'.code);
-      case 12: u.addChar('\\'.code); u.addChar('f'.code);
-      default: u.addChar(c);
-      }
-    });
-    buf.add('"');
-    buf.add(u.toString());
-    buf.add('"');
-  }
+    private typedef DynamicWriter = StdWriter;
+  #else
+    private typedef DynamicWriter = StdWriter;
+    private typedef StringWriter = DynamicWriter;
   #end
-
-}
-private class DynamicWriter {
+#else
+  private typedef DynamicWriter = StdWriter;
+  private typedef StringWriter = DynamicWriter;
+#end
+private class StdWriter {
   static public inline function stringify(v:Dynamic):String
     return haxe.format.JsonPrinter.print(v);
 }
-#end
-
