@@ -11,13 +11,13 @@ os:
 env:
   - HAXE_VERSION=3.4.7
   - HAXE_VERSION=latest
-  
+
 install:
   - npm i -g lix
   - lix install haxe $HAXE_VERSION
   - lix download
-  
-  
+
+
 script:
   - lix run travix interp
   - lix run travix neko
@@ -30,7 +30,7 @@ script:
   - lix run travix java
   - lix run travix cs -D erase-generics
   # - lix run travix cs
-  - lix run travix cpp
+  - lix run travix cpp -D analyzer-optimize
   - lix run travix php
 
 jobs:
