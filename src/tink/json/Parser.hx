@@ -323,7 +323,7 @@ class BasicParser {
   function invalidChar(c:Int)
     return die('invalid char ${c.hex(2)}', pos - 1);
 
-  function die(s:String, ?pos = -1, ?end = -1):Dynamic {
+  function die(s:String, pos:Int = -1, end:Int = -1):Dynamic {
     if (pos == -1)
       end = pos = this.pos;
     else if (end == -1)
