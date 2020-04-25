@@ -155,7 +155,7 @@ class WriterTest {
     return asserts.done();
   }
 
-  @:include public function nullableDate() {
+  public function nullableDate() {
 
     var e:{date:Option<Date>} = {date: Some(Date.fromTime(0))};
     asserts.assert(stringify(e) == '{"date":0}');
