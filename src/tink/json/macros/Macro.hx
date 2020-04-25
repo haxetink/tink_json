@@ -85,19 +85,25 @@ class Macro {
 
     cl.fields = cl.fields.concat(ret.fields);
 
+    var catcher = macro tink.core.Error.catchExceptions;
+
+    if (Context.defined('cs')) // https://github.com/HaxeFoundation/haxe/issues/9351
+      catcher = macro ($catcher:(Void->$ct)->?Dynamic->?Dynamic->tink.core.Outcome<$ct, tink.core.Error>);
+
     add(macro class {
       public function parse(source):$ct @:pos(ret.expr.pos) {
         this.init(source);
         return ${ret.expr};
       }
       public function tryParse(source)
-        return tink.core.Error.catchExceptions(function () {
+        return $catcher(function ():$ct {
           var ret = parse(source);
           skipIgnored();
           if (pos < max)
             die('Invalid data after JSON document');
           return ret;
         });
+
     });
 
     compact('p', cl.fields);

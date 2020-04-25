@@ -1,23 +1,30 @@
 package tink.json;
 
 #if macro
-import haxe.macro.Context;
+import haxe.macro.*;
 using tink.MacroApi;
 #end
 
 abstract Serialized<T>(String) to String {
-
-  macro public function parse(ethis)
-    return macro tink.core.Outcome.OutcomeTools.sure($ethis.tryParse());
-
-  macro public function tryParse(ethis)
+  #if macro
+  static function resultType(ethis:Expr)
     return switch ethis.typeof().sure() {
       case TAbstract(_.get().module => 'tink.json.Serialized', [_.toComplex() => ct]):
-
-        macro @:pos(ethis.pos) tink.Json.parse(($ethis : $ct));
+        ct;
       default:
         throw 'assert';
     }
+  #end
+
+  macro public function parse(ethis) {
+    var ct = resultType(ethis);
+    return macro @:pos(ethis.pos) (tink.Json.parse($ethis) : $ct);
+  }
+
+  macro public function tryParse(ethis) {
+    var ct = resultType(ethis);
+    return macro @:pos(ethis.pos) tink.Json.parse(($ethis : $ct));
+  }
 
   @:from static macro function ofExpr(e)
     return switch Context.getExpectedType() {
