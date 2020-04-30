@@ -8,7 +8,7 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.10.2",
+	"version": "0.10.3",
 	"releasenote": "Better diagnostics. Support lazy parsing. Fix various other issues.",
 	"tags": [
 		"tink",
