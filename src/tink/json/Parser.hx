@@ -1,5 +1,6 @@
 package tink.json;
 
+import haxe.io.*;
 import tink.json.Value;
 using StringTools;
 using tink.CoreApi;
@@ -11,9 +12,78 @@ class Parser<T> {
 
 }
 
+#if php
+private abstract RawData(BytesData) {
+  public inline function new(s, setLength) {
+    var b = Bytes.ofString(s);
+    this = b.getData();
+    setLength(b.length);
+  }
+
+  public function substring(min:Int, max:Int)
+    return Bytes.ofData(this).getString(min, max - min);
+
+  public inline function hasBackslash(min:Int, max:Int)
+    return charPos('\\'.code, min, max) != -1;
+
+  public inline function getChar(i:Int)
+    return Bytes.fastGet(this, i);
+
+  public function charPos(char:Int, start:Int, end:Int) {
+    for (pos in start...end)
+      if (getChar(pos) == char) return pos;
+    return -1;
+  }
+
+  public function hasId(s:String, min:Int, max:Int)
+    return substring(min, max) == s;
+
+}
+
+private abstract Char(Int) to Int {
+  public inline function new(code:Int)
+    this = code;
+}
+#else
+@:forward(substring, length)
+private abstract RawData(String) {
+  public inline function new(s, setLength) {
+    this = s;
+    setLength(s.length);
+  }
+
+  public function hasBackslash(min:Int, max:Int)
+    return switch this.indexOf('\\', min) {
+      case -1: false;
+      case outside if (outside > max): false;
+      case v: true;
+    }
+
+  public inline function getChar(i:Int)
+    return this.fastCodeAt(i);
+
+  public inline function charPos(char:Char, start:Int, end:Int)
+    return this.indexOf(char, start);
+
+  public inline function hasId(s, min, max)
+    return
+      #if nodejs // perhaps also check for es5/6
+        (this : Dynamic).startsWith(s, min);
+      #else
+        this.substring(min, max) == s;
+      #end
+
+}
+
+private abstract Char(String) to String {
+  public inline function new(code:Int)
+    this = String.fromCharCode(code);
+}
+#end
+
 private class SliceData {
 
-  public var source(default, null):String;
+  public var source(default, null):RawData;
   public var min(default, null):Int;
   public var max(default, null):Int;
 
@@ -36,16 +106,9 @@ private typedef StdParser = haxe.format.JsonParser;
 @:forward
 private abstract JsonString(SliceData) from SliceData {
 
-  function contains(s:String)
-    return switch this.source.indexOf(s, this.min) {
-      case -1: false;
-      case outside if (outside > this.max): false;
-      case v: true;
-    }
-
   public function toString():String
     return
-      if (contains('\\'))
+      if (this.source.hasBackslash(this.min, this.max))
         StdParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
 
@@ -76,14 +139,9 @@ private abstract JsonString(SliceData) from SliceData {
   #else
   inline
   #end
-  static public function equalsString(a:JsonString, b:String):Bool {
+  static public function equalsString(a:JsonString, b:String):Bool
     return b.length == (a.max - a.min) &&
-      #if nodejs
-        (a.source : Dynamic).startsWith(b, a.min);
-      #else
-        a.source.substring(a.min, a.max) == b;
-      #end
-  }
+      a.source.hasId(b, a.min, a.max);
 
 }
 
@@ -94,7 +152,7 @@ class BasicParser {
 
   public var plugins(default, null):Annex<BasicParser>;
 
-  var source:String;
+  var source:RawData;
   var pos:Int;
   var max:Int;
 
@@ -102,16 +160,15 @@ class BasicParser {
     this.plugins = new Annex(this);
 
   function init(source) {
-     this.source = source;
-     this.pos = 0;
-     this.max = source.length;
+    this.pos = 0;
+     this.source = new RawData(source, function (m) this.max = m);
      skipIgnored();
   }
   #if !tink_json_compact_code
   inline
   #end
   function skipIgnored()
-    while (pos < max && source.fastCodeAt(pos) < 33) pos++;
+    while (pos < max && source.getChar(pos) < 33) pos++;
 
   #if !macro
   function parseDynamic():Any {
@@ -120,6 +177,7 @@ class BasicParser {
     return StdParser.parse(this.source.substring(start, pos));
   }
 
+  static var DBQT = new Char('"'.code);
 
   function parseString():JsonString
     return expect('"', true, false, "string") & parseRestOfString();
@@ -131,7 +189,7 @@ class BasicParser {
     var start = pos;
 
     while (true)
-      switch source.indexOf('"', pos) {
+      switch source.charPos(DBQT, pos, max) {
         case -1:
 
           die('unterminated string', start);
@@ -142,7 +200,7 @@ class BasicParser {
 
           var p = pos - 2;
 
-          while (source.fastCodeAt(p) == '\\'.code) p--;
+          while (source.getChar(p) == '\\'.code) p--;
           if ((p - pos) & 1 == 0)
             break;
       }
@@ -158,13 +216,13 @@ class BasicParser {
 
   function parseNumber():JsonString
     return
-      if (startsNumber(source.fastCodeAt(pos)))
+      if (startsNumber(source.getChar(pos)))
         doParseNumber();
       else
         die("number expected");
 
   function doParseNumber():JsonString
-    return slice(skipNumber(source.fastCodeAt(pos++)), pos);
+    return slice(skipNumber(source.getChar(pos++)), pos);
 
   function invalidNumber( start : Int )
     return die('Invalid number ${source.substring(start, pos)}', start);
@@ -210,7 +268,7 @@ class BasicParser {
     return new SliceData(this.source, from, to);
 
   inline function nextChar()
-    return source.fastCodeAt(pos++);
+    return source.getChar(pos++);
 
   function parseSerialized<T>():Serialized<T> {
     var start = pos;
@@ -347,7 +405,7 @@ class BasicParser {
           s;
 
     var center = (pos + end) >> 1;
-    var context = clip(source.substring(0, pos), 20, true) + '  ---->  ' + clip(source.substring(pos, center), 20, false) + clip(source.substring(center, end), 20, true) + '  <----  ' + clip(source.substring(end), 20, false);
+    var context = clip(source.substring(0, pos), 20, true) + '  ---->  ' + clip(source.substring(pos, center), 20, false) + clip(source.substring(center, end), 20, true) + '  <----  ' + clip(source.substring(end, max), 20, false);
 
     return Error.withData(UnprocessableEntity, s+' at $range in $context', { source: source, start: pos, end: end }).throwSelf();
   }
@@ -380,7 +438,7 @@ class BasicParser {
     var ret = macro this.max > this.pos + $v{s.length - 1};
 
     for (i in 0...s.length)
-      ret = macro $ret && StringTools.fastCodeAt($ethis.source, $ethis.pos + $v{i}) == $v{s.charCodeAt(i)};
+      ret = macro $ret && $ethis.source.getChar($ethis.pos + $v{i}) == $v{s.charCodeAt(i)};
 
     return macro {
       if ($v{skipBefore})
