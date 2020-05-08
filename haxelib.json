@@ -8,8 +8,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.10.3",
-	"releasenote": "Better diagnostics. Support lazy parsing. Fix various other issues.",
+	"version": "0.10.4",
+	"releasenote": "Fix performance issue on PHP.",
 	"tags": [
 		"tink",
 		"cross",
