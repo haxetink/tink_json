@@ -415,7 +415,7 @@ class BasicParser {
   function allow(s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
     if (skipBefore) skipIgnored();
     var l = s.length;
-    var found = source.substr(pos, l) == s;
+    var found = source.substring(pos, l + pos) == s;
     if (found) pos += l;
     if (skipAfter) skipIgnored();
     return found;
