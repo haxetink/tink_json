@@ -232,7 +232,7 @@ class BasicParser {
     var start = pos - 1;
     var minus = c == '-'.code, digit = !minus, zero = c == '0'.code;
     var point = false, e = false, pm = false, end = false;
-    while( true ) {
+    while( pos < max ) {
       c = nextChar();
       switch( c ) {
         case '0'.code :
