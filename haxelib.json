@@ -8,7 +8,7 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.10.4",
+	"version": "0.10.5",
 	"releasenote": "Fix performance issue on PHP.",
 	"tags": [
 		"tink",
