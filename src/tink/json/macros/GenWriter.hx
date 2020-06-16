@@ -374,6 +374,8 @@ class GenWriter extends GenBase {
   override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return
       switch type.reduce() {
+        case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
+          this.array(gen(t, pos));
         case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
           macro @:pos(pos) {
             var v = Std.string((value:Float));

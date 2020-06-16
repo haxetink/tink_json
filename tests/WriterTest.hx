@@ -65,6 +65,12 @@ class WriterTest {
     return assert(stringify(o) == '{"default":1}');
   }
 
+  public function vector() {
+    var v = new haxe.ds.Vector(3);
+    for(i in 0...v.length) v[i] = i;
+    return assert(stringify(v) == '[0,1,2]');
+  }
+
   public function enumAbstract() {
     return assert(stringify(MyEnumAbstract.A) == '"aaa"');
   }

@@ -485,6 +485,8 @@ class GenReader extends GenBase {
   override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
     return
       switch type.reduce() {
+        case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
+          macro haxe.ds.Vector.fromArrayCopy(${this.array(gen(t, pos))});
         case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
           macro this.parseNumber().toUInt();
         default: super.drive(type, pos, gen);

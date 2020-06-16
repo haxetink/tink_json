@@ -95,6 +95,13 @@ class ParserTest {
     var res:Input = parse('{"a": "text"}');
     return assert(res.a == 'text');
   }
+  
+  public function vector() {
+    var v:haxe.ds.Vector<Int> = parse('[0,1,2]');
+    asserts.assert(v.length == 3);
+    for(i in 0...v.length) asserts.assert(v[i] == i);
+    return asserts.done();
+  }
 
   public function enumAbstract() {
     var e:MyEnumAbstract = parse('"aaa"');
