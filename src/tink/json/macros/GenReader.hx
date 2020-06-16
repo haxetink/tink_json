@@ -427,16 +427,33 @@ class GenReader extends GenBase {
       tink.core.Lazy.ofFunc(function () return v.parse());
     }
 
+  static var aliasCount = 0;
   override function processCustom(c:CustomRule, original:Type, gen:Type->Expr) {
     var original = original.toComplex();
 
     return switch c {
-      case WithClass(parser):
-        var path = parser.toString().asTypePath();
+      case WithClass(path, pos):
+        var rep = (macro @:pos(pos) { var f = null; (new $path(null).parse(f()) : $original); f(); }).typeof().sure();
 
-        var rep = (macro @:pos(parser.pos) { var f = null; (new $path(null).parse(f()) : $original); f(); }).typeof().sure();
-
-        macro @:pos(parser.pos) this.plugins.get($parser).parse(${gen(rep)});
+        var dotpath = switch path.params {
+          case []:
+            var tmp = path.pack.concat([path.name]);
+            if(path.sub != null) tmp.push(path.sub);
+            macro $p{tmp}
+          case _: // the type has type parameters
+            // because we don't have expr to represent a complex type...
+            // so we typedef the type then use its typepath 
+            var tmp = ['tink', 'json', 'tmpread', 'Temp${aliasCount++}'];
+            haxe.macro.Context.defineType({
+              pos: pos,
+              pack: tmp.slice(0, tmp.length - 1),
+              name: tmp[tmp.length - 1],
+              kind: TDAlias(TPath(path)),
+              fields: [],
+            });
+            macro $p{tmp}
+        }
+        macro @:pos(pos) this.plugins.get($dotpath).parse(${gen(rep)});
       case WithFunction(e):
 
         var rep = (macro @:pos(e.pos) { var f = null; ($e(f()) : $original); f(); }).typeof().sure();

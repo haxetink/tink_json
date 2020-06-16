@@ -142,7 +142,7 @@ abstract Rocket2(Rocket) from Rocket to Rocket {
   public inline function new(alt) this = new Rocket(alt);
 }
 
-@:jsonStringify(Types.RocketWriter)
+@:jsonStringify((_:Types.RocketWriter))
 class Rocket {
   public var altitude(default, null):Float;
   public function new(altitude)

@@ -331,15 +331,34 @@ class GenWriter extends GenBase {
       this.output(v);
     }
 
+  static var aliasCount = 0;
   override function processCustom(c:CustomRule, original:Type, gen:Type->Expr):Expr {
     var original = original.toComplex();
     return switch c {
-      case WithClass(writer):
-        var path = writer.toString().asTypePath();
-        var rep = (macro @:pos(writer.pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
-
-        return macro @:pos(writer.pos) {
-          var value = this.plugins.get($writer).prepare(value);
+      case WithClass(path, pos):
+        var rep = (macro @:pos(pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
+        
+        var dotpath = switch path.params {
+          case []:
+            var tmp = path.pack.concat([path.name]);
+            if(path.sub != null) tmp.push(path.sub);
+            macro $p{tmp}
+          case _: // the type has type parameters
+            // because we don't have expr to represent a complex type...
+            // so we typedef the type then use its typepath 
+            var tmp = ['tink', 'json', 'tmpwrite', 'Temp${aliasCount++}'];
+            haxe.macro.Context.defineType({
+              pos: pos,
+              pack: tmp.slice(0, tmp.length - 1),
+              name: tmp[tmp.length - 1],
+              kind: TDAlias(TPath(path)),
+              fields: [],
+            });
+            macro $p{tmp}
+        }
+        
+        return macro @:pos(pos) {
+          var value = this.plugins.get($dotpath).prepare(value);
           ${gen(rep)};
         }
       case WithFunction(e):

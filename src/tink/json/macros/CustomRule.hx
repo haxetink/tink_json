@@ -3,6 +3,6 @@ package tink.json.macros;
 import haxe.macro.Expr;
 
 enum CustomRule {
-  WithClass(cls:Expr);
+  WithClass(cls:TypePath, pos:Position);
   WithFunction(expr:Expr);
 }
