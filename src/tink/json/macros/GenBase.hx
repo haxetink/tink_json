@@ -67,7 +67,7 @@ class GenBase {
                     switch custom {
                       case { expr: EFunction(_, _) }: WithFunction(custom);
                       case { expr: EParenthesis({ expr: ECheckType(_, TPath(path)) }) }: WithClass(path, custom.pos);
-                      case _.typeof().sure().reduce() => TFun(_, _): WithFunction(custom);
+                      case _ if(custom.typeof().sure().reduce().match(TFun(_, _))): WithFunction(custom);
                       default: WithClass(custom.toString().asTypePath(), custom.pos);
                     }
                   processCustom(rule, type, drive.bind(_, pos, gen));
