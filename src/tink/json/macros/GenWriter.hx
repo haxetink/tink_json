@@ -176,7 +176,8 @@ class GenWriter extends GenBase {
     if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
     var cases = [];
     for (c in constructors) {
-      var cfields = c.fields,
+      var nullable = isInlineNullable(c),
+          cfields = c.fields,
           inlined = c.inlined,
           c = c.ctor,
           name = c.name,
@@ -201,7 +202,11 @@ class GenWriter extends GenBase {
               case []:
 
                 postfix = '}}';
-                '{"$name":{';
+                '{"$name":' + if (nullable) '' else '{';
+
+              case _ if (nullable):
+
+                c.pos.error('@:json cannot be nullable');
 
               case [{ params:[{ expr: EObjectDecl(obj) }] }]:
 
@@ -221,7 +226,8 @@ class GenWriter extends GenBase {
             values: [macro @:pos(c.pos) ${args.length == 0 ? macro $i{name} : macro $i{name}($a{args})}],
             expr: macro {
               this.output($v{prefix});
-              $b{[for (f in cfields) {
+              if (${if (nullable) macro value == null else macro false}) this.output('null}');
+              else $b{[for (f in cfields) {
                 var fname = f.name;
                 macro {
                   this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
@@ -337,7 +343,7 @@ class GenWriter extends GenBase {
     return switch c {
       case WithClass(path, pos):
         var rep = (macro @:pos(pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
-        
+
         var dotpath = switch path.params {
           case []:
             var tmp = path.pack.concat([path.name]);
@@ -345,7 +351,7 @@ class GenWriter extends GenBase {
             macro $p{tmp}
           case _: // the type has type parameters
             // because we don't have expr to represent a complex type...
-            // so we typedef the type then use its typepath 
+            // so we typedef the type then use its typepath
             var tmp = ['tink', 'json', 'tmpwrite', 'Temp${aliasCount++}'];
             haxe.macro.Context.defineType({
               pos: pos,
@@ -356,7 +362,7 @@ class GenWriter extends GenBase {
             });
             macro $p{tmp}
         }
-        
+
         return macro @:pos(pos) {
           var value = this.plugins.get($dotpath).prepare(value);
           ${gen(rep)};

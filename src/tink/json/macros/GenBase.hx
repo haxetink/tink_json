@@ -14,6 +14,13 @@ class GenBase {
   function new(customMeta) {
     this.customMeta = customMeta;
   }
+
+  function isInlineNullable(c:EnumConstructor)
+    return c.inlined && switch c.ctor.type.reduce() {
+      case TFun([{ t: t }], _): isNullable(t);
+      default: throw 'assert';
+    }
+
   public function rescue(t:Type, pos:Position, gen:GenType)
     return None;
 
