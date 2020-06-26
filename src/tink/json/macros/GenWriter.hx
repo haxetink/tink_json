@@ -227,23 +227,25 @@ class GenWriter extends GenBase {
             expr: macro {
               this.output($v{prefix});
               if (${if (nullable) macro value == null else macro false}) this.output('null}');
-              else $b{[for (f in cfields) {
-                var fname = f.name;
-                macro {
-                  this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
-                  this.char(':'.code);
-                  {
-                    var value = ${
-                      if (inlined)
-                        macro value.$fname
-                      else
-                        macro $i{f.name}
+              else {
+                $b{[for (f in cfields) {
+                  var fname = f.name;
+                  macro {
+                    this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
+                    this.char(':'.code);
+                    {
+                      var value = ${
+                        if (inlined)
+                          macro value.$fname
+                        else
+                          macro $i{f.name}
+                      }
+                      ${f.expr};
                     }
-                    ${f.expr};
                   }
-                }
-              }]}
-              this.output($v{postfix});
+                }]}
+                this.output($v{postfix});
+              }
             },
           };
         }
