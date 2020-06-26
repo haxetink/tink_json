@@ -248,7 +248,8 @@ class GenReader extends GenBase {
     var argLess = [];
     for (c in constructors) {
 
-      var inlined = c.inlined,
+      var nullable = isInlineNullable(c),
+          inlined = c.inlined,
           cfields = c.fields,
           c = c.ctor,
           name = c.name,
@@ -269,10 +270,10 @@ class GenReader extends GenBase {
 
           cases.push({
             values: [macro { $name : o }],
-            guard: macro o != null,
+            guard: if (nullable) macro true else macro o != null,
             expr: {
               var args =
-                if (inlined) [macro o]; // FIXME: this cast is a workaround for https://github.com/haxetink/tink_json/issues/56
+                if (inlined) [macro o];
                 else [for (f in cfields) {
                   var name = f.name;
                   macro o.$name;
@@ -442,7 +443,7 @@ class GenReader extends GenBase {
             macro $p{tmp}
           case _: // the type has type parameters
             // because we don't have expr to represent a complex type...
-            // so we typedef the type then use its typepath 
+            // so we typedef the type then use its typepath
             var tmp = ['tink', 'json', 'tmpread', 'Temp${aliasCount++}'];
             haxe.macro.Context.defineType({
               pos: pos,
