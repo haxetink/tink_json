@@ -108,7 +108,7 @@ private abstract JsonString(SliceData) from SliceData {
 
   public function toString():String
     return
-      if (this.source.hasBackslash(this.min, this.max))
+      if (#if js true #else this.source.hasBackslash(this.min, this.max) #end)
         StdParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
 
