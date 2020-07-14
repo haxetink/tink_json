@@ -358,7 +358,6 @@ class GenWriter extends GenBase {
     var original = original.toComplex();
     return switch c {
       case WithClass(path, pos):
-        trace(path.params + ' from ' + original.toString());
         var rep = (macro @:pos(pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
         var dotpath = switch path.params {
           case []:

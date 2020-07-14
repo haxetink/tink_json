@@ -59,7 +59,7 @@ class Macro {
       }
 
   static public function buildParser(?type, ?pos):Type
-    return BuildCache.getType('tink.json.Parser', type, pos, parser, TypeMap.keepNull);
+    return BuildCache.getType('tink.json.Parser', type, pos, parser, normalize);
 
   static public function nameNiladic(c:EnumField)
     return
@@ -92,8 +92,16 @@ class Macro {
 
     add(macro class {
       public function parse(source):$ct @:pos(ret.expr.pos) {
+        inline function clear()
+          if (afterParsing.length > 0)
+            afterParsing = [];// TODO: use resize and what not
+        clear();
         this.init(source);
-        return ${ret.expr};
+        var ret = ${ret.expr};
+        for (f in afterParsing)
+          f();
+        clear();
+        return ret;
       }
       public function tryParse(source)
         return $catcher(function ():$ct {
@@ -110,8 +118,26 @@ class Macro {
     return cl;
   }
 
+  static function normalize(t:Type):Type
+    return switch t {
+      case TAbstract(_.get() => { name: 'Null', pack: [] }, [t])
+        #if !haxe4 | TType(_.get() => { name: 'Null', pack: []}, [t]) #end
+        :
+        var ct = normalize(t).toComplex({ direct: true });
+        (macro : Null<$ct>).toType().sure();
+
+      case TLazy(f): normalize(f());
+      case TType(_.get() => { module: 'tink.json.Cached' }, [t]):
+
+        var ct = normalize(t).toComplex({ direct: true });
+        (macro : tink.json.Cached<$ct>).toType().sure();
+
+      case TType(_, _): normalize(Context.follow(t, true));
+      default: t;
+    }
+
   static public function buildWriter(?type, ?pos):Type
-    return BuildCache.getType('tink.json.Writer', type, pos, writer, TypeMap.keepNull);
+    return BuildCache.getType('tink.json.Writer', type, pos, writer, normalize);
 
   static function writer(ctx:BuildContext):TypeDefinition {
     var name = ctx.name,

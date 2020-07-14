@@ -4,7 +4,7 @@ import tink.Json.*;
 @:asserts
 class CachedTest {
   public function new() {}
-  public function write() {
+  public function simple() {
 
     var data:Data = {
       var o = { foo: 42 };
@@ -39,6 +39,32 @@ class CachedTest {
     asserts.assert(p.tryParse('{"x":2,"y":2}').match(Failure(_)));
 
     return asserts.done();
+  }
+
+  public function circular() {
+    var c:Circular = { ref: null };
+    c.ref = c;
+    c = parse(stringify(c));
+    asserts.assert(c.ref == c);
+
+    var c:Cached<CircularInst> = new CircularInst();
+    c = parse(stringify(c));
+    asserts.assert(c.ref == c);
+    return asserts.done();
+  }
+}
+
+private typedef Circular = Cached<{ ref:Circular }>;
+
+@:jsonStringify(c -> { ref: (c:tink.json.Cached<CachedTest.CircularInst>)})
+@:jsonParse((c:{ ref: tink.json.Cached<CachedTest.CircularInst>}) -> new CachedTest.CircularInst(c.ref))
+class CircularInst {
+  public var ref:CircularInst;
+  public function new(?ref) {
+    this.ref = switch ref {
+      case null: this;
+      case v: v;
+    }
   }
 }
 

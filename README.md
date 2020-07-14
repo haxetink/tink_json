@@ -10,7 +10,7 @@ This library provides a macro powered approach to JSON handling. It handles both
 For writing, `tink_json` generates a writer based on the know type, that writes all known data to the resulting String.
 
 Consider this:
-  
+
 ```haxe
 var greeting = { hello: 'world', foo: 42 };
 var limited:{ hello:String } = greeting;
@@ -24,7 +24,7 @@ In the above example we can see `foo` not showing up, because the type being ser
 For reading, `tink_json` generates a parser based on the expected type. Note that the parser is validating while parsing.
 
 Example:
-  
+
 ```haxe
 var o:{ foo:Int, bar:Array<{ flag:Bool }> } = tink.Json.parse('{ "foo": 4, "blub": false, "bar": [{ "flag": true }, { "flag": false, "foo": 4 }]}');
 trace(o);//{ bar : [{ flag : true },{ flag : false }], foo : 4 }
@@ -41,7 +41,7 @@ Maps are represented as an array of key-value pairs, e.g. `['foo'=>5 , 'bar' => 
 ### Enums
 
 The default representation of enums is this:
-  
+
 ```haxe
 enum Color {
   Rgb(a:Int, b:Int, c:Int);
@@ -78,7 +78,7 @@ Imagine this json:
 ```
 
 You can represent it like so:
-  
+
 ```haxe
 enum Item {
   @:json({ type: 'sword' }) Sword(damage:Int);
@@ -102,20 +102,20 @@ Custom abstracts that have a `from` and `to` to a type that can be JSON encoded,
 Alternatively, you can declare implicit casts `@:from` and `@:to` for `tink.json.Representation<T>` where `T` will then be used as a representation.
 
 Example:
-  
+
 ```haxe
 import tink.json.Representation;
 
 abstract UpperCase(String) {
-  
+
   inline function new(v) this = v;
-  
-  @:to function toRepresentation():Representation<String> 
+
+  @:to function toRepresentation():Representation<String>
     return new Representation(this);
-    
+
   @:from static function ofRepresentation(rep:Representation<String>)
     return new UpperCase(rep.get());
-  
+
   @:from static function ofString(s:String)
     return new UpperCase(s.toUpperCase());
 }
@@ -177,7 +177,7 @@ class Car {
 
 ### Custom serializers
 
-Similarly to `@:jsonParse`, you can use `@:jsonStringify` on a type to control how it should be parsed. The metadata must have exactly on argument: 
+Similarly to `@:jsonParse`, you can use `@:jsonStringify` on a type to control how it should be parsed. The metadata must have exactly on argument:
 
 - a function that consumes the data to be serialized and produces the data that should be serialized into the final JSON document.
 - a class that must provide an instance method called `prepared` with the same signature and also have a constructor that accepts a `tink.json.Writer.BasicWriter`, that again allows you to share state between custom parsers through its `plugins`.
@@ -186,10 +186,69 @@ Example:
 
 ```haxe
 @:jsonStringify(function (car:Car) return { speed: car.speed, make: car.make })
-class Car { 
+class Car {
   // implementation the same as above
 }
 ```
+
+### Cached Values
+
+A relatively advanced feature of tink_json is its support for caching recurrent values.
+
+```haxe
+package tink.json;
+
+typedef Cached<T:{}> = T;
+```
+
+Using `Cached<SomeType>` instead of just `SomeType` will make tink_json cache that type, without otherwise interfering with it (because the typedef just goes away). To understand what caching really means, it's best to consider the following example. Imagine the following:
+
+```haxe
+import tink.json.*;// importing Cached, Parser and Writer
+
+var alice:Person = { name: 'Alice' },
+    bob:Person = { name: 'Bob' },
+    carl:Person = { name: 'Carl' };
+
+var daisy:Person = { name: 'Daisy', mother: alice, father: bob },
+    eugene:Person = { name: 'Eugene', mother: alice, father: carl };
+
+trace(daisy == daisy);// true - evidently
+trace(daisy.mother == eugene.mother);// true
+
+var w = new Writer<Person>(),
+    p = new Parser<Person>();
+
+var daisyClone = p.parse(w.write(daisy)),
+    eugeneClone = p.parse(w.write(eugene));
+
+trace(daisyClone != daisy);// true - evidently
+trace(daisyClone.mother == eugeneClone.mother);// true - what sorcery is this?!
+
+// let's start afresh and see
+var w = new Writer<Person>();
+trace(w.write(daisy));// {"name":"Daisy","father":{"name":"Bob"},"mother":{"name":"Alice"}} - nothing special ...
+trace(w.write(eugene));// {"name":"Eugene","father":{"name":"Carl"},"mother":2} - oh, look alice is simply referred to by id
+trace(w.write(alice));// 2 - indeed, she is
+trace(w.write(daisy));// 0 - and the same is true for daisy
+```
+
+The first time a writer encounters a cachable value, it writes the full value and tracks an incremental id. On subsequent writes, it uses the same id. This happens per writer instance, so if you use a new writer for every serialization (as `tink.Json.serialize` does), then caching will be used *within the same document*, but not accross them. Parsers work equivalently: when encountering a cachable value for the first time, they assign an incremental id and wheneve they encounter an int where a cachable value may be, they use it to look up cached values (or produce an error if the value could not be found in the cache).
+
+#### Use cases for Cached Values
+
+1. Denormalized data: if you have data that is not normalized, such as the above "family tree", caching will provide deduplication in the serialized form and physical equality when deserializing again.
+
+2. Circular data: This is an edge case of denormalized data, that normally results in stack overflows. Using caching, this works without problems.
+
+3. Repetitive strings: `Cached` also works for strings, so if you have strings that come up a lot, you can use caching to reduce duplication.
+
+4. Persistent connection: if you stream documents from a server to a client, you can make the server's writer and the client's parser be the same over the connection's life cycle. Thus, if the server sends the same object twice for whatever reason, no actual payload needs to be sent.
+
+#### Caveats for Cached Values
+
+1. Cached values are hard to deal with for any non-tink_json code. Perhaps an additional mode will be added to write `{"$ref":2,"name":"Alice"}` and `{"$ref":2}` respectively.
+2. Writers and parsers become stateful and that's a great way to introduce bugs and memory leaks into your application. You must therefore pay very special attention to the life cycle of your writers and parsers and take care of reinstantiating them often enough to avoid filling memory with obsolete data. This simplest way to avoid problems is of course to use fresh writers/parsers for every operation, thus foregoing the benefits and risks of more long lived caches.
 
 ## Performance
 

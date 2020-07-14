@@ -58,21 +58,27 @@ class GenBase {
         case None:
           switch type.getMeta().filter(function (m) return m.has(customMeta)) {
             case []:
-              switch [type, type.reduce()] {
-                case [_, TDynamic(null) | TAbstract(_.get() => {name: 'Any', pack: []}, _)]:
-                  processDynamic(pos);
-                case [_, TEnum(_.get().module => 'tink.json.Value', _)]:
-                  processValue(pos);
-                case [_, TAbstract(_.get().module => 'tink.core.Lazy', [t])]:
-                  processLazy(t.toComplex(), pos);
-                case [_, TAbstract(_.get().module => 'tink.json.Serialized', _)]:
-                  processSerialized(pos);
-                case [_, TMono(_)]:
-                  pos.error('failed to infer type');
-                case [TType(_.get() => { module: 'tink.json.Cached' }, [t]), _]:
-                  crawler.cached(type, pos, function (id) {
-                    return genCached(id, gen(t, pos), t);
+
+              do switch type {
+                case TType(_.get() => { module: 'tink.json.Cached' }, [t]):
+                  return crawler.cached(type, pos, function (id) {
+                    return genCached(id, drive(t, pos, gen), t);
                   });
+                case TLazy(_) | TType(_): type = type.reduce(true);
+                default: break;
+              } while (true);
+
+              switch type.reduce() {
+                case TDynamic(null) | TAbstract(_.get() => {name: 'Any', pack: []}, _):
+                  processDynamic(pos);
+                case TEnum(_.get().module => 'tink.json.Value', _):
+                  processValue(pos);
+                case TAbstract(_.get().module => 'tink.core.Lazy', [t]):
+                  processLazy(t.toComplex(), pos);
+                case TAbstract(_.get().module => 'tink.json.Serialized', _):
+                  processSerialized(pos);
+                case TMono(_):
+                  pos.error('failed to infer type');
                 default:
                   gen(type, pos);
               }

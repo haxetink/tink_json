@@ -155,14 +155,15 @@ class BasicParser {
   var source:RawData;
   var pos:Int;
   var max:Int;
+  var afterParsing = new Array<Void->Void>();
 
   function new()
     this.plugins = new Annex(this);
 
   function init(source) {
     this.pos = 0;
-     this.source = new RawData(source, function (m) this.max = m);
-     skipIgnored();
+    this.source = new RawData(source, function (m) this.max = m);
+    skipIgnored();
   }
   #if !tink_json_compact_code
   inline
@@ -178,6 +179,25 @@ class BasicParser {
   }
 
   static var DBQT = new Char('"'.code);
+
+  function copyFields<T:{}>(target:T, source:T):T {
+    #if js
+      js.lib.Object.assign(target, source);
+    #else
+      for (f in Reflect.fields(source))
+        Reflect.setField(target, f, Reflect.field(source, f));
+    #end
+    return target;
+  }
+
+  function emptyInstance<T:{}>(cls:Class<T>):T {
+    return
+      #if js
+        js.lib.Object.create(untyped cls.prototype);
+      #else
+        Type.createEmptyInstance(cls);
+      #end
+  }
 
   function parseString():JsonString
     return expect('"', true, false, "string") & parseRestOfString();

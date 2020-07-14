@@ -487,6 +487,34 @@ class GenReader extends GenBase {
       var $counter = 0;
     });
 
+    function withPlaceholder(e) {
+      var ct = type.toComplex();
+      return macro {
+        var ret:$ct = $e;
+        $i{map}[$i{counter}++] = ret;
+        copyFields(ret, $normal);
+      }
+    }
+
+    function plain()
+      return macro $i{map}[$i{counter}++] = $normal;
+
+    var read = switch type {//TODO: check if its circular at all
+      case TInst(_.get() => cl, _):
+        switch cl {
+          case { pack: [], name: 'String' }: plain();
+          case { isPrivate: true }:
+            cl.pos.warning('cached private classes may not always work as expected');
+            plain();
+          default:
+            withPlaceholder(macro emptyInstance($p{cl.module.split('.').concat([cl.name])}));
+          }
+      case TAnonymous(_):
+        withPlaceholder(macro cast {});
+      case t:
+        normal.pos.error('No support for Cached<${t.toString()}> yet');
+    }
+
     return
       macro
         if (tink.json.Parser.BasicParser.startsNumber(source.getChar(pos))) {
@@ -495,12 +523,12 @@ class GenReader extends GenBase {
           if (id >= $i{counter}) die('attempting to reference unknown object', start, pos);
           else $i{map}[id];
         }
-        else $i{map}[$i{counter}++] = $normal;
+        else $read;
   }
 
 
   public function reject(t:Type)
-    return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-abstracts';
+    return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-parsers';
 
   override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
