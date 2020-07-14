@@ -201,7 +201,7 @@ package tink.json;
 typedef Cached<T:{}> = T;
 ```
 
-Using `Cached<SomeType>` instead of just `SomeType` will make tink_json cache that type, without otherwise interfering with it (because the typedef just goes away). To understand what caching really means, it's best to consider the following example. Imagine the following:
+Using `Cached<SomeType>` instead of just `SomeType` will make tink_json cache values of that type, without otherwise interfering with it (because the `typedef` just goes away). To understand what caching really means, it's best to consider the following example:
 
 ```haxe
 import tink.json.*;// importing Cached, Parser and Writer
