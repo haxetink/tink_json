@@ -111,7 +111,7 @@ class RoundTripTest {
     return ret;
   }
 
-  @:include public function issue69()
+  public function issue69()
     return assert(Helper.roundtrip(A(null)));
 }
 

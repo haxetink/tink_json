@@ -14,10 +14,8 @@ using tink.MacroApi;
 using tink.CoreApi;
 
 class GenReader extends GenBase {
-  static public var inst = new GenReader();
-
-  function new() {
-    super(':jsonParse');
+  public function new(crawler) {
+    super(':jsonParse', crawler);
   }
 
   static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
@@ -480,10 +478,31 @@ class GenReader extends GenBase {
     };
   }
 
+  override function genCached(id:Int, normal:Expr, type:Type) {
+    var map = 'cache$id',
+        counter = 'counter$id';
+
+    crawler.add(macro class {
+      var $map = new Map();
+      var $counter = 0;
+    });
+
+    return
+      macro
+        if (tink.json.Parser.BasicParser.startsNumber(source.getChar(pos))) {
+          var start = pos;
+          var id = this.parseNumber().toInt();
+          if (id >= $i{counter}) die('attempting to reference unknown object', start, pos);
+          else $i{map}[id];
+        }
+        else $i{map}[$i{counter}++] = $normal;
+  }
+
+
   public function reject(t:Type)
     return 'tink_json cannot parse ${t.toString()}. For parsing custom data, please see https://github.com/haxetink/tink_json#custom-abstracts';
 
-  override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
+  override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch type.reduce() {
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):

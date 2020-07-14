@@ -11,10 +11,9 @@ using haxe.macro.Tools;
 using tink.MacroApi;
 
 class GenWriter extends GenBase {
-  static public var inst(default, null) = new GenWriter();
 
-  function new() {
-    super(':jsonStringify');
+  public function new(crawler) {
+    super(':jsonStringify', crawler);
   }
 
   public function wrap(placeholder:Expr, ct:ComplexType):Function
@@ -339,13 +338,28 @@ class GenWriter extends GenBase {
       this.output(v);
     }
 
+  override function genCached(id:Int, normal:Expr, type:Type) {
+    var map = 'cache$id',
+        counter = 'counter$id';
+    crawler.add(macro class {
+      var $map = new Map();
+      var $counter = 0;
+    });
+    return macro switch ($i{map}[value]) {
+      case null:
+        $i{map}[value] = $i{counter}++;
+        $normal;
+      case v: writeInt(v);
+    }
+  }
+
   static var aliasCount = 0;
   override function processCustom(c:CustomRule, original:Type, gen:Type->Expr):Expr {
     var original = original.toComplex();
     return switch c {
       case WithClass(path, pos):
+        trace(path.params + ' from ' + original.toString());
         var rep = (macro @:pos(pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
-
         var dotpath = switch path.params {
           case []:
             var tmp = path.pack.concat([path.name]);
@@ -354,6 +368,7 @@ class GenWriter extends GenBase {
           case _: // the type has type parameters
             // because we don't have expr to represent a complex type...
             // so we typedef the type then use its typepath
+
             var tmp = ['tink', 'json', 'tmpwrite', 'Temp${aliasCount++}'];
             haxe.macro.Context.defineType({
               pos: pos,
@@ -379,7 +394,7 @@ class GenWriter extends GenBase {
     }
   }
 
-  override public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
+  override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch type.reduce() {
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):

@@ -4,15 +4,20 @@ package tink.json.macros;
 import haxe.macro.Type;
 import haxe.macro.Expr;
 import tink.typecrawler.Generator;
+import tink.typecrawler.Crawler;
 
 using haxe.macro.Tools;
 using tink.MacroApi;
 using tink.CoreApi;
 
 class GenBase {
+
   var customMeta:String;
-  function new(customMeta) {
+  var crawler:Crawler;
+
+  function new(customMeta, crawler) {
     this.customMeta = customMeta;
+    this.crawler = crawler;
   }
 
   function isInlineNullable(c:EnumConstructor)
@@ -45,7 +50,7 @@ class GenBase {
   function processCustom(custom:CustomRule, original:Type, gen:Type->Expr):Expr
     return throw 'abstract';
 
-  public function drive(type:Type, pos:Position, gen:Type->Position->Expr):Expr
+  public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch Macro.getRepresentation(type, pos) {
         case Some(v):
@@ -53,17 +58,21 @@ class GenBase {
         case None:
           switch type.getMeta().filter(function (m) return m.has(customMeta)) {
             case []:
-              switch type.reduce() {
-                case TDynamic(null) | TAbstract(_.get() => {name: 'Any', pack: []}, _):
+              switch [type, type.reduce()] {
+                case [_, TDynamic(null) | TAbstract(_.get() => {name: 'Any', pack: []}, _)]:
                   processDynamic(pos);
-                case TEnum(_.get().module => 'tink.json.Value', _):
+                case [_, TEnum(_.get().module => 'tink.json.Value', _)]:
                   processValue(pos);
-                case TAbstract(_.get().module => 'tink.core.Lazy', [t]):
+                case [_, TAbstract(_.get().module => 'tink.core.Lazy', [t])]:
                   processLazy(t.toComplex(), pos);
-                case TAbstract(_.get().module => 'tink.json.Serialized', _):
+                case [_, TAbstract(_.get().module => 'tink.json.Serialized', _)]:
                   processSerialized(pos);
-                case TMono(_):
+                case [_, TMono(_)]:
                   pos.error('failed to infer type');
+                case [TType(_.get() => { module: 'tink.json.Cached' }, [t]), _]:
+                  crawler.cached(type, pos, function (id) {
+                    return genCached(id, gen(t, pos), t);
+                  });
                 default:
                   gen(type, pos);
               }
@@ -82,6 +91,9 @@ class GenBase {
               }
           }
       }
+
+  function genCached(id:Int, normal:Expr, type:Type):Expr
+    return throw 'not implemented';
 
   function isNullable(t:Type)
     return switch t {

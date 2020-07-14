@@ -81,7 +81,7 @@ class Macro {
     function add(t:TypeDefinition)
       cl.fields = cl.fields.concat(t.fields);
 
-    var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader.inst);
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenReader.new);
 
     cl.fields = cl.fields.concat(ret.fields);
 
@@ -121,7 +121,7 @@ class Macro {
       public function new() super();
     }
 
-    var ret = Crawler.crawl(ctx.type, ctx.pos, GenWriter.inst);
+    var ret = Crawler.crawl(ctx.type, ctx.pos, GenWriter.new);
 
     cl.fields = cl.fields.concat(ret.fields);
 
@@ -136,6 +136,7 @@ class Macro {
       }
     });
     compact('w', cl.fields);
+    // trace(ComplexType.TAnonymous(cl.fields).toString());
     return cl;
   }
 

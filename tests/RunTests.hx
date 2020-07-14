@@ -9,6 +9,7 @@ class RunTests {
 
   static function main() {
     Runner.run(TestBatch.make([
+      new CachedTest(),
       new ParserTest(),
       new WriterTest(),
       new RoundTripTest(),

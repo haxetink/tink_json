@@ -224,7 +224,7 @@ class BasicParser {
   function doParseNumber():JsonString
     return slice(skipNumber(source.getChar(pos++)), pos);
 
-  function invalidNumber( start : Int )
+  function invalidNumber(start:Int)
     return die('Invalid number ${source.substring(start, pos)}', start);
 
   function skipNumber(c:Int) {
