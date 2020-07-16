@@ -499,7 +499,7 @@ class GenReader extends GenBase {
     function plain()
       return macro $i{map}[$i{counter}++] = $normal;
 
-    var read = switch type {//TODO: check if its circular at all
+    var read = switch type.reduce() {//TODO: check if its circular at all
       case TInst(_.get() => cl, _):
         switch cl {
           case { pack: [], name: 'String' }: plain();
