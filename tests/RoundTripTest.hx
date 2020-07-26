@@ -112,7 +112,7 @@ class RoundTripTest {
   }
 
   public function issue69()
-    return assert(Helper.roundtrip(A(null)));
+    return assert(Helper.roundtrip(A(null), true));
 }
 
 enum V {
