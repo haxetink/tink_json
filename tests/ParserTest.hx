@@ -100,6 +100,11 @@ class ParserTest {
     var v:haxe.ds.Vector<Int> = parse('[0,1,2]');
     asserts.assert(v.length == 3);
     for(i in 0...v.length) asserts.assert(v[i] == i);
+    
+    var v:haxe.ds.Vector<Float> = parse('[0,1,2]');
+    asserts.assert(v.length == 3);
+    for(i in 0...v.length) asserts.assert(v[i] == i);
+    
     return asserts.done();
   }
 
