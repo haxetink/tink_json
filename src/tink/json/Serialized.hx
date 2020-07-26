@@ -5,6 +5,7 @@ import haxe.macro.*;
 using tink.MacroApi;
 #end
 
+@:transitive
 abstract Serialized<T>(String) to String {
   #if macro
   static function resultType(ethis:Expr)

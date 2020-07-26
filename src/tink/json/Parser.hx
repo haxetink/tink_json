@@ -447,7 +447,7 @@ class BasicParser {
   #else
   macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String) {
     if (expected == null) expected = s;
-    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected $expected') else null : tink.json.Parser.ContinueParsing);
+    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected ' + $v{expected}) else null : tink.json.Parser.ContinueParsing);
   }
 
   macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
