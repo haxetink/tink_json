@@ -120,7 +120,7 @@ private abstract JsonString(SliceData) from SliceData {
   public function get()
     return this.source.substring(this.min, this.max);
 
-  public inline function toInt()
+  public inline function toInt():Int
     return Std.parseInt(get());
 
   public function toUInt() {
