@@ -260,6 +260,14 @@ class ParserTest {
     asserts.assert(!parse(('{}haha': {})).isSuccess());
     return asserts.done();
   }
+  
+  public function anyObject() {
+    asserts.assert(tink.Json.parse(('""':AnyObject)).match(Success(Text)));
+    asserts.assert(tink.Json.parse(('""':AnyInlineObject)).match(Success(Text)));
+    asserts.assert(tink.Json.parse(('{"s":"foo","i":1}':AnyObject)).match(Success(Object(1, 'foo'))));
+    asserts.assert(tink.Json.parse(('{"s":"foo","i":1}':AnyInlineObject)).match(Success(Object({s: 'foo', i: 1}))));
+    return asserts.done();
+  }
 
   static var calls = 0;
   static public function parseFoo(i:Int) {

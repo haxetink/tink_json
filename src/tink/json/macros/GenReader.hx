@@ -287,6 +287,12 @@ class GenReader extends GenBase {
         case [{ params:[{ expr: EConst(CString(v)) }]}] if(!hasArgs):
           argLess.push(new Named(name, v));
 
+        case [{ params:[{ expr: EBlock([]) }] }]:
+          if(hasArgs) {
+            for (f in cfields) {
+              add(f.makeOptional());
+            }
+          }
         case [{ params:[{ expr: EObjectDecl(obj) }] }]:
           if(hasArgs) {
             for (f in cfields) {
@@ -310,9 +316,17 @@ class GenReader extends GenBase {
 
     // second pass for @:json
     for (c in constructors) {
-      switch c.ctor.meta.extract(':json') {
+      var jsonObjFields = switch c.ctor.meta.extract(':json') {
         case [{ params:[{ expr: EObjectDecl(obj) }] }]:
-
+          Some(obj);
+        case [{ params:[{ expr: EBlock([]) }] }]:
+          Some([]);
+        case _:
+          None;
+      }
+      
+      switch jsonObjFields {
+        case Some(obj):
           var pat = obj.copy(),
               guard = macro true;
 
@@ -354,7 +368,7 @@ class GenReader extends GenBase {
             guard: guard,
             expr: call
           });
-        case _:
+        case None:
       }
     }
 
@@ -366,7 +380,7 @@ class GenReader extends GenBase {
         macro throw new tink.core.Error(422, 'Cannot process '+Std.string(__ret))
       ).at(pos)};
     }
-
+    
     return
       if (argLess.length == 0) ret;
       else {

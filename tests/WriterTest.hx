@@ -196,6 +196,14 @@ class WriterTest {
     asserts.assert(stringify(o) == '{"u":2147483648}');
     return asserts.done();
   }
+  
+  public function anyObject() {
+    asserts.assert(tink.Json.stringify(AnyObject.Text) == '""');
+    asserts.assert(tink.Json.stringify(AnyInlineObject.Text) == '""');
+    asserts.assert(tink.Json.stringify(AnyObject.Object(1, 'foo')) == '{"i":1,"s":"foo"}');
+    asserts.assert(tink.Json.stringify(AnyInlineObject.Object({s: 'foo', i: 1})) == '{"i":1,"s":"foo"}');
+    return asserts.done();
+  }
 
   public function testIssue67() {
 

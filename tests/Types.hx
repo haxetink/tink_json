@@ -188,3 +188,15 @@ typedef OptionalFinal = {
   @:optional final i:Int;
 }
 #end
+
+
+
+enum AnyInlineObject {
+	@:json('') Text;
+	@:json({}) Object(object:{i:Int, s:String});
+}
+
+enum AnyObject {
+	@:json('') Text;
+	@:json({}) Object(i:Int, s:String);
+}
