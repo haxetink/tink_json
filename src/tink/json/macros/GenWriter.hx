@@ -190,7 +190,7 @@ class GenWriter extends GenBase {
               switch c.meta.extract(':json') {
                 case []: c.name;
                 case [{ params:[{ expr: EConst(CString(v)) }]}]: v;
-                case [{ params:[{ expr: EBlock([]) }] }]: ExprTools.getValue(EObjectDecl([]).at());
+                case [{ params:[{ expr: EBlock([]) }] }]: {};
                 case [{ params:[{ expr: EObjectDecl(obj) }] }]: ExprTools.getValue(EObjectDecl(obj).at());
                 case _: c.pos.error('invalid use of @:json');
               }
@@ -210,9 +210,7 @@ class GenWriter extends GenBase {
 
               case [{ params:[{ expr: EBlock([]) }] }]:
 
-                // first = false;
-                var ret = haxe.format.JsonPrinter.print(ExprTools.getValue(EObjectDecl([]).at()));
-                ret.substr(0, ret.length - 1);
+                '{';
                 
               case [{ params:[{ expr: EObjectDecl(obj) }] }]:
 
