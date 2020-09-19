@@ -384,8 +384,12 @@ class GenWriter extends GenBase {
           ${gen(rep)};
         }
       case WithFunction(e):
+        if (e.expr.match(EFunction(_))) {
+          var ret = e.pos.makeBlankType();
+          e = macro @:pos(e.pos) ($e:$original->$ret);
+        }
         //TODO: the two cases look suspiciously similar
-        var rep = (macro @:pos(e.pos) { var f = null; $e((f():$original)); }).typeof().sure();
+        var rep = (macro @:pos(e.pos) $e((cast null:$original))).typeof().sure();
         return macro @:pos(e.pos) {
           var value = $e(value);
           ${gen(rep)};
