@@ -196,6 +196,14 @@ class WriterTest {
     asserts.assert(stringify(o) == '{"u":2147483648}');
     return asserts.done();
   }
+  
+  public function testEnumAbstractKey() {
+    asserts.assert(stringify(EnumAbstractStringKey.A) == '{"type":"aaa"}');
+    asserts.assert(stringify(EnumAbstractStringKey.B('foo')) == '{"type":"bbb","v":"foo"}');
+    asserts.assert(stringify(EnumAbstractIntKey.A) == '{"type":1}');
+    asserts.assert(stringify(EnumAbstractIntKey.B('foo')) == '{"type":2,"v":"foo"}');
+    return asserts.done();
+  }
 
   public function testIssue67() {
 

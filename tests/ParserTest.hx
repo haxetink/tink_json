@@ -234,6 +234,14 @@ class ParserTest {
     asserts.assert(parse(('{"u":2147483648}':{u:UInt})).sure().u == u);
     return asserts.done();
   }
+  
+  public function testEnumAbstractKey() {
+    asserts.assert(parse(('{"type":"aaa"}':EnumAbstractStringKey)).match(Success(A)));
+    asserts.assert(parse(('{"type":"bbb","v":"foo"}':EnumAbstractStringKey)).match(Success(B('foo'))));
+    asserts.assert(parse(('{"type":1}':EnumAbstractIntKey)).match(Success(A)));
+    asserts.assert(parse(('{"type":2,"v":"foo"}':EnumAbstractIntKey)).match(Success(B('foo'))));
+    return asserts.done();
+  }
 
   #if haxe4
   public function optionalFinal() {

@@ -4,6 +4,7 @@ package tink.json.macros;
 import haxe.ds.Option;
 import haxe.macro.Type;
 import haxe.macro.Expr;
+import haxe.macro.Context;
 import tink.typecrawler.FieldInfo;
 import tink.typecrawler.Generator;
 
@@ -173,6 +174,26 @@ class GenWriter extends GenBase {
 
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, _) {
     if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
+    
+    // an enhanced version of ExprTools.getValue for EObjectDecl that can also obtain enum abstract fields statically
+    function getObjectValue(fields:Array<ObjectField>) {
+      var obj = {};
+      for (field in fields) {
+        var value =
+          try
+            field.expr.getValue()
+          catch(e:Dynamic)
+            switch Context.typeExpr(field.expr) {
+              case {expr: TCast(e, _)}: // TODO: make sure this is what we get when we type an expr of enum abstract field
+                Context.getTypedExpr(e).getValue();
+              case te:
+                throw '${te.toString()} does not have a statically known value';
+            }
+        Reflect.setField(obj, field.field, value);
+      }
+      return obj;
+    }
+    
     var cases = [];
     for (c in constructors) {
       var nullable = isInlineNullable(c),
@@ -190,7 +211,7 @@ class GenWriter extends GenBase {
               switch c.meta.extract(':json') {
                 case []: c.name;
                 case [{ params:[{ expr: EConst(CString(v)) }]}]: v;
-                case [{ params:[{ expr: EObjectDecl(obj) }] }]: ExprTools.getValue(EObjectDecl(obj).at());
+                case [{ params:[{ expr: EObjectDecl(obj) }] }]: getObjectValue(obj);
                 case _: c.pos.error('invalid use of @:json');
               }
             )})),
@@ -210,7 +231,7 @@ class GenWriter extends GenBase {
               case [{ params:[{ expr: EObjectDecl(obj) }] }]:
 
                 first = false;
-                var ret = haxe.format.JsonPrinter.print(ExprTools.getValue(EObjectDecl(obj).at()));
+                var ret = haxe.format.JsonPrinter.print(getObjectValue(obj));
                 ret.substr(0, ret.length - 1);
 
               default:

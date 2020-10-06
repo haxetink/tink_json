@@ -2,8 +2,8 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "haxe",
-			"args": "active configuration",
+			"type": "shell",
+			"command": "lix run travix node",
 			"problemMatcher": [
 				"$haxe-absolute",
 				"$haxe",
@@ -14,7 +14,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"label": "haxe: active configuration"
+			"label": "Run Tests"
 		}
 	]
 }

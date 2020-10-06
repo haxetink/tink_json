@@ -188,3 +188,19 @@ typedef OptionalFinal = {
   @:optional final i:Int;
 }
 #end
+
+@:enum
+abstract MyEnumAbstractInt(Int) {
+  var A = 1;
+  var B = 2;
+  var C = 3;
+}
+
+enum EnumAbstractStringKey {
+  @:json({type: Types.MyEnumAbstract.A}) A;
+  @:json({type: Types.MyEnumAbstract.B}) B(v:String);
+}
+enum EnumAbstractIntKey {
+  @:json({type: Types.MyEnumAbstractInt.A}) A;
+  @:json({type: Types.MyEnumAbstractInt.B}) B(v:String);
+}
