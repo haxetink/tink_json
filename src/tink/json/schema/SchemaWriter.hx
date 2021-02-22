@@ -37,6 +37,7 @@ class SchemaWriter {
     
       add(macro class {
         public function write():tink.json.schema.Schema.SchemaType {
+          final const = null;
           return ${ret.expr};
         }
       });

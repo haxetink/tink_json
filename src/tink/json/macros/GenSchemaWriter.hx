@@ -24,27 +24,27 @@ class GenSchemaWriter extends GenBase {
     return macro SNullable($e);
 
   public function string()
-    return macro SPrimitive(PString({const: const}));
+    return macro SPrimitive(PString(const));
 
   public function int()
-    return macro SPrimitive(PInt({const: const}));
+    return macro SPrimitive(PInt(const));
 
   public function float()
-    return macro SPrimitive(PFloat({const: const}));
+    return macro SPrimitive(PFloat(const));
 
   public function bool()
-    return macro SPrimitive(PBool({const: const}));
+    return macro SPrimitive(PBool(const));
 
   public function date()
-    return macro SPrimitive(PDate({const: const}));
+    return macro SPrimitive(PFloat(const));
 
   public function bytes()
-    return macro throw 'TODO';
+    return macro SPrimitive(PRegex('^[${EReg.escape(haxe.crypto.Base64.CHARS + '=')}]*$'));
 
   public function map(k, v) {
     k = macro {final const = null; $k;}
     v = macro {final const = null; $v;}
-    return macro SArray({type: STuple({values: [$k, $v]})});
+    return macro SArray(STuple([$k, $v]));
   }
 
   public function anon(fields:Array<FieldInfo>, ct) {
@@ -53,11 +53,14 @@ class GenSchemaWriter extends GenBase {
 			type: ${f.expr},
 			optional: $v{f.optional},
 	  });
-	  return macro SObject({fields: $a{fields}});
+	  return macro SObject(${macro $a{fields}});
   }
 
   public function array(e)
-    return macro SArray({type: $e});
+    return macro {
+      final const = null;
+      SArray($e);
+    }
 
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, _) {
     
@@ -80,31 +83,31 @@ class GenSchemaWriter extends GenBase {
             type: ${f.expr},
             optional: $v{f.optional},
           });
-          macro SObject({fields: [{
+          macro SObject([{
             name: $v{name},
-            type: SObject({fields: $a{fields}}),
+            type: SObject(${macro $a{fields}}),
             optional: false,
-          }]});
+          }]);
         }
       );
     }
     
-    return macro SOneOf({list: $a{types}});
+    
+    return macro SOneOf(${macro $a{types}});
   }
 
   public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
-	return macro throw 'TODO';
-    // return macro @:pos(pos) {
-    //   var value = cast value;
-    //   $e;
-    // }
+    return macro SEnum(${macro cast $a{names}});
   }
 
   public function dyn(e, ct)
-	return macro throw 'TODO';
+    return dynAccess(e);
 
   public function dynAccess(e)
-	return macro throw 'TODO';
+	  return macro {
+      final const = null;
+      SDynamicAccess($e);
+    }
 
   override public function rescue(t:Type, pos:Position, gen:GenType):Option<Expr>
     return

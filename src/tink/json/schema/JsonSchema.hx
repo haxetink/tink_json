@@ -11,11 +11,13 @@ class JsonSchema {
 	
 	public static function writeNullable(schema:SchemaType, nullable:Bool):String {
 		return switch schema {
-			case SNullable(v): writeNullable(v, true);
+			case SNullable(t): writeNullable(t, true);
 			case SPrimitive(p): writePrimitive(p, nullable);
-			case STuple(s): writeTuple(s, nullable);
-			case SArray(s): writeArray(s, nullable);
-			case SObject(s): writeObject(s, nullable);
+			case STuple(types): writeTuple(types, nullable);
+			case SArray(type): writeArray(type, nullable);
+			case SObject(fields): writeObject(fields, nullable);
+			case SDynamicAccess(type): writeDynamicAccess(type, nullable);
+			case SEnum(entries): writeEnum(entries, nullable);
 			case SOneOf(s): writeOneOf(s, nullable);
 		}
 	}
@@ -31,31 +33,43 @@ class JsonSchema {
 		}
 		
 		return switch type {
-			case PString(s):
-				make('string', s.const.map(v -> ',"const":${tink.Json.stringify(v)}'));
-			case PFloat(s):
-				make('number', s.const.map(v -> ',"const":${tink.Json.stringify(v)}'));
-			case PInt(s):
-				make('integer', s.const.map(v -> ',"const":${tink.Json.stringify(v)}'));
-			case PBool(s):
-				make('boolean', s.const.map(v -> ',"const":${tink.Json.stringify(v)}'));
+			case PString(const):
+				make('string', const.map(v -> ',"const":${tink.Json.stringify(v)}'));
+			case PFloat(const):
+				make('number', const.map(v -> ',"const":${tink.Json.stringify(v)}'));
+			case PInt(const):
+				make('integer', const.map(v -> ',"const":${tink.Json.stringify(v)}'));
+			case PBool(const):
+				make('boolean', const.map(v -> ',"const":${tink.Json.stringify(v)}'));
+			case PRegex(pattern):
+				make('string', ',"pattern":${tink.Json.stringify(pattern)}');
 		}
 	}
 	
-	static function writeTuple(tuple:TupleSchema, nullable:Bool) {
-		return '{${writeType('array', nullable)},"additionalItems":false,"items":[${tuple.values.map(write).join(',')}]}';
+	static function writeTuple(types:Array<SchemaType>, nullable:Bool) {
+		return '{${writeType('array', nullable)},"additionalItems":false,"items":[${types.map(write).join(',')}]}';
 	}
 	
-	static function writeArray(array:ArraySchema, nullable:Bool) {
-		return '{${writeType('array', nullable)},"items":${write(array.type)}}';
+	static function writeArray(type:SchemaType, nullable:Bool) {
+		return '{${writeType('array', nullable)},"items":${write(type)}}';
 	}
 	
-	static function writeObject(object:ObjectSchema, nullable:Bool) {
-		return '{${writeType('object', nullable)},"additionalProperties":false,"required":[${object.fields.filter(f -> !f.optional).map(v -> '"${v.name}"').join(',')}],"properties":{${object.fields.map(f -> '"${f.name}":${write(f.type)}').join(',')}}}';
+	static function writeObject(fields:Array<ObjectFieldSchema>, nullable:Bool) {
+		return '{${writeType('object', nullable)},"additionalProperties":false,"required":[${fields.filter(f -> !f.optional).map(v -> '"${v.name}"').join(',')}],"properties":{${fields.map(f -> '"${f.name}":${write(f.type)}').join(',')}}}';
 	}
 	
-	static function writeOneOf(oneOf:OneOfSchema, nullable:Bool) {
-		var entries = oneOf.list.map(write).join(',');
+	static function writeDynamicAccess(type:SchemaType, nullable:Bool) {
+		return '{${writeType('object', nullable)},"additionalProperties":false,"patternProperties":{".+":${write(type)}}}';
+	}
+	
+	static function writeEnum(entries:Array<Primitive>, nullable:Bool) {
+		var entries = [for(e in entries) haxe.Json.stringify(e)].join(',');
+		if(nullable) entries += ',null';
+		return '{"enum":[${entries}]}';
+	}
+	
+	static function writeOneOf(options:Array<SchemaType>, nullable:Bool) {
+		var entries = options.map(write).join(',');
 		if(nullable) entries += ',{"type":"null"}';
 		return '{"oneOf":[$entries]}';
 	}
