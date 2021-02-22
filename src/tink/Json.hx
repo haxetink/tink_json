@@ -37,4 +37,12 @@ class Json {
 
     return macro @:pos(e.pos) new tink.json.Writer<$ct>().write($e);
   }
+
+  static macro public function schema(e:Expr) {
+    var t = Context.getType(e.toString());
+
+    var ct = t.toComplex();
+
+    return macro @:pos(e.pos) new tink.json.schema.SchemaWriter<$ct>().write();
+  }
 }

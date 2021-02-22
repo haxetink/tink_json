@@ -9,12 +9,13 @@ class RunTests {
 
   static function main() {
     Runner.run(TestBatch.make([
-      new CachedTest(),
-      new ParserTest(),
-      new WriterTest(),
-      new RoundTripTest(),
-      new SerializedTest(),
-      new CacheTest(),
+      new SchemaWriterTest(),
+      // new CachedTest(),
+      // new ParserTest(),
+      // new WriterTest(),
+      // new RoundTripTest(),
+      // new SerializedTest(),
+      // new CacheTest(),
     ])).handle(Runner.exit);
   }
 
