@@ -21,22 +21,27 @@ class SchemaWriter {
   
   static public function build(?type, ?pos):Type
     return BuildCache.getType('tink.json.schema.SchemaWriter', (ctx:BuildContext) -> {
-      var name = ctx.name,
+      final name = ctx.name,
       ct = ctx.type.toComplex();
   
-      var cl = macro class $name {
+      final cl = macro class $name {
         public function new() {}
       }
     
-      var ret = Crawler.crawl(ctx.type, ctx.pos, crawler -> (new GenSchemaWriter(crawler):Generator));
+      final ret = Crawler.crawl(ctx.type, ctx.pos, crawler -> (new GenSchemaWriter(crawler):Generator));
     
+      // TODO: profile this "inline everything" approach
+      for(f in ret.fields) switch f.access {
+        case null: f.access = [AInline];
+        case a: a.push(AInline);
+      }
       cl.fields = cl.fields.concat(ret.fields);
     
       function add(t:TypeDefinition)
         cl.fields = cl.fields.concat(t.fields);
     
       add(macro class {
-        public function write():tink.json.schema.Schema.SchemaType {
+        public inline function write():tink.json.schema.Schema.SchemaType {
           final const = null;
           return ${ret.expr};
         }

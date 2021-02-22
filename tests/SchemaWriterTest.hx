@@ -9,7 +9,6 @@ import haxe.DynamicAccess;
 class SchemaWriterTest {
 	public function new() {}
 	
-	
 	@:variant(SPrimitive(PString(null)), '{"type":"string"}')
 	@:variant(SPrimitive(PString('White')), '{"type":"string","const":"White"}')
 	@:variant(SOneOf([SPrimitive(PString('White'))]), '{"oneOf":[{"type":"string","const":"White"}]}')
@@ -61,12 +60,11 @@ class SchemaWriterTest {
 	], ['"Black"'])
 	@:variant(this.makeStringMapSchema(), [tink.Json.stringify(['foo' => 1])], ['[["foo","bar"]]'])
 	@:variant(this.makeArraySchema(), [tink.Json.stringify(['foo', 'bar'])], ['[1,2]'])
-	@:variant(this.makeDynamicAccessSchema(), [tink.Json.stringify({foo: 'bar'})], ['{"foo":1}'])
+	@:variant(this.makeDynamicAccessSchema(), [tink.Json.stringify(({foo: 'bar'}:haxe.DynamicAccess<String>))], ['{"foo":1}'])
 	@:variant(this.makeEnumAbstractSchema(), [this.stringifyEnumAbstract(Mon)], ['7'])
 	public function validate(schema:SchemaType, valid:Array<String>, invalid:Array<String>) {
 		final schema = JsonSchema.write(schema);
 		// trace(schema);
-		trace(valid);
 		final validate = new Ajv().compile(haxe.Json.parse(schema));
 		for(value in valid) asserts.assert(validate(haxe.Json.parse(value)));
 		for(value in invalid) asserts.assert(!validate(haxe.Json.parse(value)));
