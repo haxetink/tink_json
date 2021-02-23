@@ -146,15 +146,7 @@ class GenReader extends GenBase {
 
         vars.push({
           name: name,
-          expr: switch defaultValue {
-            case Some(v): v;
-            default: switch valType.getID() {
-              case 'Bool': macro false;
-              case 'Int' | 'UInt': macro 0;
-              case 'Float': macro .0;
-              default: macro null;
-            }
-          },
+          expr: defaultValue.orNull(),
           type: ct,
         });
 
