@@ -382,15 +382,23 @@ class GenReader extends GenBase {
   }
 
   public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
+    // get the values of the enum abstract statically
+    final values = names.map(e -> {
+      final e = macro ($i{e.toString().split('.').pop()}:$ct); // this ECheckType + DirectType approach makes sure we can punch through the type system even if the abstract is private
+      switch Context.typeExpr(e) {
+        case {expr: TParenthesis({expr: TCast({expr: TCast(texpr, _)}, _)})}:
+          Context.getTypedExpr(texpr);
+        case _:
+          throw 'TODO';
+      }
+    });
+        
     return macro @:pos(pos) {
-      var v:$ct = cast $e;
+      final v = $e;
       ${ESwitch(
         macro v,
-        [{expr: macro v, values: names}],
-        macro {
-          var list = $a{names};
-          throw new tink.core.Error(422, 'Unrecognized enum value: ' + v + '. Accepted values are: ' + tink.Json.stringify(list));
-        }
+        [{expr: macro (cast v:$ct), values: values}],
+        macro throw new tink.core.Error(422, 'Unrecognized enum value: ' + v + '. Accepted values are: ' + tink.Json.stringify(${macro $a{values}}))
       ).at(pos)}
     }
   }

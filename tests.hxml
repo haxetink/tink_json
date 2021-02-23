@@ -4,3 +4,5 @@
 #-main Benchmark
 -lib tink_unittest
 -lib deep_equal
+
+-D analyzer-optimize

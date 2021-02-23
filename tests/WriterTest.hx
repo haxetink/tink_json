@@ -197,11 +197,17 @@ class WriterTest {
     return asserts.done();
   }
   
-  public function testEnumAbstractKey() {
+  public function enumAbstractKey() {
     asserts.assert(stringify(EnumAbstractStringKey.A) == '{"type":"aaa"}');
     asserts.assert(stringify(EnumAbstractStringKey.B('foo')) == '{"type":"bbb","v":"foo"}');
     asserts.assert(stringify(EnumAbstractIntKey.A) == '{"type":1}');
     asserts.assert(stringify(EnumAbstractIntKey.B('foo')) == '{"type":2,"v":"foo"}');
+    return asserts.done();
+  }
+  
+  public function privateEnumAbstract() {
+    asserts.assert(stringify(VeryPrivate.A) == '0');
+    asserts.assert(stringify({foo:VeryPrivate.B}) == '{"foo":1}');
     return asserts.done();
   }
 
@@ -226,4 +232,9 @@ abstract Opacity(Float) from Float to Float {
   @:to public function toString():String {
     return 'huh?';
   }
+}
+
+private enum abstract VeryPrivate(Int) {
+  var A = 0;
+  var B = 1;
 }

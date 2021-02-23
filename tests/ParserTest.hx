@@ -235,11 +235,17 @@ class ParserTest {
     return asserts.done();
   }
   
-  public function testEnumAbstractKey() {
+  public function enumAbstractKey() {
     asserts.assert(parse(('{"type":"aaa"}':EnumAbstractStringKey)).match(Success(A)));
     asserts.assert(parse(('{"type":"bbb","v":"foo"}':EnumAbstractStringKey)).match(Success(B('foo'))));
     asserts.assert(parse(('{"type":1}':EnumAbstractIntKey)).match(Success(A)));
     asserts.assert(parse(('{"type":2,"v":"foo"}':EnumAbstractIntKey)).match(Success(B('foo'))));
+    return asserts.done();
+  }
+  
+  public function privateEnumAbstract() {
+    asserts.assert(parse(('0':VeryPrivate)).match(Success(VeryPrivate.A)));
+    asserts.assert(parse(('{"foo":1}':{foo:VeryPrivate})).match(Success({foo:VeryPrivate.B})));
     return asserts.done();
   }
 
@@ -288,3 +294,9 @@ enum E {
   Glargh(a:{final i:Int;});
 }
 #end
+
+
+private enum abstract VeryPrivate(Int) {
+  var A = 0;
+  var B = 1;
+}
