@@ -5,9 +5,7 @@ import tink.json.Value;
 using StringTools;
 using tink.CoreApi;
 
-#if !macro
 @:genericBuild(tink.json.macros.Macro.buildParser())
-#end
 class Parser<T> {
 
 }
@@ -145,9 +143,7 @@ private abstract JsonString(SliceData) from SliceData {
 
 }
 
-#if !macro
 @:build(tink.json.macros.Macro.compact())
-#end
 class BasicParser {
 
   public var plugins(default, null):Annex<BasicParser>;
@@ -171,7 +167,6 @@ class BasicParser {
   function skipIgnored()
     while (pos < max && source.getChar(pos) < 33) pos++;
 
-  #if !macro
   function parseDynamic():Any {
     var start = pos;
     skipValue();
@@ -429,7 +424,6 @@ class BasicParser {
 
     return Error.withData(UnprocessableEntity, s+' at $range in $context', { source: source, start: pos, end: end }).throwSelf();
   }
-  #end
 
   #if tink_json_compact_code
   function allow(s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
@@ -445,41 +439,15 @@ class BasicParser {
     return if (!allow(s, skipBefore, skipAfter)) die('Expected $expected') else null;
   }
   #else
-  macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String) {
-    if (expected == null) expected = s;
-    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected ' + $v{expected}) else null : tink.json.Parser.ContinueParsing);
-  }
-
-  macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
-
-    if (s.length == 0)
-      throw 'assert';
-
-    var ret = macro this.max > this.pos + $v{s.length - 1};
-
-    for (i in 0...s.length)
-      ret = macro $ret && $ethis.source.getChar($ethis.pos + $v{i}) == $v{s.charCodeAt(i)};
-
-    return macro {
-      if ($v{skipBefore})
-        $ethis.skipIgnored();
-      if ($ret) {
-        $ethis.pos += $v{s.length};
-        if ($v{skipAfter})
-          $ethis.skipIgnored();
-        true;
-      }
-      else false;
-    }
-  }
+  macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String);
+  macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true);
   #end
-  #if !macro
+
   function parseBool()
     return
       if (this.allow('true')) true;
       else if (this.allow('false')) false;
       else die('expected boolean value');
-  #end
 
 }
 
