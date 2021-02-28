@@ -101,7 +101,6 @@ private typedef StdParser = haxe.format.JsonParser;
 #end
 
 #if js
-@:forward
 abstract JsonString(String) {
   public inline function new(raw:RawData, min, max)
     this = raw.substring(min, max);
@@ -109,8 +108,22 @@ abstract JsonString(String) {
   public inline function toInt():Int
     return 0 | cast this;
 
-  public inline function toFloat():Int
-    return 1 * cast this;
+  public inline function toFloat():Float
+    return Std.parseFloat(this);
+
+  public function toUInt() {
+    var ret:UInt = 0;
+    for(i in 0...this.length) ret += Std.parseInt(this.charAt(i)) * Std.int(Math.pow(10, this.length - i - 1));
+    return ret;
+  }
+
+  static final BACKSLASH = '\\';
+  public inline function toString()
+    return switch this.indexOf(BACKSLASH) {
+      case -1: this;
+      default: StdParser.parse('"$this"');
+    }
+
 }
 #else
 @:forward
