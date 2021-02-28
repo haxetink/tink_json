@@ -62,6 +62,8 @@ class GenReader extends GenBase {
       __ret;
     }
 
+  static final IGNORE_MISSING_FIELDS = Context.defined('tink_json.ignore_missing_fields');
+
   public function anon(fields:Array<FieldInfo>, ct) {
 
     var vars:Array<Var> = [],
@@ -74,7 +76,7 @@ class GenReader extends GenBase {
       var ct = f.type.toComplex(),
           name = 'v_' + f.name,
           jsonName = Macro.nativeName(f),
-          optional = f.optional;
+          optional = f.optional || IGNORE_MISSING_FIELDS;
 
       var option = switch f.type.reduce() {
         case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]): Some(v);
