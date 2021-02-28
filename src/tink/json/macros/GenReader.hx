@@ -202,7 +202,7 @@ class GenReader extends GenBase {
         do {
           this.toChar('"'.code, '"');
           $branch;
-          parseRestOfString();
+          skipString();
           this.toChar(':'.code, ':');
           this.skipIgnored();
           this.skipValue();
