@@ -100,8 +100,24 @@ private extern class StdParser {
 private typedef StdParser = haxe.format.JsonParser;
 #end
 
+#if js
 @:forward
-private abstract JsonString(SliceData) from SliceData {
+abstract JsonString(String) {
+  public inline function new(raw:RawData, min, max)
+    this = raw.substring(min, max);
+
+  public inline function toInt():Int
+    return 0 | cast this;
+
+  public inline function toFloat():Int
+    return 1 * cast this;
+}
+#else
+@:forward
+private abstract JsonString(SliceData) {
+
+  public inline function new(raw, min, max)
+    this = new SliceData(raw, min, max);
 
   public function toString():String
     return
@@ -141,6 +157,7 @@ private abstract JsonString(SliceData) from SliceData {
       a.source.hasId(b, a.min, a.max);
 
 }
+#end
 
 @:build(tink.json.macros.Macro.compact())
 class BasicParser {
@@ -203,7 +220,7 @@ class BasicParser {
     var start = pos;
 
     while (true)
-      #if jsx
+      #if (js && never_mind) // apparently, this is slower
         switch next() {
           case '"'.code: break;
           case '\\'.code: pos++;
@@ -287,7 +304,7 @@ class BasicParser {
   }
 
   function slice(from, to):JsonString
-    return new SliceData(this.source, from, to);
+    return new JsonString(this.source, from, to);
 
   #if !tink_json_compact_code
   inline
