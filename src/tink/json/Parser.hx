@@ -50,12 +50,11 @@ private abstract RawData(String) {
     setLength(s.length);
   }
 
-  public function hasBackslash(min:Int, max:Int)
-    return switch this.indexOf('\\', min) {
-      case -1: false;
-      case outside if (outside > max): false;
-      case v: true;
-    }
+  public function hasBackslash(min:Int, max:Int) {
+    for (i in min...max)
+      if (this.fastCodeAt(i) == '\\'.code) return true;
+    return false;
+  }
 
   public inline function getChar(i:Int)
     return this.fastCodeAt(i);
@@ -106,7 +105,7 @@ private abstract JsonString(SliceData) from SliceData {
 
   public function toString():String
     return
-      if (#if js true #else this.source.hasBackslash(this.min, this.max) #end)
+      if (this.source.hasBackslash(this.min, this.max))
         StdParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
 
@@ -165,7 +164,7 @@ class BasicParser {
   inline
   #end
   function skipIgnored()
-    while (pos < max && source.getChar(pos) < 33) pos++;
+    while (#if !js pos < max && #end source.getChar(pos) < 33) pos++;
 
   function parseDynamic():Any {
     var start = pos;
@@ -204,6 +203,13 @@ class BasicParser {
     var start = pos;
 
     while (true)
+      #if jsx
+        switch next() {
+          case '"'.code: break;
+          case '\\'.code: pos++;
+          default:
+        }
+      #else
       switch source.charPos(DBQT, pos, max) {
         case -1:
 
@@ -219,6 +225,7 @@ class BasicParser {
           if ((p - pos) & 1 == 0)
             break;
       }
+      #end
 
     return start;
   }
@@ -248,7 +255,7 @@ class BasicParser {
     var minus = c == '-'.code, digit = !minus, zero = c == '0'.code;
     var point = false, e = false, pm = false, end = false;
     while( pos < max ) {
-      c = nextChar();
+      c = next();
       switch( c ) {
         case '0'.code :
           if (zero && !point) invalidNumber(start);
@@ -282,8 +289,18 @@ class BasicParser {
   function slice(from, to):JsonString
     return new SliceData(this.source, from, to);
 
-  inline function nextChar()
+  #if !tink_json_compact_code
+  inline
+  #end
+  function next()
     return source.getChar(pos++);
+
+  inline function toChar(code:Int, expected:String)
+    while (true) switch next() {
+      case _ == code => true: break;
+      case _ < 33 => true:
+      default: die('expected $expected');
+    }
 
   function parseSerialized<T>():Serialized<T> {
     var start = pos;
@@ -292,12 +309,12 @@ class BasicParser {
   }
 
   function parseValue():Value
-    return switch nextChar() {
+    return switch next() {
       case '{'.code:
         var fields = new Array<Named<Value>>();
         if (!allow('}')) {
           inline function pair() {
-            if (nextChar() != '"'.code)
+            if (next() != '"'.code)
               die('expected string', pos - 1);
 
             fields.push(new Named(
@@ -356,13 +373,13 @@ class BasicParser {
   }
 
   function skipValue()
-    switch nextChar() {
+    switch next() {
       case '{'.code:
         if (allow('}'))
           return;
 
         inline function pair() {
-          if (nextChar() != '"'.code)
+          if (next() != '"'.code)
             die('expected string', pos - 1);
 
           skipString();

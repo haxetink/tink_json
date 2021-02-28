@@ -12,6 +12,7 @@ import tink.typecrawler.Generator;
 using haxe.macro.Tools;
 using tink.MacroApi;
 using tink.CoreApi;
+using StringTools;
 
 class GenReader extends GenBase {
   public function new(crawler) {
@@ -63,10 +64,12 @@ class GenReader extends GenBase {
 
   public function anon(fields:Array<FieldInfo>, ct) {
 
-    var read = macro this.skipValue(),
-        vars:Array<Var> = [],
-        obj = [];
+    var vars:Array<Var> = [],
+        obj = [],
+        byName = new Map();
+
     EObjectDecl(obj);//help type inference
+
     for (f in fields) {
       var ct = f.type.toComplex(),
           name = 'v_' + f.name,
@@ -89,22 +92,20 @@ class GenReader extends GenBase {
 
       var hasName = 'has$name';
 
-      read = macro @:pos(f.pos)
-        if (__name__ == $v{jsonName}) {
-          ${
-            switch option {
-              case Some(t):
-                macro $i{name} = Some(${f.as(t)});
-              default:
-                macro $i{name} = ${f.expr};
-            }
-          }
-          ${
-            if (optional) macro $b{[]}
-            else macro $i{hasName} = true
+      byName[jsonName] = macro {
+        ${
+          switch option {
+            case Some(t):
+              macro $i{name} = Some(${f.as(t)});
+            default:
+              macro $i{name} = ${f.expr};
           }
         }
-        else $read;
+        ${
+          if (optional) macro $b{[]}
+          else macro $i{hasName} = true
+        }
+      };
 
       obj.push({
         field: f.name,
@@ -159,18 +160,53 @@ class GenReader extends GenBase {
 
     };
 
+    var branch = {
+      function toExpr(b:Branch):Expr {
+        var cases = new Array<Case>();
+        switch b.expr {
+          case null:
+          case v:
+            cases.push({
+              values: [macro '"'.code],
+              expr: macro { this.toChar(':'.code, ':'); skipIgnored(); $v; continue; } });
+        }
+
+        for (code => b in b.children)
+          cases.push({ values: [macro $v{code}], expr: toExpr(b) });
+
+        return ESwitch(macro this.next(), cases, null).at((macro null).pos);
+      }
+
+      function make():Branch
+        return { children: new Map() };
+      var root = make();
+      for (name => expr in byName) {
+        var cur = root;
+        for (c in name)
+          cur = switch cur.children[c] {
+            case null: cur.children[c] = make();
+            case v: v;
+          }
+        cur.expr = expr;
+      }
+      toExpr(root);
+    }
+
     return macro {
 
       ${EVars(vars).at()};
 
       var __start__ = this.pos;
-      this.expect('{');
+      this.toChar('{'.code, '{');
       if (!this.allow('}')) {
         do {
-          var __name__ = this.parseString();
-          this.expect(':');
-          $read;
-        } while (this.allow(','));
+          this.toChar('"'.code, '"');
+          $branch;
+          parseRestOfString();
+          this.toChar(':'.code, ':');
+          this.skipIgnored();
+          this.skipValue();
+        } while (this.allow(',', true, false));
         this.expect('}');
       }
 
@@ -384,7 +420,7 @@ class GenReader extends GenBase {
           throw 'TODO';
       }
     });
-        
+
     return macro @:pos(pos) {
       final v = $e;
       ${ESwitch(
@@ -548,4 +584,6 @@ private typedef LiteInfo = {
   var optional(default, never):Bool;
   var access(default, never):FieldAccessInfo;
 }
+
+private typedef Branch = { ?expr:Expr, children:Map<Int, Branch> };
 #end

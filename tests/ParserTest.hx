@@ -95,16 +95,16 @@ class ParserTest {
     var res:Input = parse('{"a": "text"}');
     return assert(res.a == 'text');
   }
-  
+
   public function vector() {
     var v:haxe.ds.Vector<Int> = parse('[0,1,2]');
     asserts.assert(v.length == 3);
     for(i in 0...v.length) asserts.assert(v[i] == i);
-    
+
     var v:haxe.ds.Vector<Float> = parse('[0,1,2]');
     asserts.assert(v.length == 3);
     for(i in 0...v.length) asserts.assert(v[i] == i);
-    
+
     return asserts.done();
   }
 
@@ -234,7 +234,7 @@ class ParserTest {
     asserts.assert(parse(('{"u":2147483648}':{u:UInt})).sure().u == u);
     return asserts.done();
   }
-  
+
   public function enumAbstractKey() {
     asserts.assert(parse(('{"type":"aaa"}':EnumAbstractStringKey)).match(Success(A)));
     asserts.assert(parse(('{"type":"bbb","v":"foo"}':EnumAbstractStringKey)).match(Success(B('foo'))));
@@ -242,7 +242,7 @@ class ParserTest {
     asserts.assert(parse(('{"type":2,"v":"foo"}':EnumAbstractIntKey)).match(Success(B('foo'))));
     return asserts.done();
   }
-  
+
   public function privateEnumAbstract() {
     asserts.assert(parse(('0':VeryPrivate)).match(Success(VeryPrivate.A)));
     asserts.assert(parse(('{"foo":1}':{foo:VeryPrivate})).match(Success({foo:VeryPrivate.B})));
