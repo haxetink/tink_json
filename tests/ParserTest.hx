@@ -262,6 +262,14 @@ class ParserTest {
   }
   #end
 
+  public function testMetas() {
+    var o1:{ @:json('foo') var beep:Int; } = tink.Json.parse('{"foo":123}');
+    var o2:{ @:json('bar') var beep:Int; } = tink.Json.parse('{"bar":123}');
+    asserts.assert(o1.beep == 123);
+    asserts.assert(o2.beep == 123);
+    return asserts.done();
+  }
+
   public function testIssue67() {
     var l:{ foo: Lazy<Foo> } = parse('{ "foo": 123 }');
     asserts.assert(calls == 0);
