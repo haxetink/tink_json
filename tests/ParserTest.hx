@@ -248,6 +248,16 @@ class ParserTest {
     asserts.assert(parse(('{"foo":1}':{foo:VeryPrivate})).match(Success({foo:VeryPrivate.B})));
     return asserts.done();
   }
+  
+  #if js
+  public function jsBigInt() {
+    switch parse(('{"id":-1001462968246}':{id:Int})) {
+      case Success(o): asserts.assert(o.id == -1001462968246);
+      case Failure(e): asserts.fail(e);
+    }
+    return asserts.done();
+  }
+  #end
 
   #if haxe4
   public function optionalFinal() {
