@@ -106,7 +106,7 @@ abstract JsonString(String) {
     this = raw.substring(min, max);
 
   public inline function toInt():Int
-    return 0 | cast this;
+    return js.Syntax.code('parseInt({0})', this);
 
   public inline function toFloat():Float
     return Std.parseFloat(this);
