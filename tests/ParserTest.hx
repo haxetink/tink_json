@@ -262,6 +262,11 @@ class ParserTest {
   }
   #end
 
+  public function issue85() {
+    asserts.assert(tink.Json.parse(('{"id":1, "ids":[1]}':{ids:Array<Int>})).match(Success(_)));
+    return asserts.done();
+  }
+
   public function testMetas() {
     var o1:{ @:json('foo') var beep:Int; } = tink.Json.parse('{"foo":123}');
     var o2:{ @:json('bar') var beep:Int; } = tink.Json.parse('{"bar":123}');

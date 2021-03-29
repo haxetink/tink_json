@@ -66,7 +66,7 @@ class GenReader extends GenBase {
 
   public function anon(fields:Array<FieldInfo>, ct) {
 
-    var vars:Array<Var> = [],
+    var vars:Array<Var> = [{ name: 'cur', expr: macro 0 }],
         obj = [],
         byName = new Map();
 
@@ -176,7 +176,7 @@ class GenReader extends GenBase {
         for (code => b in b.children)
           cases.push({ values: [macro $v{code}], expr: toExpr(b) });
 
-        return ESwitch(macro this.next(), cases, null).at((macro null).pos);
+        return ESwitch(macro cur = this.next(), cases, null).at((macro null).pos);
       }
 
       function make():Branch
@@ -204,7 +204,7 @@ class GenReader extends GenBase {
         do {
           this.toChar('"'.code, '"');
           $branch;
-          skipString();
+          if (cur != '"'.code) skipString();
           this.toChar(':'.code, ':');
           this.skipIgnored();
           this.skipValue();
