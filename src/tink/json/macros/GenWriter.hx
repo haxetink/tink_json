@@ -51,22 +51,29 @@ class GenWriter extends GenBase {
         else
           this.char(','.code);
 
-        this.char('['.code);
-        {
-          var value = k;
-          $k;
-        }
-
-        this.char(','.code);
-        {
-          var value = value.get(k);
-          $v;
-        }
-
-        this.char(']'.code);
+        ${tuple([
+          {gen: k, value: macro k},
+          {gen: v, value: macro value.get(k)},
+        ])}
       }
       this.char(']'.code);
     }
+  
+  function tuple(elements:Array<{gen:Expr, value:Expr}>) {
+    var exprs = [macro this.char('['.code)];
+    for(i in 0...elements.length) {
+      if(i > 0)
+        exprs.push(macro this.char(','.code));
+      
+      var e = elements[i];
+      exprs.push(macro {
+        var value = ${e.value};
+        ${e.gen};
+      });
+    }
+    exprs.push(macro this.char(']'.code));
+    return macro $b{exprs}
+  }
 
   public function anon(fields:Array<FieldInfo>, ct)
     return if(fields.length == 0)
@@ -421,6 +428,11 @@ class GenWriter extends GenBase {
   override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch type.reduce() {
+        case TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
+          this.tuple([
+            {gen: gen(a, pos), value: macro value.a},
+            {gen: gen(b, pos), value: macro value.b},
+          ]);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
           this.array(gen(t, pos));
         case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):

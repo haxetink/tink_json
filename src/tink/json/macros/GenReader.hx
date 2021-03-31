@@ -52,15 +52,30 @@ class GenReader extends GenBase {
       this.expect('[');
       var __ret = new #if haxe4 haxe.ds.Map #else Map #end();
       if (!allow(']')) {
-        do {
-          this.expect('[');
-          __ret.set($k, this.expect(',') & $v);
-          this.expect(']');
-        } while (allow(','));
+        do ${tuple([k, v], values -> macro __ret.set(${values[0]}, ${values[1]}))}
+        while (allow(','));
         expect(']');
       }
       __ret;
     }
+  
+  function tuple(elements:Array<Expr>, make, ?out) {
+    var exprs = [macro this.expect('[')];
+    
+    var vars = [];
+    for(i in 0...elements.length) {
+      var name = '_e$i';
+      var e = elements[i];
+      exprs.push(macro var $name = ${i == 0 ? e : macro this.expect(',') & $e});
+      vars.push(macro $i{name});
+    }
+    
+    exprs.push(make(vars));
+    exprs.push(macro this.expect(']'));
+    if(out != null) exprs.push(out);
+    
+    return macro $b{exprs};
+  }
 
   static final IGNORE_MISSING_FIELDS = Context.defined('tink_json.ignore_missing_fields');
 
@@ -571,6 +586,8 @@ class GenReader extends GenBase {
   override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch type.reduce() {
+        case TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
+          this.tuple([gen(a, pos), gen(b, pos)], values -> (macro var __ret = new tink.core.Pair(${values[0]}, ${values[1]})), macro __ret);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
           macro haxe.ds.Vector.fromArrayCopy(${this.array(gen(t, pos))});
         case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):

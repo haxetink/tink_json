@@ -164,6 +164,11 @@ class ParserTest {
     return asserts.done();
   }
 
+  public function pair() {
+    asserts.assert(parse(('[1,"foo"]':Pair<Int, String>)).match(Success({a: 1, b: 'foo'})));
+    return asserts.done();
+  }
+
   public function optionInAnon() {
     var s1 = '{}';
     var s2 = '{"o":null}';
@@ -251,6 +256,7 @@ class ParserTest {
   
   #if js
   public function jsBigInt() {
+    
     switch parse(('{"id":-1001462968246}':{id:Int})) {
       case Success(o): asserts.assert(o.id == -1001462968246);
       case Failure(e): asserts.fail(e);
@@ -273,7 +279,7 @@ class ParserTest {
   #end
 
   public function issue85() {
-    asserts.assert(tink.Json.parse(('{"id":1, "ids":[1]}':{ids:Array<Int>})).match(Success(_)));
+    asserts.assert(tink.Json.parse(('{"id":1, "ids":[1]}':{ids:Array<Int>})).match(Success({ids:[1]})));
     return asserts.done();
   }
 

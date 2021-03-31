@@ -108,6 +108,12 @@ class WriterTest {
     return assert(stringify(new Fruit('apple', .2)) == '{"name":"apple","weight":0.2}');
   }
 
+  public function pair() {
+    var p:Pair<Int, String> = new Pair(1, 'foo');
+    asserts.assert(stringify(p) == '[1,"foo"]');
+    return asserts.done();
+  }
+  
   public function either() {
     var e:Either<String, Int> = Left('aa');
     asserts.assert(stringify(e) == '"aa"');
