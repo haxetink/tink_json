@@ -428,10 +428,11 @@ class GenWriter extends GenBase {
   override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch type.reduce() {
-        case TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
+        case t = TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
+          var ct = t.toComplex();
           this.tuple([
-            {gen: gen(a, pos), value: macro value.a},
-            {gen: gen(b, pos), value: macro value.b},
+            {gen: gen(a, pos), value: macro (value:$ct).a},
+            {gen: gen(b, pos), value: macro (value:$ct).b},
           ]);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
           this.array(gen(t, pos));
