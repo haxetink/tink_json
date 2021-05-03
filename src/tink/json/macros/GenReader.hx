@@ -58,10 +58,10 @@ class GenReader extends GenBase {
       }
       __ret;
     }
-  
+
   function tuple(elements:Array<Expr>, make, ?out) {
     var exprs = [macro this.expect('[')];
-    
+
     var vars = [];
     for(i in 0...elements.length) {
       var name = '_e$i';
@@ -69,11 +69,11 @@ class GenReader extends GenBase {
       exprs.push(macro var $name = ${i == 0 ? e : macro this.expect(',') & $e});
       vars.push(macro $i{name});
     }
-    
+
     exprs.push(make(vars));
     exprs.push(macro this.expect(']'));
     if(out != null) exprs.push(out);
-    
+
     return macro $b{exprs};
   }
 
@@ -81,7 +81,7 @@ class GenReader extends GenBase {
 
   public function anon(fields:Array<FieldInfo>, ct) {
 
-    var vars:Array<Var> = [{ name: 'cur', expr: macro 0 }],
+    var vars:Array<Var> = [{ name: 'cur', expr: macro 0, type: null }],
         obj = [],
         byName = new Map();
 
