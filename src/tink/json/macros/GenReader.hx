@@ -297,37 +297,45 @@ class GenReader extends GenBase {
           c = c.ctor,
           name = c.name,
           hasArgs = !c.type.reduce().match(TEnum(_,_));
+          
+      
+      function mkCase(jsonKey:String) {
+        
+        add({
+          name: jsonKey,
+          optional: true,
+          type: mkComplex(cfields).toType().sure(),
+          pos: c.pos,
+          access: { get: 'default', set: 'default' },
+        });
+
+        cases.push({
+          values: [macro { $jsonKey : o }],
+          guard: if (nullable) macro true else macro o != null,
+          expr: {
+            var args =
+              if (inlined) [macro o];
+              else [for (f in cfields) {
+                var name = f.name;
+                macro o.$name;
+              }];
+
+            switch args {
+              case []: macro ($i{name} : $ct);
+              case _: macro ($i{name}($a{args}) : $ct);
+            }
+          }
+        });
+      }
 
       switch c.meta.extract(':json') {
         case [] if(!hasArgs):
             argLess.push(new Named(name, name));
         case []:
-
-          add({
-            name: name,
-            optional: true,
-            type: mkComplex(cfields).toType().sure(),
-            pos: c.pos,
-            access: { get: 'default', set: 'default' },
-          });
-
-          cases.push({
-            values: [macro { $name : o }],
-            guard: if (nullable) macro true else macro o != null,
-            expr: {
-              var args =
-                if (inlined) [macro o];
-                else [for (f in cfields) {
-                  var name = f.name;
-                  macro o.$name;
-                }];
-
-              switch args {
-                case []: macro ($i{name} : $ct);
-                case _: macro ($i{name}($a{args}) : $ct);
-              }
-            }
-          });
+          mkCase(name);
+          
+        case [{ params:[{ expr: EConst(CString(jsonKey)) }]}] if(hasArgs):
+          mkCase(jsonKey);
 
         case [{ params:[{ expr: EConst(CString(v)) }]}] if(!hasArgs):
           argLess.push(new Named(name, v));

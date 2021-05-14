@@ -254,8 +254,14 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function renameConstructor() {
+    asserts.assert(parse(('{"a":{"v":1}}':RenameConstructor)).match(Success(RenameConstructor.A(1))));
+    asserts.assert(parse(('{"b":{"v":"b"}}':RenameConstructor)).match(Success(RenameConstructor.B({v:'b'}))));
+    return asserts.done();
+  }
+  
   #if js
-  public function jsBigInt() {
+  public function jsBigInt() {  
     
     switch parse(('{"id":-1001462968246}':{id:Int})) {
       case Success(o): asserts.assert(o.id == -1001462968246);

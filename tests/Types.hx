@@ -204,3 +204,8 @@ enum EnumAbstractIntKey {
   @:json({type: Types.MyEnumAbstractInt.A}) A;
   @:json({type: Types.MyEnumAbstractInt.B}) B(v:String);
 }
+
+enum RenameConstructor {
+  @:json('a') A(v:Int);
+  @:json('b') B(b:{v:String});
+}
