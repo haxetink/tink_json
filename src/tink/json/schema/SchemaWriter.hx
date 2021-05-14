@@ -47,7 +47,7 @@ class SchemaWriter {
         }
       });
       
-      // trace(new haxe.macro.Printer().printTypeDefinition(cl));
+      trace(new haxe.macro.Printer().printTypeDefinition(cl));
       
       return cl;
     }, @:privateAccess tink.json.macros.Macro.normalize);

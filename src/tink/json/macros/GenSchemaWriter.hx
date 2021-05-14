@@ -48,12 +48,15 @@ class GenSchemaWriter extends GenBase {
   }
 
   public function anon(fields:Array<FieldInfo>, ct) {
-	  final fields = fields.map(f -> macro {
-			name: $v{f.name},
-			type: ${f.expr},
-			optional: $v{f.optional},
-	  });
-	  return macro SObject(${macro $a{fields}});
+    final fields = fields.map(f -> macro {
+      name: $v{f.name},
+      type: {
+        var const = null;
+        ${f.expr}
+      },
+      optional: $v{f.optional},
+    });
+    return macro SObject(${macro $a{fields}});
   }
 
   public function array(e)
@@ -80,7 +83,10 @@ class GenSchemaWriter extends GenBase {
         } else {
           final fields = cfields.map(f -> macro {
             name: $v{f.name},
-            type: ${f.expr},
+            type: {
+              var const = null;
+              ${f.expr}
+            },
             optional: $v{f.optional},
           });
           macro SObject([{
@@ -201,7 +207,6 @@ class GenSchemaWriter extends GenBase {
         }
 
         return macro @:pos(pos) {
-          var value = this.plugins.get($dotpath).prepare(value);
           ${gen(rep)};
         }
       case WithFunction(e):
@@ -212,7 +217,6 @@ class GenSchemaWriter extends GenBase {
         //TODO: the two cases look suspiciously similar
         var rep = (macro @:pos(e.pos) $e((cast null:$original))).typeof().sure();
         return macro @:pos(e.pos) {
-          var value = $e(value);
           ${gen(rep)};
         }
     }
