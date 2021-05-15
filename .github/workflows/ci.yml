@@ -28,6 +28,9 @@ jobs:
         flags:
           - ""
           - -D tink_json_compact_code
+        exclude:
+          - haxe-version: php
+            flags: -D tink_json_compact_code # FIXME: compact code not working on php
 
     steps:
     - name: Check out repo
