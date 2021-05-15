@@ -211,6 +211,12 @@ class WriterTest {
     return asserts.done();
   }
   
+  public function primitiveAbstract() {
+    asserts.assert(stringify(IntAbstract.A) == '1');
+    asserts.assert(stringify({a:IntAbstract.A}) == '{"a":1}');
+    return asserts.done();
+  }
+  
   public function privateEnumAbstract() {
     asserts.assert(stringify(VeryPrivate.A) == '0');
     asserts.assert(stringify({foo:VeryPrivate.B}) == '{"foo":1}');

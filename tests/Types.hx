@@ -204,3 +204,7 @@ enum EnumAbstractIntKey {
   @:json({type: Types.MyEnumAbstractInt.A}) A;
   @:json({type: Types.MyEnumAbstractInt.B}) B(v:String);
 }
+
+enum abstract IntAbstract(Int) {
+  var A = 1;
+}

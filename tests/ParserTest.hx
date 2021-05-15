@@ -254,6 +254,12 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function primitiveAbstract() {
+    asserts.assert(parse(('1':IntAbstract)).match(Success(IntAbstract.A)));
+    asserts.assert(parse(('{"a":1}':{a:IntAbstract})).match(Success({a:IntAbstract.A})));
+    return asserts.done();
+  }
+  
   #if js
   public function jsBigInt() {
     
