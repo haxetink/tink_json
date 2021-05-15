@@ -279,7 +279,7 @@ class ParserTest {
   }
 
   public function issue51() {
-    asserts.assert(parse(('':E)).match(Failure(_)));
+    asserts.assert(parse(('ab':FinalUnification)).match(Failure(_)));
     return asserts.done();
   }
   #end
@@ -325,7 +325,7 @@ private class Foo {
 }
 
 #if haxe4
-enum E {
+enum FinalUnification {
   Glargh(a:{final i:Int;});
 }
 #end
