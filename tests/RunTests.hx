@@ -8,7 +8,6 @@ using tink.CoreApi;
 class RunTests {
 
   static function main() {
-    // var o:{fo:Int} = tink.Json.parse('{"fo":123}');
     Runner.run(TestBatch.make([
       new CachedTest(),
       new ParserTest(),
