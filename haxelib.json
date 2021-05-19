@@ -8,8 +8,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"version": "0.10.5",
-	"releasenote": "Fix performance issue on PHP.",
+	"version": "0.11.0",
+	"releasenote": "Various bugfixes.",
 	"tags": [
 		"tink",
 		"cross",
