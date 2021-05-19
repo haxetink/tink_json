@@ -1,6 +1,7 @@
 -cp tests
 -main RunTests
 -dce full
+-D no-deprecation-warnings
 #-main Benchmark
 -lib tink_unittest
 -lib deep_equal
