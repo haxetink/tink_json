@@ -260,6 +260,11 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function macroFrom() {
+    asserts.assert(parse(('{"v":"foo"}':{final v:MacroFrom;})).match(Success(_)));
+    return asserts.done();
+  }
+  
   #if js
   public function jsBigInt() {
     

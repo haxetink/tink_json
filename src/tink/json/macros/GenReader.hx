@@ -235,7 +235,7 @@ class GenReader extends GenBase {
         this.expect('}');
       }
 
-      function __missing__(field:String):Dynamic {
+      function __missing__<T>(field:String):T {
         return this.die('missing field "' + field + '"', __start__);
       };
 

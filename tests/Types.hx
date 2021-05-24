@@ -208,3 +208,17 @@ enum EnumAbstractIntKey {
 enum abstract IntAbstract(Int) {
   var A = 1;
 }
+
+@:jsonStringify(id -> (id : String))
+@:jsonParse(id -> Types.MacroFrom.make(id).sure())
+abstract MacroFrom(String) to String {
+	inline function new(v)
+		this = v;
+
+	public static function make(v:String):tink.core.Outcome<MacroFrom, tink.core.Error> {
+		return Success(new MacroFrom(v));
+	}
+	
+	@:from
+	public static macro function fromExpr(e:haxe.macro.Expr);
+}
