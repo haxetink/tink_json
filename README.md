@@ -1,6 +1,6 @@
 # Tinkerbell JSON
 
-[![Build Status](https://travis-ci.org/haxetink/tink_json.svg?branch=master)](https://travis-ci.org/haxetink/tink_json)
+[![Build Status](https://github.com/haxetink/tink_json/actions/workflows/ci.yml/badge.svg)](https://github.com/haxetink/tink_json/actions)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/haxetink/public)
 
 This library provides a macro powered approach to JSON handling. It handles both JSON parsing and json writing, based on expected or known type respectively.

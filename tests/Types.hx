@@ -209,3 +209,7 @@ enum RenameConstructor {
   @:json('a') A(v:Int);
   @:json('b') B(b:{v:String});
 }
+
+enum abstract IntAbstract(Int) {
+  var A = 1;
+}

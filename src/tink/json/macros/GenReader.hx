@@ -164,7 +164,15 @@ class GenReader extends GenBase {
 
         vars.push({
           name: name,
-          expr: defaultValue.orNull(),
+          expr: switch defaultValue {
+            case Some(v): v;
+            default: switch Context.followWithAbstracts(valType).getID() {
+              case 'Bool': macro cast false;
+              case 'Int' | 'UInt': macro cast 0;
+              case 'Float': macro cast .0;
+              default: macro null;
+            } // for working around the uninitialized var check, note that this initial value is unimportant because it is guaranteed to be rewritten
+          },
           type: ct,
         });
 

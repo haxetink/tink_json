@@ -260,6 +260,12 @@ class ParserTest {
     return asserts.done();
   }
   
+  public function primitiveAbstract() {
+    asserts.assert(parse(('1':IntAbstract)).match(Success(IntAbstract.A)));
+    asserts.assert(parse(('{"a":1}':{a:IntAbstract})).match(Success({a:IntAbstract.A})));
+    return asserts.done();
+  }
+  
   #if js
   public function jsBigInt() {  
     
@@ -279,7 +285,7 @@ class ParserTest {
   }
 
   public function issue51() {
-    asserts.assert(parse(('':E)).match(Failure(_)));
+    asserts.assert(parse(('ab':FinalUnification)).match(Failure(_)));
     return asserts.done();
   }
   #end
@@ -325,7 +331,7 @@ private class Foo {
 }
 
 #if haxe4
-enum E {
+enum FinalUnification {
   Glargh(a:{final i:Int;});
 }
 #end

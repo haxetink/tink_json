@@ -138,8 +138,8 @@ private abstract JsonString(SliceData) {
         StdParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
 
-  #if tink_json_compact_code
-  @:native('g')
+  #if (tink_json_compact_code && !cpp)
+  @:native('g') // note that on cpp @:native will emit a global identifier
   #else
   inline
   #end
