@@ -61,6 +61,20 @@ White;
 "White"
 ```
 
+You can rename the JSON key with the @:json meta, for example:
+
+```haxe
+enum Color {
+  @:json('my_fancy_rgb') Rgb(a:Int, b:Int, c:Int);
+  // else remain the same
+}
+
+// will produce:
+
+{ "my_fancy_rgb": { "a": 0, "b": 255, "c": 128}}
+```
+
+
 This is nice in that it is a pretty readable and close to the original.
 
 However you may want to use enums to consume 3rd party data in a typed fashion.
