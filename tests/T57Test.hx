@@ -155,12 +155,12 @@ typedef Layer = {
 }
 
 typedef Tilemap = {
-    introImage: String,
-    musicTrack: String,
-    bgRed: Int,
-    bgGreen: Int,
-    bgBlue: Int,
-    map: {
+    ?introImage: String,
+    ?musicTrack: String,
+    ?bgRed: Int,
+    ?bgGreen: Int,
+    ?bgBlue: Int,
+    ?map: {
         mapWidth: Int,
         mapHeight: Int,
         tileWidth: Int,
@@ -170,7 +170,7 @@ typedef Tilemap = {
         mapAmbient: Int,
         layerArray: Array<Layer>,
     },
-    entities: Array<Entity>,
+    ?entities: Array<Entity>,
 }
 
 class T57Test {
