@@ -104,6 +104,10 @@ class ParserTest {
     var v:haxe.ds.Vector<Float> = parse('[0,1,2]');
     asserts.assert(v.length == 3);
     for(i in 0...v.length) asserts.assert(v[i] == i);
+    
+    var v:haxe.ds.Vector<NotFloat> = parse('[0,1,2]');
+    asserts.assert(v.length == 3);
+    for(i in 0...v.length) asserts.assert(v[i].toFloat() == i);
 
     return asserts.done();
   }
@@ -166,6 +170,7 @@ class ParserTest {
 
   public function pair() {
     asserts.assert(parse(('[1,"foo"]':Pair<Int, String>)).match(Success({a: 1, b: 'foo'})));
+    asserts.assert(parse(('[1,1.5]':Pair<Int, NotFloat>)).match(Success({a: 1, b: _.toFloat() => 1.5})));
     return asserts.done();
   }
 

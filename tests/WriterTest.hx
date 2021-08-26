@@ -68,7 +68,13 @@ class WriterTest {
   public function vector() {
     var v = new haxe.ds.Vector(3);
     for(i in 0...v.length) v[i] = i;
-    return assert(stringify(v) == '[0,1,2]');
+    asserts.assert(stringify(v) == '[0,1,2]');
+    
+    var v = new haxe.ds.Vector(3);
+    for(i in 0...v.length) v[i] = new NotFloat(i);
+    asserts.assert(stringify(v) == '[0,1,2]');
+    
+    return asserts.done();
   }
 
   public function enumAbstract() {
@@ -111,6 +117,10 @@ class WriterTest {
   public function pair() {
     var p:Pair<Int, String> = new Pair(1, 'foo');
     asserts.assert(stringify(p) == '[1,"foo"]');
+    
+    var p:Pair<Int, NotFloat> = new Pair(1, new NotFloat(1.5));
+    asserts.assert(stringify(p) == '[1,1.5]');
+    
     return asserts.done();
   }
   
