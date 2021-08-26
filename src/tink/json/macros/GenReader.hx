@@ -603,9 +603,9 @@ class GenReader extends GenBase {
     return
       switch type.reduce() {
         case TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
-          this.tuple([gen(a, pos), gen(b, pos)], values -> (macro var __ret = new tink.core.Pair(${values[0]}, ${values[1]})), macro __ret);
+          this.tuple([drive(a, pos, gen), drive(b, pos, gen)], values -> (macro var __ret = new tink.core.Pair(${values[0]}, ${values[1]})), macro __ret);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
-          macro haxe.ds.Vector.fromArrayCopy(${this.array(gen(t, pos))});
+          macro haxe.ds.Vector.fromArrayCopy(${this.array(drive(t, pos, gen))});
         case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
           macro this.parseNumber().toUInt();
         default: super.drive(type, pos, gen);

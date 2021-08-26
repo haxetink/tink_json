@@ -436,11 +436,11 @@ class GenWriter extends GenBase {
         case t = TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
           var ct = t.toComplex();
           this.tuple([
-            {gen: gen(a, pos), value: macro (value:$ct).a},
-            {gen: gen(b, pos), value: macro (value:$ct).b},
+            {gen: drive(a, pos, gen), value: macro (value:$ct).a},
+            {gen: drive(b, pos, gen), value: macro (value:$ct).b},
           ]);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
-          this.array(gen(t, pos));
+          this.array(drive(t, pos, gen));
         case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
           macro @:pos(pos) {
             var v = Std.string((value:Float));

@@ -227,3 +227,11 @@ abstract MacroFrom(String) to String {
 	@:from
 	public static macro function fromExpr(e:haxe.macro.Expr);
 }
+
+
+@:jsonStringify(v -> (cast v:Float))
+@:jsonParse((v:Float) -> new Types.NotFloat(v))
+abstract NotFloat(Float) {
+  public inline function new(v) this = v;
+  public inline function toFloat() return this;
+}
