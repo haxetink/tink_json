@@ -15,7 +15,13 @@ class RunTests {
       new RoundTripTest(),
       new SerializedTest(),
       new CacheTest(),
+      // jvm: IO.Overflow("write_ui16") https://github.com/HaxeFoundation/haxe/issues/9654
+      // neko: Haxe compiler Stack overflow
+      // python: take too much time to compile
+      // lua: more than 200 local variables
+      #if !(jvm || neko || python || lua)
       new T57Test(),
+      #end
     ])).handle(Runner.exit);
   }
 
