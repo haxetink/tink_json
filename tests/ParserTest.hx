@@ -320,6 +320,14 @@ class ParserTest {
     return asserts.done();
   }
 
+  public function testIssue90() {
+    var s = tink.Json.stringify(Gender.Male);
+    asserts.assert(s != null);
+		var g:Gender = tink.Json.parse(s);
+    asserts.assert(g == Gender.Male);
+    return asserts.done();
+  }
+
   static var calls = 0;
   static public function parseFoo(i:Int) {
     calls++;
@@ -344,4 +352,14 @@ enum FinalUnification {
 private enum abstract VeryPrivate(Int) {
   var A = 0;
   var B = 1;
+}
+
+// https://github.com/haxetink/tink_json/issues/90
+enum abstract Letters(String) to String {
+	final M = "M";
+	final F = "F";
+}
+enum abstract Gender(String) to String {
+	final Male = M;
+	final Female = F;
 }
