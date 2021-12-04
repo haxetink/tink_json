@@ -11,7 +11,7 @@ class BasicParser {
     if (s.length == 0)
       throw 'assert';
 
-    var ret = macro true;//macro this.max > this.pos + $v{s.length - 1};
+    var ret = macro this.max > this.pos + $v{s.length - 1};
 
     for (i in 0...s.length)
       ret = macro $ret && $ethis.source.getChar($ethis.pos + $v{i}) == $v{s.charCodeAt(i)};
