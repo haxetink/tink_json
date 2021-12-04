@@ -117,7 +117,7 @@ abstract JsonString(String) {
     return ret;
   }
 
-  static final BACKSLASH = '\\';
+  static inline var BACKSLASH = '\\';
   public inline function toString()
     return switch this.indexOf(BACKSLASH) {
       case -1: this;

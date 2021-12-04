@@ -186,6 +186,13 @@ class GenReader extends GenBase {
     };
 
     var branch = {
+      #if tink_json_compact_code
+      ESwitch(
+        macro this.parseString().toString() & expect(':'),
+        [for (name => expr in byName) { values: [macro $v{name}], expr: expr }],
+        macro this.skipValue()).at((macro null).pos
+      );
+      #else
       function toExpr(b:Branch):Expr {
         var cases = new Array<Case>();
         switch b.expr {
@@ -215,6 +222,7 @@ class GenReader extends GenBase {
         cur.expr = expr;
       }
       toExpr(root);
+      #end
     }
 
     return macro {
@@ -225,12 +233,16 @@ class GenReader extends GenBase {
       this.toChar('{'.code, '{');
       if (!this.allow('}')) {
         do {
+          #if tink_json_compact_code
+          $branch;
+          #else
           this.toChar('"'.code, '"');
           $branch;
           if (cur != '"'.code) skipString();
           this.toChar(':'.code, ':');
           this.skipIgnored();
           this.skipValue();
+          #end
         } while (this.allow(',', true, false));
         this.expect('}');
       }
