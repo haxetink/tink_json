@@ -21,7 +21,7 @@ class GenWriter extends GenBase {
     return placeholder.func(['value'.toArg(ct)], false);
 
   public function nullable(e)
-    return macro if (value == null) this.output('null') else $e;
+    return macro if ((value : Dynamic) == null) this.output('null') else $e;
 
   public function string()
     return macro this.writeString(value);
