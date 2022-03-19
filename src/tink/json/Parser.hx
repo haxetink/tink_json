@@ -102,15 +102,34 @@ private typedef StdParser = haxe.format.JsonParser;
 
 #if js
 abstract JsonString(String) {
-  public inline function new(raw:RawData, min, max)
+
+  #if tink_json_compact_code
+  @:native('n')
+  #else
+  inline
+  #end
+  public function new(raw:RawData, min, max)
     this = raw.substring(min, max);
 
-  public inline function toInt():Int
+  #if tink_json_compact_code
+  @:native('i')
+  #else
+  inline
+  #end
+  public function toInt():Int
     return js.Syntax.code('parseInt({0})', this);
 
-  public inline function toFloat():Float
+  #if tink_json_compact_code
+  @:native('f')
+  #else
+  inline
+  #end
+  public function toFloat():Float
     return Std.parseFloat(this);
 
+  #if tink_json_compact_code
+  @:native('u')
+  #end
   public function toUInt() {
     var ret:UInt = 0;
     for(i in 0...this.length) ret += Std.parseInt(this.charAt(i)) * Std.int(Math.pow(10, this.length - i - 1));
@@ -118,7 +137,10 @@ abstract JsonString(String) {
   }
 
   static inline var BACKSLASH = '\\';
-  public inline function toString()
+  #if (tink_json_compact_code && !cpp)
+  @:native('s')
+  #end
+  public function toString()
     return switch this.indexOf(BACKSLASH) {
       case -1: this;
       default: StdParser.parse('"$this"');
@@ -129,9 +151,17 @@ abstract JsonString(String) {
 @:forward
 private abstract JsonString(SliceData) {
 
-  public inline function new(raw, min, max)
+  #if tink_json_compact_code
+  @:native('n')
+  #else
+  inline
+  #end
+  public function new(raw, min, max)
     this = new SliceData(raw, min, max);
 
+  #if (tink_json_compact_code && !cpp)
+  @:native('s')
+  #end
   public function toString():String
     return
       if (this.source.hasBackslash(this.min, this.max))
@@ -146,9 +176,19 @@ private abstract JsonString(SliceData) {
   public function get()
     return this.source.substring(this.min, this.max);
 
-  public inline function toInt():Int
+  #if tink_json_compact_code
+  @:native('i')
+  #else
+  inline
+  #end
+  public function toInt():Int
     return Std.parseInt(get());
 
+  #if tink_json_compact_code
+  @:native('u')
+  #else
+  inline
+  #end
   public function toUInt() {
     var ret:UInt = 0;
     var v = get();
@@ -156,7 +196,12 @@ private abstract JsonString(SliceData) {
     return ret;
   }
 
-  public inline function toFloat()
+  #if tink_json_compact_code
+  @:native('f')
+  #else
+  inline
+  #end
+  public function toFloat()
     return Std.parseFloat(get());
 
   @:commutative @:op(a == b)
