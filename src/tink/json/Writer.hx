@@ -20,22 +20,28 @@ class BasicWriter {
     buf = new StringBuf();
   }
 
-  inline function output(s:String)
+  #if !tink_json_compact_code inline #end
+  function output(s:String)
     buf.add(s);
 
-  inline function char(c:Char)
+  #if !tink_json_compact_code inline #end
+  function char(c:Char)
     buf.addChar(c);
 
-  inline function writeInt(v:Int)
+  #if !tink_json_compact_code inline #end
+  function writeInt(v:Int)
     output(Std.string((v:Int)));
 
-  inline function writeFloat(v:Float)
+  #if !tink_json_compact_code inline #end
+  function writeFloat(v:Float)
     output(Std.string((v:Float)));
 
-  inline function writeBool(b:Bool)
+  #if !tink_json_compact_code inline #end
+  function writeBool(b:Bool)
     output(if (b) 'true' else 'false');
 
-  inline function writeString(s:String)
+  #if !tink_json_compact_code inline #end
+  function writeString(s:String)
     output(StringWriter.stringify(s));
 
   function writeDynamic(value:Dynamic)
