@@ -19,7 +19,8 @@ class GenReader extends GenBase {
     super(':jsonParse', crawler);
   }
 
-  static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
+  static var EXPLICIT:Metadata = [{ name: ':explicit', params:[], pos: (macro null).pos }];
+  static var OPTIONAL = EXPLICIT.concat([{ name: ':optional', params:[], pos: (macro null).pos }]);
 
   public function wrap(placeholder:Expr, ct:ComplexType):Function
     return placeholder.func(ct);
@@ -94,7 +95,7 @@ class GenReader extends GenBase {
           optional = f.optional || IGNORE_MISSING_FIELDS;
 
       var option = switch f.type.reduce() {
-        case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]): Some(v);
+        case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]) if (!Lambda.exists(f.meta, m -> m.name == ':explicit')): Some(v);
         default: None;
       }
 
@@ -304,7 +305,7 @@ class GenReader extends GenBase {
       return TAnonymous([for (f in fields) {
         name: f.name,
         pos: f.pos,
-        meta: if (f.optional) OPTIONAL else [],
+        meta: if (f.optional) OPTIONAL else EXPLICIT,
         kind: FProp(f.access.get, f.access.set, f.type.toComplex()),
       }]);
 
