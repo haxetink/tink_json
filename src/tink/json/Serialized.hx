@@ -6,7 +6,10 @@ using tink.MacroApi;
 #end
 
 @:transitive
-abstract Serialized<T>(String) to String {
+abstract Serialized<T #if (haxe_ver >= 4.3) = Any #end>(String) to String from Serialized<Any> from Serialized<Dynamic> {
+  
+  public function new(s) this = s;
+  
   #if macro
   static function resultType(ethis:Expr)
     return switch ethis.typeof().sure() {
