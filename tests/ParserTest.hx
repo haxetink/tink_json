@@ -86,6 +86,13 @@ class ParserTest {
     ));
   }
 
+  public function nestedWithAlias() {
+    return assert(typedCompare(
+      Custom({signature: '() -> Void' }),
+      parse('{ "type": "fn", "function": "() -> Void" }')
+    ));
+  }
+
   public function native() {
     var o:{@:json('default') var _default:Int;} = parse('{"default":1}');
     return assert(compare({_default:1}, o));

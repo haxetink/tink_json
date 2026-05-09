@@ -258,7 +258,7 @@ class GenWriter extends GenBase {
                 $b{[for (f in cfields) {
                   var fname = f.name;
                   macro {
-                    this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
+                    this.output($v{'${if (first) { first = false; ""; } else ","}"${Macro.nativeName(f)}"'});
                     this.char(':'.code);
                     {
                       var value = ${

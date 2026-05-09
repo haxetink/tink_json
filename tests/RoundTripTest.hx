@@ -117,6 +117,9 @@ class RoundTripTest {
   public function issue94()
     return assert(Helper.roundtrip(B(Some("string")), true));
 
+  public function nestedWithAlias()
+    return assert(Helper.roundtrip(Custom({signature: '() -> Void'}), true));
+
 }
 
 enum V {

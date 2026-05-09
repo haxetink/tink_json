@@ -43,6 +43,10 @@ enum Item {
   Potion(effect:PotionEffect);
 }
 
+enum NestedWithAlias {
+  @:json({ type: 'fn' }) Custom(custom:{ @:json('function') var signature:String; });
+}
+
 class FruitParser {
   public function new(_) {}
 
