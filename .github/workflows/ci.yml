@@ -34,14 +34,14 @@ jobs:
 
     steps:
     - name: Check out repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v6
     
     - name: Get yarn cache directory path
       id: yarn-cache-dir-path
-      run: echo "::set-output name=dir::$(yarn cache dir)"
+      run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
     - name: Cache Yarn
-      uses: actions/cache@v1
+      uses: actions/cache@v6
       with:
         path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
         key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -49,7 +49,7 @@ jobs:
           ${{ runner.os }}-yarn-
         
     - name: Cache Haxe
-      uses: actions/cache@v1
+      uses: actions/cache@v6
       with:
         path: ~/haxe
         key: haxe
@@ -73,14 +73,14 @@ jobs:
     
     steps:
     - name: Check out repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v6
     
     - name: Get yarn cache directory path
       id: yarn-cache-dir-path
-      run: echo "::set-output name=dir::$(yarn cache dir)"
+      run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
     - name: Cache Yarn
-      uses: actions/cache@v1
+      uses: actions/cache@v6
       with:
         path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
         key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -88,7 +88,7 @@ jobs:
           ${{ runner.os }}-yarn-
         
     - name: Cache Haxe
-      uses: actions/cache@v1
+      uses: actions/cache@v6
       with:
         path: ~/haxe
         key: haxe
