@@ -3,11 +3,10 @@ name: CI
 on:
   push:
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   test:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -15,15 +14,15 @@ jobs:
         haxe-version:
           - stable
           - nightly
-        target: 
+        target:
           - interp
           - neko
           # - python # somehow has a time out error when running the tests
           - node
+          - js
           - lua
-          # - java # haxe just stack overflowed
           - jvm
-          - cpp 
+          # - cpp # TODO: figure out hxcpp
           - php
         flags:
           - ""
@@ -33,77 +32,76 @@ jobs:
             flags: -D tink_json_compact_code # FIXME: compact code not working on php
 
     steps:
-    - name: Check out repo
-      uses: actions/checkout@v6
-    
-    - name: Get yarn cache directory path
-      id: yarn-cache-dir-path
-      run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      - name: Check out repo
+        uses: actions/checkout@v6
 
-    - name: Cache Yarn
-      uses: actions/cache@v6
-      with:
-        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-yarn-
-        
-    - name: Cache Haxe
-      uses: actions/cache@v6
-      with:
-        path: ~/haxe
-        key: haxe
-        
-    - name: Install Lix
-      uses: lix-pm/setup-lix@master
-      
-    - name: Install Haxe
-      run: lix install haxe ${{ matrix.haxe-version }}
-    
-    - name: Install Haxe Libraries
-      run: lix download
-      
-    - name: Run Test
-      run: lix run travix ${{ matrix.target }} ${{ matrix.flags }} 
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Yarn
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Cache Haxe
+        uses: actions/cache@v6
+        with:
+          path: ~/haxe
+          key: haxe
+
+      - name: Install Lix
+        uses: lix-pm/setup-lix@master
+
+      - name: Install Haxe
+        run: lix install haxe ${{ matrix.haxe-version }}
+
+      - name: Install Haxe Libraries
+        run: lix download
+
+      - name: Run Test
+        run: lix run travix ${{ matrix.target }} ${{ matrix.flags }}
 
   release:
     runs-on: ubuntu-latest
     needs: test
     if: startsWith(github.ref, 'refs/tags/') # consider using the "release" event. see: https://docs.github.com/en/actions/reference/events-that-trigger-workflows#release
-    
-    steps:
-    - name: Check out repo
-      uses: actions/checkout@v6
-    
-    - name: Get yarn cache directory path
-      id: yarn-cache-dir-path
-      run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-    - name: Cache Yarn
-      uses: actions/cache@v6
-      with:
-        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-yarn-
-        
-    - name: Cache Haxe
-      uses: actions/cache@v6
-      with:
-        path: ~/haxe
-        key: haxe
-        
-    - name: Install Lix
-      uses: lix-pm/setup-lix@master
-      
-    - name: Install Haxe
-      run: lix install haxe stable
-    
-    - name: Install Haxe Libraries
-      run: lix download
-      
-    - name: Release to Haxelib
-      run: lix run travix release
-      env:
-        HAXELIB_AUTH: ${{ secrets.HAXELIB_AUTH }}
-    
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v6
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Yarn
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Cache Haxe
+        uses: actions/cache@v6
+        with:
+          path: ~/haxe
+          key: haxe
+
+      - name: Install Lix
+        uses: lix-pm/setup-lix@master
+
+      - name: Install Haxe
+        run: lix install haxe stable
+
+      - name: Install Haxe Libraries
+        run: lix download
+
+      - name: Release to Haxelib
+        run: lix run travix release
+        env:
+          HAXELIB_AUTH: ${{ secrets.HAXELIB_AUTH }}
