@@ -617,7 +617,7 @@ class GenReader extends GenBase {
           this.tuple([drive(a, pos, gen), drive(b, pos, gen)], values -> (macro var __ret = new tink.core.Pair(${values[0]}, ${values[1]})), macro __ret);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
           macro haxe.ds.Vector.fromArrayCopy(${this.array(drive(t, pos, gen))});
-        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _) | TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
+        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _) | TAbstract(_.get() => {pack: ['haxe'], name: 'UInt32'}, _):
           macro this.parseNumber().toUInt();
         default: super.drive(type, pos, gen);
       }
