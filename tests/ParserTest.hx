@@ -126,8 +126,7 @@ class ParserTest {
 
   public function representationPriority() {
     var c:Contraption = parse('[12]');
-    asserts.assert(c.foo == 12);
-    return asserts.done();
+    return assert(c.foo == 12);
   }
 
   public function invalidEnumAbstract() {
@@ -296,8 +295,7 @@ class ParserTest {
   }
 
   public function issue51() {
-    asserts.assert(parse(('ab':FinalUnification)).match(Failure(_)));
-    return asserts.done();
+    return assert(parse(('ab':FinalUnification)).match(Failure(_)));
   }
   #end
 
