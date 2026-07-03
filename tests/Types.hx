@@ -43,6 +43,10 @@ enum Item {
   Potion(effect:PotionEffect);
 }
 
+enum NestedWithAlias {
+  @:json({ type: 'fn' }) Custom(custom:{ @:json('function') var signature:String; });
+}
+
 class FruitParser {
   public function new(_) {}
 
@@ -203,4 +207,30 @@ enum EnumAbstractStringKey {
 enum EnumAbstractIntKey {
   @:json({type: Types.MyEnumAbstractInt.A}) A;
   @:json({type: Types.MyEnumAbstractInt.B}) B(v:String);
+}
+
+enum abstract IntAbstract(Int) {
+  var A = 1;
+}
+
+@:jsonStringify(id -> (id : String))
+@:jsonParse(id -> Types.MacroFrom.make(id).sure())
+abstract MacroFrom(String) to String {
+	inline function new(v)
+		this = v;
+
+	public static function make(v:String):tink.core.Outcome<MacroFrom, tink.core.Error> {
+		return Success(new MacroFrom(v));
+	}
+	
+	@:from
+	public static macro function fromExpr(e:haxe.macro.Expr);
+}
+
+
+@:jsonStringify(v -> (cast v:Float))
+@:jsonParse((v:Float) -> new Types.NotFloat(v))
+abstract NotFloat(Float) {
+  public inline function new(v) this = v;
+  public inline function toFloat() return this;
 }

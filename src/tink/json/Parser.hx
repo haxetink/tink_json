@@ -5,9 +5,7 @@ import tink.json.Value;
 using StringTools;
 using tink.CoreApi;
 
-#if !macro
 @:genericBuild(tink.json.macros.Macro.buildParser())
-#end
 class Parser<T> {
 
 }
@@ -52,12 +50,11 @@ private abstract RawData(String) {
     setLength(s.length);
   }
 
-  public function hasBackslash(min:Int, max:Int)
-    return switch this.indexOf('\\', min) {
-      case -1: false;
-      case outside if (outside > max): false;
-      case v: true;
-    }
+  public function hasBackslash(min:Int, max:Int) {
+    for (i in min...max)
+      if (this.fastCodeAt(i) == '\\'.code) return true;
+    return false;
+  }
 
   public inline function getChar(i:Int)
     return this.fastCodeAt(i);
@@ -103,26 +100,95 @@ private extern class StdParser {
 private typedef StdParser = haxe.format.JsonParser;
 #end
 
-@:forward
-private abstract JsonString(SliceData) from SliceData {
+#if js
+abstract JsonString(String) {
 
+  #if tink_json_compact_code
+  @:native('n')
+  #else
+  inline
+  #end
+  public function new(raw:RawData, min, max)
+    this = raw.substring(min, max);
+
+  #if tink_json_compact_code
+  @:native('i')
+  #else
+  inline
+  #end
+  public function toInt():Int
+    return js.Syntax.code('parseInt({0})', this);
+
+  #if tink_json_compact_code
+  @:native('f')
+  #else
+  inline
+  #end
+  public function toFloat():Float
+    return Std.parseFloat(this);
+
+  #if tink_json_compact_code
+  @:native('u')
+  #end
+  public function toUInt() {
+    var ret:UInt = 0;
+    for(i in 0...this.length) ret += Std.parseInt(this.charAt(i)) * Std.int(Math.pow(10, this.length - i - 1));
+    return ret;
+  }
+
+  static inline var BACKSLASH = '\\';
+  #if (tink_json_compact_code && !cpp)
+  @:native('s')
+  #end
+  public function toString()
+    return switch this.indexOf(BACKSLASH) {
+      case -1: this;
+      default: StdParser.parse('"$this"');
+    }
+
+}
+#else
+@:forward
+private abstract JsonString(SliceData) {
+
+  #if tink_json_compact_code
+  @:native('n')
+  #else
+  inline
+  #end
+  public function new(raw, min, max)
+    this = new SliceData(raw, min, max);
+
+  #if (tink_json_compact_code && !cpp)
+  @:native('s')
+  #end
   public function toString():String
     return
-      if (#if js true #else this.source.hasBackslash(this.min, this.max) #end)
+      if (this.source.hasBackslash(this.min, this.max))
         StdParser.parse(this.source.substring(this.min - 1, this.max + 1));
       else get();
 
-  #if tink_json_compact_code
-  @:native('g')
+  #if (tink_json_compact_code && !cpp)
+  @:native('g') // note that on cpp @:native will emit a global identifier
   #else
   inline
   #end
   public function get()
     return this.source.substring(this.min, this.max);
 
-  public inline function toInt():Int
+  #if tink_json_compact_code
+  @:native('i')
+  #else
+  inline
+  #end
+  public function toInt():Int
     return Std.parseInt(get());
 
+  #if tink_json_compact_code
+  @:native('u')
+  #else
+  inline
+  #end
   public function toUInt() {
     var ret:UInt = 0;
     var v = get();
@@ -130,7 +196,12 @@ private abstract JsonString(SliceData) from SliceData {
     return ret;
   }
 
-  public inline function toFloat()
+  #if tink_json_compact_code
+  @:native('f')
+  #else
+  inline
+  #end
+  public function toFloat()
     return Std.parseFloat(get());
 
   @:commutative @:op(a == b)
@@ -144,10 +215,9 @@ private abstract JsonString(SliceData) from SliceData {
       a.source.hasId(b, a.min, a.max);
 
 }
-
-#if !macro
-@:build(tink.json.macros.Macro.compact())
 #end
+
+@:build(tink.json.macros.Macro.compact())
 class BasicParser {
 
   public var plugins(default, null):Annex<BasicParser>;
@@ -169,9 +239,8 @@ class BasicParser {
   inline
   #end
   function skipIgnored()
-    while (pos < max && source.getChar(pos) < 33) pos++;
+    while (#if !js pos < max && #end source.getChar(pos) < 33) pos++;
 
-  #if !macro
   function parseDynamic():Any {
     var start = pos;
     skipValue();
@@ -209,6 +278,13 @@ class BasicParser {
     var start = pos;
 
     while (true)
+      #if (js && never_mind) // apparently, this is slower
+        switch next() {
+          case '"'.code: break;
+          case '\\'.code: pos++;
+          default:
+        }
+      #else
       switch source.charPos(DBQT, pos, max) {
         case -1:
 
@@ -224,6 +300,7 @@ class BasicParser {
           if ((p - pos) & 1 == 0)
             break;
       }
+      #end
 
     return start;
   }
@@ -253,7 +330,7 @@ class BasicParser {
     var minus = c == '-'.code, digit = !minus, zero = c == '0'.code;
     var point = false, e = false, pm = false, end = false;
     while( pos < max ) {
-      c = nextChar();
+      c = next();
       switch( c ) {
         case '0'.code :
           if (zero && !point) invalidNumber(start);
@@ -285,10 +362,20 @@ class BasicParser {
   }
 
   function slice(from, to):JsonString
-    return new SliceData(this.source, from, to);
+    return new JsonString(this.source, from, to);
 
-  inline function nextChar()
+  #if !tink_json_compact_code
+  inline
+  #end
+  function next()
     return source.getChar(pos++);
+
+  inline function toChar(code:Int, expected:String)
+    while (true) switch next() {
+      case _ == code => true: break;
+      case _ < 33 => true:
+      default: die('expected $expected');
+    }
 
   function parseSerialized<T>():Serialized<T> {
     var start = pos;
@@ -297,12 +384,12 @@ class BasicParser {
   }
 
   function parseValue():Value
-    return switch nextChar() {
+    return switch next() {
       case '{'.code:
         var fields = new Array<Named<Value>>();
         if (!allow('}')) {
           inline function pair() {
-            if (nextChar() != '"'.code)
+            if (next() != '"'.code)
               die('expected string', pos - 1);
 
             fields.push(new Named(
@@ -361,13 +448,13 @@ class BasicParser {
   }
 
   function skipValue()
-    switch nextChar() {
+    switch next() {
       case '{'.code:
         if (allow('}'))
           return;
 
         inline function pair() {
-          if (nextChar() != '"'.code)
+          if (next() != '"'.code)
             die('expected string', pos - 1);
 
           skipString();
@@ -429,7 +516,6 @@ class BasicParser {
 
     return Error.withData(UnprocessableEntity, s+' at $range in $context', { source: source, start: pos, end: end }).throwSelf();
   }
-  #end
 
   #if tink_json_compact_code
   function allow(s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
@@ -445,41 +531,15 @@ class BasicParser {
     return if (!allow(s, skipBefore, skipAfter)) die('Expected $expected') else null;
   }
   #else
-  macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String) {
-    if (expected == null) expected = s;
-    return macro (if (!$ethis.allow($v{s}, $v{skipBefore}, $v{skipAfter})) $ethis.die('Expected ' + $v{expected}) else null : tink.json.Parser.ContinueParsing);
-  }
-
-  macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true) {
-
-    if (s.length == 0)
-      throw 'assert';
-
-    var ret = macro this.max > this.pos + $v{s.length - 1};
-
-    for (i in 0...s.length)
-      ret = macro $ret && $ethis.source.getChar($ethis.pos + $v{i}) == $v{s.charCodeAt(i)};
-
-    return macro {
-      if ($v{skipBefore})
-        $ethis.skipIgnored();
-      if ($ret) {
-        $ethis.pos += $v{s.length};
-        if ($v{skipAfter})
-          $ethis.skipIgnored();
-        true;
-      }
-      else false;
-    }
-  }
+  macro function expect(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true, ?expected:String);
+  macro function allow(ethis, s:String, skipBefore:Bool = true, skipAfter:Bool = true);
   #end
-  #if !macro
+
   function parseBool()
     return
       if (this.allow('true')) true;
       else if (this.allow('false')) false;
       else die('expected boolean value');
-  #end
 
 }
 

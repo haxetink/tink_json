@@ -86,6 +86,13 @@ class ParserTest {
     ));
   }
 
+  public function nestedWithAlias() {
+    return assert(typedCompare(
+      Custom({signature: '() -> Void' }),
+      parse('{ "type": "fn", "function": "() -> Void" }')
+    ));
+  }
+
   public function native() {
     var o:{@:json('default') var _default:Int;} = parse('{"default":1}');
     return assert(compare({_default:1}, o));
@@ -95,16 +102,20 @@ class ParserTest {
     var res:Input = parse('{"a": "text"}');
     return assert(res.a == 'text');
   }
-  
+
   public function vector() {
     var v:haxe.ds.Vector<Int> = parse('[0,1,2]');
     asserts.assert(v.length == 3);
     for(i in 0...v.length) asserts.assert(v[i] == i);
-    
+
     var v:haxe.ds.Vector<Float> = parse('[0,1,2]');
     asserts.assert(v.length == 3);
     for(i in 0...v.length) asserts.assert(v[i] == i);
     
+    var v:haxe.ds.Vector<NotFloat> = parse('[0,1,2]');
+    asserts.assert(v.length == 3);
+    for(i in 0...v.length) asserts.assert(v[i].toFloat() == i);
+
     return asserts.done();
   }
 
@@ -115,8 +126,7 @@ class ParserTest {
 
   public function representationPriority() {
     var c:Contraption = parse('[12]');
-    asserts.assert(c.foo == 12);
-    return asserts.done();
+    return assert(c.foo == 12);
   }
 
   public function invalidEnumAbstract() {
@@ -161,6 +171,12 @@ class ParserTest {
     asserts.assert(r.tryParse('{ "optional": {}, "mandatory": { "foo" : 5 } }').isSuccess());
     asserts.assert(r.tryParse('{ "optional": { "foo": 5 }, "mandatory": { "foo" : 5 } }').isSuccess());
     asserts.assert(!r.tryParse('{ "optional": { "foo": 5 }, "mandatory": {} }').isSuccess());
+    return asserts.done();
+  }
+
+  public function pair() {
+    asserts.assert(parse(('[1,"foo"]':Pair<Int, String>)).match(Success({a: 1, b: 'foo'})));
+    asserts.assert(parse(('[1,1.5]':Pair<Int, NotFloat>)).match(Success({a: 1, b: _.toFloat() => 1.5})));
     return asserts.done();
   }
 
@@ -234,14 +250,42 @@ class ParserTest {
     asserts.assert(parse(('{"u":2147483648}':{u:UInt})).sure().u == u);
     return asserts.done();
   }
-  
-  public function testEnumAbstractKey() {
+
+  public function enumAbstractKey() {
     asserts.assert(parse(('{"type":"aaa"}':EnumAbstractStringKey)).match(Success(A)));
     asserts.assert(parse(('{"type":"bbb","v":"foo"}':EnumAbstractStringKey)).match(Success(B('foo'))));
     asserts.assert(parse(('{"type":1}':EnumAbstractIntKey)).match(Success(A)));
     asserts.assert(parse(('{"type":2,"v":"foo"}':EnumAbstractIntKey)).match(Success(B('foo'))));
     return asserts.done();
   }
+
+  public function privateEnumAbstract() {
+    asserts.assert(parse(('0':VeryPrivate)).match(Success(VeryPrivate.A)));
+    asserts.assert(parse(('{"foo":1}':{foo:VeryPrivate})).match(Success({foo:VeryPrivate.B})));
+    return asserts.done();
+  }
+  
+  public function primitiveAbstract() {
+    asserts.assert(parse(('1':IntAbstract)).match(Success(IntAbstract.A)));
+    asserts.assert(parse(('{"a":1}':{a:IntAbstract})).match(Success({a:IntAbstract.A})));
+    return asserts.done();
+  }
+  
+  public function macroFrom() {
+    asserts.assert(parse(('{"v":"foo"}':{final v:MacroFrom;})).match(Success(_)));
+    return asserts.done();
+  }
+  
+  #if js
+  public function jsBigInt() {
+    
+    switch parse(('{"id":-1001462968246}':{id:Int})) {
+      case Success(o): asserts.assert(o.id == -1001462968246);
+      case Failure(e): asserts.fail(e);
+    }
+    return asserts.done();
+  }
+  #end
 
   #if haxe4
   public function optionalFinal() {
@@ -251,10 +295,22 @@ class ParserTest {
   }
 
   public function issue51() {
-    asserts.assert(parse(('':E)).match(Failure(_)));
-    return asserts.done();
+    return assert(parse(('ab':FinalUnification)).match(Failure(_)));
   }
   #end
+
+  public function issue85() {
+    asserts.assert(tink.Json.parse(('{"id":1, "ids":[1]}':{ids:Array<Int>})).match(Success({ids:[1]})));
+    return asserts.done();
+  }
+
+  public function testMetas() {
+    var o1:{ @:json('foo') var beep:Int; } = tink.Json.parse('{"foo":123}');
+    var o2:{ @:json('bar') var beep:Int; } = tink.Json.parse('{"bar":123}');
+    asserts.assert(o1.beep == 123);
+    asserts.assert(o2.beep == 123);
+    return asserts.done();
+  }
 
   public function testIssue67() {
     var l:{ foo: Lazy<Foo> } = parse('{ "foo": 123 }');
@@ -266,6 +322,14 @@ class ParserTest {
 
   public function testIssue29() {
     asserts.assert(!parse(('{}haha': {})).isSuccess());
+    return asserts.done();
+  }
+
+  public function testIssue90() {
+    var s = tink.Json.stringify(Gender.Male);
+    asserts.assert(s != null);
+		var g:Gender = tink.Json.parse(s);
+    asserts.assert(g == Gender.Male);
     return asserts.done();
   }
 
@@ -284,7 +348,23 @@ private class Foo {
 }
 
 #if haxe4
-enum E {
+enum FinalUnification {
   Glargh(a:{final i:Int;});
 }
 #end
+
+
+private enum abstract VeryPrivate(Int) {
+  var A = 0;
+  var B = 1;
+}
+
+// https://github.com/haxetink/tink_json/issues/90
+enum abstract Letters(String) to String {
+	final M = "M";
+	final F = "F";
+}
+enum abstract Gender(String) to String {
+	final Male = M;
+	final Female = F;
+}

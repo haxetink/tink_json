@@ -12,13 +12,15 @@ import tink.typecrawler.Generator;
 using haxe.macro.Tools;
 using tink.MacroApi;
 using tink.CoreApi;
+using StringTools;
 
 class GenReader extends GenBase {
   public function new(crawler) {
     super(':jsonParse', crawler);
   }
 
-  static var OPTIONAL:Metadata = [{ name: ':optional', params:[], pos: (macro null).pos }];
+  static var EXPLICIT:Metadata = [{ name: ':explicit', params:[], pos: (macro null).pos }];
+  static var OPTIONAL = EXPLICIT.concat([{ name: ':optional', params:[], pos: (macro null).pos }]);
 
   public function wrap(placeholder:Expr, ct:ComplexType):Function
     return placeholder.func(ct);
@@ -51,30 +53,49 @@ class GenReader extends GenBase {
       this.expect('[');
       var __ret = new #if haxe4 haxe.ds.Map #else Map #end();
       if (!allow(']')) {
-        do {
-          this.expect('[');
-          __ret.set($k, this.expect(',') & $v);
-          this.expect(']');
-        } while (allow(','));
+        do ${tuple([k, v], values -> macro __ret.set(${values[0]}, ${values[1]}))}
+        while (allow(','));
         expect(']');
       }
       __ret;
     }
 
+  function tuple(elements:Array<Expr>, make, ?out) {
+    var exprs = [macro this.expect('[')];
+
+    var vars = [];
+    for(i in 0...elements.length) {
+      var name = '_e$i';
+      var e = elements[i];
+      exprs.push(macro var $name = ${i == 0 ? e : macro this.expect(',') & $e});
+      vars.push(macro $i{name});
+    }
+
+    exprs.push(make(vars));
+    exprs.push(macro this.expect(']'));
+    if(out != null) exprs.push(out);
+
+    return macro $b{exprs};
+  }
+
+  static final IGNORE_MISSING_FIELDS = Context.defined('tink_json.ignore_missing_fields');
+
   public function anon(fields:Array<FieldInfo>, ct) {
 
-    var read = macro this.skipValue(),
-        vars:Array<Var> = [],
-        obj = [];
+    var vars:Array<Var> = [{ name: 'cur', expr: macro 0, type: null }],
+        obj = [],
+        byName = new Map();
+
     EObjectDecl(obj);//help type inference
+
     for (f in fields) {
       var ct = f.type.toComplex(),
           name = 'v_' + f.name,
           jsonName = Macro.nativeName(f),
-          optional = f.optional;
+          optional = f.optional || IGNORE_MISSING_FIELDS;
 
       var option = switch f.type.reduce() {
-        case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]): Some(v);
+        case TEnum(_.get() => {pack:['haxe','ds'], name:'Option'}, [v]) if (!Lambda.exists(f.meta, m -> m.name == ':explicit')): Some(v);
         default: None;
       }
 
@@ -89,22 +110,20 @@ class GenReader extends GenBase {
 
       var hasName = 'has$name';
 
-      read = macro @:pos(f.pos)
-        if (__name__ == $v{jsonName}) {
-          ${
-            switch option {
-              case Some(t):
-                macro $i{name} = Some(${f.as(t)});
-              default:
-                macro $i{name} = ${f.expr};
-            }
-          }
-          ${
-            if (optional) macro $b{[]}
-            else macro $i{hasName} = true
+      byName[jsonName] = macro {
+        ${
+          switch option {
+            case Some(t):
+              macro $i{name} = Some(${f.as(t)});
+            default:
+              macro $i{name} = ${f.expr};
           }
         }
-        else $read;
+        ${
+          if (optional) macro $b{[]}
+          else macro $i{hasName} = true
+        }
+      };
 
       obj.push({
         field: f.name,
@@ -148,12 +167,12 @@ class GenReader extends GenBase {
           name: name,
           expr: switch defaultValue {
             case Some(v): v;
-            default: switch valType.getID() {
-              case 'Bool': macro false;
-              case 'Int' | 'UInt': macro 0;
-              case 'Float': macro .0;
+            default: switch Context.followWithAbstracts(valType).getID() {
+              case 'Bool': macro cast false;
+              case 'Int' | 'UInt': macro cast 0;
+              case 'Float': macro cast .0;
               default: macro null;
-            }
+            } // for working around the uninitialized var check, note that this initial value is unimportant because it is guaranteed to be rewritten
           },
           type: ct,
         });
@@ -167,22 +186,69 @@ class GenReader extends GenBase {
 
     };
 
+    var branch = {
+      #if tink_json_compact_code
+      ESwitch(
+        macro this.parseString().toString() & expect(':'),
+        [for (name => expr in byName) { values: [macro $v{name}], expr: expr }],
+        macro this.skipValue()).at((macro null).pos
+      );
+      #else
+      function toExpr(b:Branch):Expr {
+        var cases = new Array<Case>();
+        switch b.expr {
+          case null:
+          case v:
+            cases.push({
+              values: [macro '"'.code],
+              expr: macro { this.toChar(':'.code, ':'); skipIgnored(); $v; continue; } });
+        }
+
+        for (code => b in b.children)
+          cases.push({ values: [macro $v{code}], expr: toExpr(b) });
+
+        return ESwitch(macro cur = this.next(), cases, null).at((macro null).pos);
+      }
+
+      function make():Branch
+        return { children: new Map() };
+      var root = make();
+      for (name => expr in byName) {
+        var cur = root;
+        for (c in name)
+          cur = switch cur.children[c] {
+            case null: cur.children[c] = make();
+            case v: v;
+          }
+        cur.expr = expr;
+      }
+      toExpr(root);
+      #end
+    }
+
     return macro {
 
       ${EVars(vars).at()};
 
       var __start__ = this.pos;
-      this.expect('{');
+      this.toChar('{'.code, '{');
       if (!this.allow('}')) {
         do {
-          var __name__ = this.parseString();
-          this.expect(':');
-          $read;
-        } while (this.allow(','));
+          #if tink_json_compact_code
+          $branch;
+          #else
+          this.toChar('"'.code, '"');
+          $branch;
+          if (cur != '"'.code) skipString();
+          this.toChar(':'.code, ':');
+          this.skipIgnored();
+          this.skipValue();
+          #end
+        } while (this.allow(',', true, false));
         this.expect('}');
       }
 
-      function __missing__(field:String):Dynamic {
+      function __missing__<T>(field:String):T {
         return this.die('missing field "' + field + '"', __start__);
       };
 
@@ -224,6 +290,7 @@ class GenReader extends GenBase {
             access: f.access,
             type: f.type,
             optional: same.optional || f.optional,
+            meta: same.meta.concat(f.meta),
           }
         case other:
           fields[f.name] = {
@@ -232,6 +299,7 @@ class GenReader extends GenBase {
             access: f.access,
             type: (macro:tink.json.Serialized<tink.core.Any>).toType().sure(),
             optional: other.optional || f.optional,
+            meta: other.meta.concat(f.meta),
           }
       }
 
@@ -239,7 +307,7 @@ class GenReader extends GenBase {
       return TAnonymous([for (f in fields) {
         name: f.name,
         pos: f.pos,
-        meta: if (f.optional) OPTIONAL else [],
+        meta: (if (f.optional) OPTIONAL else EXPLICIT).concat(f.meta.filter(m -> m.name == ':json')),
         kind: FProp(f.access.get, f.access.set, f.type.toComplex()),
       }]);
 
@@ -264,6 +332,7 @@ class GenReader extends GenBase {
             type: mkComplex(cfields).toType().sure(),
             pos: c.pos,
             access: { get: 'default', set: 'default' },
+            meta: [],
           });
 
           cases.push({
@@ -301,6 +370,7 @@ class GenReader extends GenBase {
               type: f.expr.typeof().sure(),
               optional: true,
               access: { get: 'default', set: 'default' },
+              meta: [],
             });
 
         case v:
@@ -382,15 +452,25 @@ class GenReader extends GenBase {
   }
 
   public function enumAbstract(names:Array<Expr>, e:Expr, ct:ComplexType, pos:Position):Expr {
+    // get the values of the enum abstract statically
+    final valExprs = names.map(e -> {
+      macro ($i{e.toString().split('.').pop()}:$ct); // this ECheckType + DirectType approach makes sure we can punch through the type system even if the abstract is private
+    });
+    final values = valExprs.map(e -> {
+      switch Context.typeExpr(e) {
+        case {expr: TParenthesis({expr: TCast({expr: TCast(texpr, _)}, _)})}:
+          Context.getTypedExpr(texpr);
+        case _:
+          throw 'TODO';
+      }
+    });
+
     return macro @:pos(pos) {
-      var v:$ct = cast $e;
+      final v = $e;
       ${ESwitch(
         macro v,
-        [{expr: macro v, values: names}],
-        macro {
-          var list = $a{names};
-          throw new tink.core.Error(422, 'Unrecognized enum value: ' + v + '. Accepted values are: ' + tink.Json.stringify(list));
-        }
+        [{expr: macro (cast v:$ct), values: values}],
+        macro throw new tink.core.Error(422, 'Unrecognized enum value: ' + v + '. Accepted values are: ' + tink.Json.stringify(${macro $a{valExprs}}))
       ).at(pos)}
     }
   }
@@ -533,9 +613,11 @@ class GenReader extends GenBase {
   override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch type.reduce() {
+        case TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
+          this.tuple([drive(a, pos, gen), drive(b, pos, gen)], values -> (macro var __ret = new tink.core.Pair(${values[0]}, ${values[1]})), macro __ret);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
-          macro haxe.ds.Vector.fromArrayCopy(${this.array(gen(t, pos))});
-        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
+          macro haxe.ds.Vector.fromArrayCopy(${this.array(drive(t, pos, gen))});
+        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _) | TAbstract(_.get() => {pack: ['haxe'], name: 'UInt32'}, _):
           macro this.parseNumber().toUInt();
         default: super.drive(type, pos, gen);
       }
@@ -547,5 +629,8 @@ private typedef LiteInfo = {
   var type(default, never):Type;
   var optional(default, never):Bool;
   var access(default, never):FieldAccessInfo;
+  var meta(default, never):Metadata;
 }
+
+private typedef Branch = { ?expr:Expr, children:Map<Int, Branch> };
 #end

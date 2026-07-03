@@ -113,8 +113,19 @@ class RoundTripTest {
 
   public function issue69()
     return assert(Helper.roundtrip(A(null), true));
+
+  public function issue94()
+    return assert(Helper.roundtrip(B(Some("string")), true));
+
+  public function nestedWithAlias()
+    return assert(Helper.roundtrip(Custom({signature: '() -> Void'}), true));
+
 }
 
 enum V {
   A(a:Null<{foo:Int}>);
+}
+
+enum UsesOption {
+  B(option:haxe.ds.Option<String>);
 }

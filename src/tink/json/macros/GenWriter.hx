@@ -21,7 +21,7 @@ class GenWriter extends GenBase {
     return placeholder.func(['value'.toArg(ct)], false);
 
   public function nullable(e)
-    return macro if (value == null) this.output('null') else $e;
+    return macro if ((value : Dynamic) == null) this.output('null') else $e;
 
   public function string()
     return macro this.writeString(value);
@@ -51,22 +51,29 @@ class GenWriter extends GenBase {
         else
           this.char(','.code);
 
-        this.char('['.code);
-        {
-          var value = k;
-          $k;
-        }
-
-        this.char(','.code);
-        {
-          var value = value.get(k);
-          $v;
-        }
-
-        this.char(']'.code);
+        ${tuple([
+          {gen: k, value: macro k},
+          {gen: v, value: macro value.get(k)},
+        ])}
       }
       this.char(']'.code);
     }
+  
+  function tuple(elements:Array<{gen:Expr, value:Expr}>) {
+    var exprs = [macro this.char('['.code)];
+    for(i in 0...elements.length) {
+      if(i > 0)
+        exprs.push(macro this.char(','.code));
+      
+      var e = elements[i];
+      exprs.push(macro {
+        var value = ${e.value};
+        ${e.gen};
+      });
+    }
+    exprs.push(macro this.char(']'.code));
+    return macro $b{exprs}
+  }
 
   public function anon(fields:Array<FieldInfo>, ct)
     return if(fields.length == 0)
@@ -251,7 +258,7 @@ class GenWriter extends GenBase {
                 $b{[for (f in cfields) {
                   var fname = f.name;
                   macro {
-                    this.output($v{'${if (first) { first = false; ""; } else ","}"${f.name}"'});
+                    this.output($v{'${if (first) { first = false; ""; } else ","}"${Macro.nativeName(f)}"'});
                     this.char(':'.code);
                     {
                       var value = ${
@@ -421,8 +428,14 @@ class GenWriter extends GenBase {
   override public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
       switch type.reduce() {
+        case t = TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
+          var ct = t.toComplex();
+          this.tuple([
+            {gen: drive(a, pos, gen), value: macro (value:$ct).a},
+            {gen: drive(b, pos, gen), value: macro (value:$ct).b},
+          ]);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
-          this.array(gen(t, pos));
+          this.array(drive(t, pos, gen));
         case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
           macro @:pos(pos) {
             var v = Std.string((value:Float));
