@@ -7,65 +7,91 @@ import haxe.DynamicAccess;
 
 @:asserts
 class SchemaWriterTest {
+	static inline var HEADER = '"$$schema":"https://json-schema.org/draft/2020-12/schema"';
+	
 	public function new() {}
 	
 	@:variant(SPrimitive(PString(null)), '{"type":"string"}')
 	@:variant(SPrimitive(PString('White')), '{"type":"string","const":"White"}')
+	@:variant(SPrimitive(PInt(null, 0)), '{"type":"integer","minimum":0}')
+	@:variant(SAny, '{}')
+	@:variant(SConst('circle'), '{"const":"circle"}')
+	@:variant(SRef('Foo'), '{"$$ref":"#/$$defs/Foo"}')
+	@:variant(SNullable(SRef('Foo')), '{"oneOf":[{"$$ref":"#/$$defs/Foo"},{"type":"null"}]}')
 	@:variant(SOneOf([SPrimitive(PString('White'))]), '{"oneOf":[{"type":"string","const":"White"}]}')
-	@:variant(STuple([SPrimitive(PInt(null)),SPrimitive(PString(null))]), '{"type":"array","additionalItems":false,"items":[{"type":"integer"},{"type":"string"}]}')
+	@:variant(STuple([SPrimitive(PInt(null)),SPrimitive(PString(null))]), '{"type":"array","prefixItems":[{"type":"integer"},{"type":"string"}],"items":false,"minItems":2}')
+	public function writeType(schema:SchemaType, output:String) {
+		asserts.assert(JsonSchema.writeType(schema) == output);
+		return asserts.done();
+	}
 	
 	@:variant(tink.Json.schema(String), '{"type":"string"}')
 	@:variant(tink.Json.schema(Int), '{"type":"integer"}')
 	@:variant(tink.Json.schema(Float), '{"type":"number"}')
-	@:variant(tink.Json.schema(Date), '{"type":"number"}')
+	@:variant(tink.Json.schema(Date), '{"type":"number","description":"Unix timestamp in milliseconds"}')
 	@:variant(tink.Json.schema(Bool), '{"type":"boolean"}')
+	@:variant(tink.Json.schema(UInt), '{"type":"integer","minimum":0}')
 	@:variant(tink.Json.schema(haxe.io.Bytes), '{"type":"string","pattern":"^[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\\\\+/=]*$"}')
-	@:variant(this.makeColorSchema(), '{"oneOf":[{"type":"string","const":"White"},{"type":"object","additionalProperties":false,"required":["Hsl"],"properties":{"Hsl":{"type":"object","additionalProperties":false,"required":["value"],"properties":{"value":{"type":"object","additionalProperties":false,"required":["hue","lightness","saturation"],"properties":{"hue":{"type":"number"},"lightness":{"type":"number"},"saturation":{"type":"number"}}}}}}},{"type":"object","additionalProperties":false,"required":["Hsv"],"properties":{"Hsv":{"type":"object","additionalProperties":false,"required":["hue","saturation","value"],"properties":{"hue":{"type":"number"},"saturation":{"type":"number"},"value":{"type":"number"}}}}}]}')
-	@:variant(this.makeStringMapSchema(), '{"type":"array","items":{"type":"array","additionalItems":false,"items":[{"type":"string"},{"type":"integer"}]}}')
+	@:variant(tink.Json.schema(Dynamic), '')
+	@:variant(tink.Json.schema(tink.json.Value), '')
+	@:variant(this.makeNullableStringSchema(), '{"type":["string","null"]}')
+	@:variant(this.makeStringMapSchema(), '{"type":"array","items":{"type":"array","prefixItems":[{"type":"string"},{"type":"integer"}],"items":false,"minItems":2}}')
 	@:variant(this.makeArraySchema(), '{"type":"array","items":{"type":"string"}}')
-	@:variant(this.makeDynamicAccessSchema(), '{"type":"object","additionalProperties":false,"patternProperties":{".+":{"type":"string"}}}')
+	@:variant(this.makeDynamicAccessSchema(), '{"type":"object","additionalProperties":{"type":"string"}}')
 	@:variant(this.makeEnumAbstractSchema(), '{"enum":[0,1,2,3,4,5,6]}')
+	@:variant(this.makePairSchema(), '{"type":"array","prefixItems":[{"type":"string"},{"type":"integer"}],"items":false,"minItems":2}')
+	@:variant(this.makeEitherSchema(), '{"oneOf":[{"type":"string"},{"type":"integer"}]}')
+	public function write(schema:Schema, body:String) {
+		final expected = body == '' ? '{$HEADER}' : '{$HEADER,${body.substr(1)}';
+		asserts.assert(JsonSchema.write(schema) == expected);
+		return asserts.done();
+	}
 	
-	@:variant(SNullable(tink.Json.schema(String)), '{"type":["string","null"]}')
-	@:variant(SNullable(tink.Json.schema(Int)), '{"type":["integer","null"]}')
-	@:variant(SNullable(tink.Json.schema(Float)), '{"type":["number","null"]}')
-	@:variant(SNullable(tink.Json.schema(Date)), '{"type":["number","null"]}')
-	@:variant(SNullable(tink.Json.schema(Bool)), '{"type":["boolean","null"]}')
-	@:variant(SNullable(tink.Json.schema(haxe.io.Bytes)), '{"type":["string","null"],"pattern":"^[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\\\\+/=]*$"}')
-	@:variant(SNullable(this.makeColorSchema()), '{"oneOf":[{"type":"string","const":"White"},{"type":"object","additionalProperties":false,"required":["Hsl"],"properties":{"Hsl":{"type":"object","additionalProperties":false,"required":["value"],"properties":{"value":{"type":"object","additionalProperties":false,"required":["hue","lightness","saturation"],"properties":{"hue":{"type":"number"},"lightness":{"type":"number"},"saturation":{"type":"number"}}}}}}},{"type":"object","additionalProperties":false,"required":["Hsv"],"properties":{"Hsv":{"type":"object","additionalProperties":false,"required":["hue","saturation","value"],"properties":{"hue":{"type":"number"},"saturation":{"type":"number"},"value":{"type":"number"}}}}},{"type":"null"}]}')
-	@:variant(SNullable(this.makeStringMapSchema()), '{"type":["array","null"],"items":{"type":"array","additionalItems":false,"items":[{"type":"string"},{"type":"integer"}]}}')
-	@:variant(SNullable(this.makeArraySchema()), '{"type":["array","null"],"items":{"type":"string"}}')
-	@:variant(SNullable(this.makeDynamicAccessSchema()), '{"type":["object","null"],"additionalProperties":false,"patternProperties":{".+":{"type":"string"}}}')
-	@:variant(SNullable(this.makeEnumAbstractSchema()), '{"enum":[0,1,2,3,4,5,6,null]}')
-	public function write(schema:SchemaType, output:String) {
-		asserts.assert(JsonSchema.write(schema) == output);
+	@:variant(this.makeColorSchema(), '_SchemaWriterTest.Color', '{"oneOf":[{"type":"string","const":"White"},{"type":"object","additionalProperties":false,"required":["Hsl"],"properties":{"Hsl":{"type":"object","additionalProperties":false,"required":["value"],"properties":{"value":{"$$ref":"#/$$defs/Anon0"}}}}},{"type":"object","additionalProperties":false,"required":["Hsv"],"properties":{"Hsv":{"type":"object","additionalProperties":false,"required":["hue","saturation","value"],"properties":{"hue":{"type":"number"},"saturation":{"type":"number"},"value":{"type":"number"}}}}}]}')
+	@:variant(this.makeShapeSchema(), 'SchemaWriterTest.Shape', '{"oneOf":[{"type":"string","const":"dot"},{"type":"object","additionalProperties":false,"required":["type","radius"],"properties":{"type":{"const":"circle"},"radius":{"type":"number"}}},{"type":"object","additionalProperties":false,"required":["type","h","w"],"properties":{"type":{"const":"rect"},"h":{"type":"number"},"w":{"type":"number"}}}]}')
+	@:variant(this.makeTreeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["children","name"],"properties":{"children":{"type":"array","items":{"$$ref":"#/$$defs/Anon0"}},"name":{"type":"string"}}}')
+	public function writeRef(schema:Schema, id:String, def:String) {
+		final output = JsonSchema.write(schema);
+		asserts.assert(output.indexOf('$HEADER,"$$ref":"#/$$defs/$id"') == 1);
+		asserts.assert(output.indexOf('"$id":$def') > 0);
+		return asserts.done();
+	}
+	
+	public function writeCustomNames() {
+		final schema = tink.Json.schema(Renamed);
+		final id = 'Anon0';
+		final def = '{"type":"object","additionalProperties":false,"required":["renamed"],"properties":{"renamed":{"type":"string"},"maybe":{"type":["integer","null"]},"opt":{"type":"integer"}}}';
+		asserts.assert(JsonSchema.write(schema) == '{$HEADER,"$$ref":"#/$$defs/$id","$$defs":{"$id":$def}}');
 		return asserts.done();
 	}
 	
 	#if nodejs
-	
-	@:variant(SNullable(SPrimitive(PString(null))), ['"foo"', 'null'], ['1'])
-	@:variant(SNullable(this.makeColorSchema()), [this.stringifyColor(White), 'null'], ['"Black"'])
-	
-	
-	@:variant(tink.Json.schema(String), [tink.Json.stringify('foo')],['1'])
-	@:variant(tink.Json.schema(Int), [tink.Json.stringify(1)],['"1"'])
-	@:variant(tink.Json.schema(Float), [tink.Json.stringify(1.2)],['"1"'])
-	@:variant(tink.Json.schema(haxe.io.Bytes), [tink.Json.stringify(haxe.io.Bytes.alloc(10))],['1'])
+	@:variant(tink.Json.schema(String), [tink.Json.stringify('foo')], ['1'])
+	@:variant(tink.Json.schema(Int), [tink.Json.stringify(1)], ['"1"'])
+	@:variant(tink.Json.schema(Float), [tink.Json.stringify(1.2)], ['"1"'])
+	@:variant(tink.Json.schema(UInt), ['1'], ['-1', '1.5'])
+	@:variant(tink.Json.schema(haxe.io.Bytes), [tink.Json.stringify(haxe.io.Bytes.alloc(10))], ['1'])
+	@:variant(this.makeNullableStringSchema(), ['"foo"', 'null'], ['1'])
 	
 	@:variant(this.makeColorSchema(), [
 		this.stringifyColor(White),
 		this.stringifyColor(Hsv({hue: 0.1, saturation: 0.2, value: 0.3})),
 		this.stringifyColor(Hsl({hue: 0.1, saturation: 0.2, lightness: 0.3})),
 	], ['"Black"'])
+	@:variant(this.makeShapeSchema(), [
+		this.stringifyShape(Dot),
+		this.stringifyShape(Circle(1.5)),
+		this.stringifyShape(Rect(1.0, 2.0)),
+	], ['"Dot"', '{"type":"triangle"}', '{"type":"circle","radius":"1"}'])
+	@:variant(this.makeTreeSchema(), [
+		this.stringifyTree({name: 'root', children: [{name: 'leaf', children: []}]}),
+	], ['{"name":"root"}', '{"name":"root","children":[{"name":1,"children":[]}]}'])
 	@:variant(this.makeStringMapSchema(), [tink.Json.stringify(['foo' => 1])], ['[["foo","bar"]]'])
 	@:variant(this.makeArraySchema(), [tink.Json.stringify(['foo', 'bar'])], ['[1,2]'])
 	@:variant(this.makeDynamicAccessSchema(), [tink.Json.stringify(({foo: 'bar'}:haxe.DynamicAccess<String>))], ['{"foo":1}'])
 	@:variant(this.makeEnumAbstractSchema(), [this.stringifyEnumAbstract(Mon)], ['7'])
-	public function validate(schema:SchemaType, valid:Array<String>, invalid:Array<String>) {
-		final schema = JsonSchema.write(schema);
-		// trace(schema);
-		final validate = new Ajv().compile(haxe.Json.parse(schema));
+	public function validate(schema:Schema, valid:Array<String>, invalid:Array<String>) {
+		final validate = new Ajv().compile(haxe.Json.parse(JsonSchema.write(schema)));
 		for(value in valid) asserts.assert(validate(haxe.Json.parse(value)));
 		for(value in invalid) asserts.assert(!validate(haxe.Json.parse(value)));
 		return asserts.done();
@@ -76,57 +102,68 @@ class SchemaWriterTest {
 		return tink.Json.stringify(v);
 	}
 	
+	inline function stringifyShape(v:Shape) {
+		return tink.Json.stringify(v);
+	}
+	
+	inline function stringifyTree(v:Tree) {
+		return tink.Json.stringify(v);
+	}
+	
 	inline function stringifyEnumAbstract(v:Weekday) {
 		return tink.Json.stringify(v);
 	}
 	
-	inline function makeColorSchema():SchemaType {
+	inline function makeColorSchema():Schema {
 		return tink.Json.schema(Color);
-		// return SOneOf({list: [
-		// 	SPrimitive(PString({const:'White'})),
-		// 	SObject({fields: [
-		// 		{name: 'Hsl', type: SObject({fields: [
-		// 			{name: 'value', type: SObject({fields: [
-		// 				{name: 'hue', type: SPrimitive(PFloat({}))},
-		// 				{name: 'saturation', type: SPrimitive(PFloat({}))},
-		// 				{name: 'lightness', type: SPrimitive(PFloat({}))},
-		// 			]})}
-		// 		]})}
-		// 	]}),
-		// 	SObject({fields: [
-		// 		{name: 'Hsv', type: SObject({fields: [
-		// 			{name: 'hue', type: SPrimitive(PFloat({}))},
-		// 			{name: 'saturation', type: SPrimitive(PFloat({}))},
-		// 			{name: 'value', type: SPrimitive(PFloat({}))},
-		// 		]})}
-		// 	]}),
-		// ]});
 	}
-	inline function makeStringMapSchema():SchemaType {
+	inline function makeShapeSchema():Schema {
+		return tink.Json.schema(Shape);
+	}
+	inline function makeTreeSchema():Schema {
+		return tink.Json.schema(Tree);
+	}
+	inline function makeNullableStringSchema():Schema {
+		return tink.Json.schema(NullableString);
+	}
+	inline function makeStringMapSchema():Schema {
 		return tink.Json.schema(StringMap);
 	}
-	inline function makeArraySchema():SchemaType {
+	inline function makeArraySchema():Schema {
 		return tink.Json.schema(StringArray);
 	}
-	inline function makeDynamicAccessSchema():SchemaType {
+	inline function makeDynamicAccessSchema():Schema {
 		return tink.Json.schema(StringDynamicAccess);
 	}
-	inline function makeEnumAbstractSchema():SchemaType {
+	inline function makeEnumAbstractSchema():Schema {
 		return tink.Json.schema(Weekday);
+	}
+	inline function makePairSchema():Schema {
+		return tink.Json.schema(StringIntPair);
+	}
+	inline function makeEitherSchema():Schema {
+		return tink.Json.schema(StringOrInt);
 	}
 }
 
 #if nodejs
-@:jsRequire('ajv', 'default')
+@:jsRequire('ajv/dist/2020', 'default')
 extern class Ajv {
 	function new();
-	function compile(schema:String):String->Bool;
+	function compile(schema:Dynamic):Dynamic->Bool;
 }
+#end
 
 private enum Color {
 	White;
 	Hsl(value:{ hue:Float, saturation:Float, lightness:Float });
 	Hsv(hsv:{ hue:Float, saturation:Float, value:Float });
+}
+
+enum Shape {
+	@:json('dot') Dot;
+	@:json({type: 'circle'}) Circle(radius:Float);
+	@:json({type: 'rect'}) Rect(w:Float, h:Float);
 }
 
 enum abstract Weekday(Int) {
@@ -139,7 +176,20 @@ enum abstract Weekday(Int) {
 	final Sun;
 }
 
-private typedef StringMap = Map<String, Int>;
-private typedef StringArray = Array<String>;
-private typedef StringDynamicAccess = DynamicAccess<String>;
-#end
+typedef Tree = {
+	final name:String;
+	final children:Array<Tree>;
+}
+
+typedef Renamed = {
+	@:json('renamed') final original:String;
+	final opt:haxe.ds.Option<Int>;
+	@:optional final maybe:Int;
+}
+
+typedef NullableString = Null<String>;
+typedef StringMap = Map<String, Int>;
+typedef StringArray = Array<String>;
+typedef StringDynamicAccess = DynamicAccess<String>;
+typedef StringIntPair = tink.core.Pair<String, Int>;
+typedef StringOrInt = haxe.ds.Either<String, Int>;

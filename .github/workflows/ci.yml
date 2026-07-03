@@ -51,6 +51,10 @@ jobs:
       - name: Install Haxe Libraries
         run: lix download
 
+      - name: Install Node Dependencies # ajv is used by SchemaWriterTest on the node target
+        if: matrix.target == 'node'
+        run: npm install ajv
+
       - name: Run Test
         run: lix run travix ${{ matrix.target }} ${{ matrix.flags }}
 

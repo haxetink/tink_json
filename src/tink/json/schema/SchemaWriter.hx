@@ -18,37 +18,29 @@ import tink.macro.BuildCache;
 using tink.MacroApi;
 
 class SchemaWriter {
-  
+
   static public function build(?type, ?pos):Type
     return BuildCache.getType('tink.json.schema.SchemaWriter', (ctx:BuildContext) -> {
-      final name = ctx.name,
-      ct = ctx.type.toComplex();
-  
+      final name = ctx.name;
+
       final cl = macro class $name {
+        final defs = new Map<String, tink.json.schema.Schema.SchemaType>();
         public function new() {}
       }
-    
+
       final ret = Crawler.crawl(ctx.type, ctx.pos, crawler -> (new GenSchemaWriter(crawler):Generator));
-    
-      // TODO: profile this "inline everything" approach
-      for(f in ret.fields) switch f.access {
-        case null: f.access = [AInline];
-        case a: a.push(AInline);
-      }
+
       cl.fields = cl.fields.concat(ret.fields);
-    
+
       function add(t:TypeDefinition)
         cl.fields = cl.fields.concat(t.fields);
-    
+
       add(macro class {
-        public inline function write():tink.json.schema.Schema.SchemaType {
-          final const = null;
-          return ${ret.expr};
+        public function write():tink.json.schema.Schema {
+          return { root: ${ret.expr}, defs: this.defs };
         }
       });
-      
-      trace(new haxe.macro.Printer().printTypeDefinition(cl));
-      
+
       return cl;
     }, @:privateAccess tink.json.macros.Macro.normalize);
 }

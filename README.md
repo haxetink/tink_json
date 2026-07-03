@@ -250,6 +250,42 @@ The first time a writer encounters a cachable value, it writes the full value an
 1. Cached values are hard to deal with for any non-tink_json code. Perhaps an additional mode will be added to write `{"$ref":2,"name":"Alice"}` and `{"$ref":2}` respectively.
 2. Writers and parsers become stateful and that's a great way to introduce bugs and memory leaks into your application. You must therefore pay very special attention to the life cycle of your writers and parsers and take care of reinstantiating them often enough to avoid filling memory with obsolete data. This simplest way to avoid problems is of course to use fresh writers/parsers for every operation, thus foregoing the benefits and risks of more long lived caches.
 
+## JSON Schema Generation
+
+`tink.Json.schema(SomeType)` produces a [JSON Schema (draft 2020-12)](https://json-schema.org/) describing the wire format that `tink.Json.stringify` produces (and `tink.Json.parse` accepts) for that type:
+
+```haxe
+enum Shape {
+  @:json('dot') Dot;
+  @:json({type: 'circle'}) Circle(radius:Float);
+}
+
+trace(tink.json.schema.JsonSchema.write(tink.Json.schema(Shape)));
+// {
+//   "$schema": "https://json-schema.org/draft/2020-12/schema",
+//   "$ref": "#/$defs/Shape",
+//   "$defs": {
+//     "Shape": {
+//       "oneOf": [
+//         {"type": "string", "const": "dot"},
+//         {
+//           "type": "object",
+//           "additionalProperties": false,
+//           "required": ["type", "radius"],
+//           "properties": {"type": {"const": "circle"}, "radius": {"type": "number"}}
+//         }
+//       ]
+//     }
+//   }
+// }
+```
+
+`tink.Json.schema` returns a `tink.json.schema.Schema`, a structure of `{root:SchemaType, defs:Map<String, SchemaType>}` that can be inspected programmatically; `tink.json.schema.JsonSchema.write` renders it as a JSON Schema document.
+
+Object and enum types are emitted under `$defs` and referenced via `$ref`, which also makes recursive types (e.g. trees) work naturally. Custom field names (`@:json('name') var field:...`) and custom enum representations (`@:json({type: 'circle'})`) are honored. Maps and `tink.core.Pair` are described as tuples (`prefixItems`), `Date` as a unix timestamp number, `haxe.io.Bytes` as a Base64 string pattern, `UInt` as a non-negative integer, and `Dynamic`/`tink.json.Value` as the accept-anything schema `{}`.
+
+Note that types with custom parsers/serializers are described by their *representation* type, i.e. the schema reflects what actually ends up in the JSON.
+
 ## Performance
 
 Here are the benchmark results of the current state of this library:

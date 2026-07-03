@@ -7,6 +7,7 @@
     "postinstall": "lix download"
   },
   "dependencies": {
+    "ajv": "^8.20.0",
     "lix": "^16.0.2"
   }
 }

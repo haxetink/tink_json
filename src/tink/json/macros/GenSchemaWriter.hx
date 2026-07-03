@@ -12,93 +12,173 @@ using haxe.macro.Tools;
 using tink.MacroApi;
 
 class GenSchemaWriter extends GenBase {
-  
+
+  var anonCounter = 0;
+  var pending:Null<Type>; // the type most recently passed to drive(), i.e. the one being cached when wrap() runs
+
   public function new(crawler) {
     super(':jsonStringify', crawler);
   }
 
-  public function wrap(placeholder:Expr, ct:ComplexType):Function
-    return (macro {final const = null; $placeholder;}).func(macro:tink.json.schema.Schema.SchemaType);
+  function makeId(ct:ComplexType) {
+    final raw = switch ct {
+      // private types can't be expressed as a type path and yield an opaque marker
+      case TPath({pack: ['tink', 'macro'], name: 'DirectType'}): typeId();
+      case TPath(_): ct.toString();
+      default: typeId();
+    }
+    // sanitized so it can appear in a JSON pointer without escaping
+    return ~/[^A-Za-z0-9_.]/g.replace(raw, '_');
+  }
+
+  function typeId()
+    return switch pending {
+      case TEnum(_, _) | TInst(_, _) | TAbstract(_, _): pending.toString();
+      default: 'Anon${anonCounter++}';
+    }
+
+  public function wrap(placeholder:Expr, ct:ComplexType):Function {
+    final id = makeId(ct);
+    // every crawled type is registered under its id, so the output can
+    // reference it via $defs/$ref and recursive types terminate
+    return (macro {
+      if (!this.defs.exists($v{id})) {
+        this.defs.set($v{id}, SAny); // placeholder to stop recursion
+        this.defs.set($v{id}, $placeholder);
+      }
+      SRef($v{id});
+    }).func(macro:tink.json.schema.Schema.SchemaType);
+  }
 
   public function nullable(e)
     return macro SNullable($e);
 
   public function string()
-    return macro SPrimitive(PString(const));
+    return macro SPrimitive(PString(null));
 
   public function int()
-    return macro SPrimitive(PInt(const));
+    return macro SPrimitive(PInt(null));
 
   public function float()
-    return macro SPrimitive(PFloat(const));
+    return macro SPrimitive(PFloat(null));
 
   public function bool()
-    return macro SPrimitive(PBool(const));
+    return macro SPrimitive(PBool(null));
 
   public function date()
-    return macro SPrimitive(PFloat(const));
+    return macro SPrimitive(PDate);
 
-  public function bytes()
-    return macro SPrimitive(PRegex('^[${EReg.escape(haxe.crypto.Base64.CHARS + '=')}]*$'));
+  public function bytes() {
+    // built at macro time because EReg.escape is target-dependent
+    final pattern = '^[${EReg.escape(haxe.crypto.Base64.CHARS + '=')}]*$';
+    return macro SPrimitive(PRegex($v{pattern}));
+  }
 
-  public function map(k, v) {
-    k = macro {final const = null; $k;}
-    v = macro {final const = null; $v;}
+  public function map(k, v)
     return macro SArray(STuple([$k, $v]));
+
+  function objectFields(fields:Array<FieldInfo>):Expr {
+    final resolved = fields.map(f -> {
+      var optional = f.optional,
+          expr = f.expr;
+      switch f.type.reduce() {
+        // Option<T> fields are written as plain T and omitted when None
+        case TEnum(_.get() => {name: 'Option', pack: ['haxe', 'ds']}, [t]):
+          optional = true;
+          expr = f.as(t);
+        default:
+      }
+      {name: Macro.nativeName(f), optional: optional, expr: expr}
+    });
+    resolved.sort((a, b) -> switch [a.optional, b.optional] {
+      case [false, true]: -1;
+      case [true, false]: 1;
+      case _: Reflect.compare(a.name, b.name);
+    });
+    return macro $a{resolved.map(f -> macro {
+      name: $v{f.name},
+      type: ${f.expr},
+      optional: $v{f.optional},
+    })};
   }
 
-  public function anon(fields:Array<FieldInfo>, ct) {
-    final fields = fields.map(f -> macro {
-      name: $v{f.name},
-      type: {
-        var const = null;
-        ${f.expr}
-      },
-      optional: $v{f.optional},
-    });
-    return macro SObject(${macro $a{fields}});
-  }
+  public function anon(fields:Array<FieldInfo>, ct)
+    return macro SObject(${objectFields(fields)});
 
   public function array(e)
-    return macro {
-      final const = null;
-      SArray($e);
+    return macro SArray($e);
+
+  // an enhanced version of ExprTools.getValue for EObjectDecl that can also obtain enum abstract fields statically
+  static function getObjectValue(fields:Array<ObjectField>):Dynamic {
+    var obj = {};
+    for (field in fields) {
+      var value =
+        try
+          field.expr.getValue()
+        catch(e:Dynamic)
+          switch Context.typeExpr(field.expr) {
+            case {expr: TCast(e, _)}:
+              Context.getTypedExpr(e).getValue();
+            case te:
+              throw '${te.toString()} does not have a statically known value';
+          }
+      Reflect.setField(obj, field.field, value);
     }
+    return obj;
+  }
 
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, _) {
-    
+    if (constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
+
     var types = [];
     for (c in constructors) {
       var nullable = isInlineNullable(c),
           cfields = c.fields,
-          inlined = c.inlined,
-          c = c.ctor,
-          name = c.name;
+          ctor = c.ctor,
+          name = ctor.name;
       types.push(
-        if (c.type.reduce().match(TEnum(_,_))) {
-          macro {
-            final const = $v{name};
-            ${string()}
+        if (ctor.type.reduce().match(TEnum(_,_)))
+          switch ctor.meta.extract(':json') {
+            case []:
+              macro SPrimitive(PString($v{name}));
+            case [{ params: [{ expr: EConst(CString(v)) }] }]:
+              macro SPrimitive(PString($v{v}));
+            case [{ params: [{ expr: EObjectDecl(obj) }] }]:
+              macro SConst($v{getObjectValue(obj)});
+            case _:
+              ctor.pos.error('invalid use of @:json');
           }
-        } else {
-          final fields = cfields.map(f -> macro {
-            name: $v{f.name},
-            type: {
-              var const = null;
-              ${f.expr}
-            },
-            optional: $v{f.optional},
-          });
-          macro SObject([{
-            name: $v{name},
-            type: SObject(${macro $a{fields}}),
-            optional: false,
-          }]);
-        }
+        else
+          switch ctor.meta.extract(':json') {
+            case []:
+              var inner = macro SObject(${objectFields(cfields)});
+              if (nullable)
+                inner = macro SNullable($inner);
+              macro SObject([{
+                name: $v{name},
+                type: $inner,
+                optional: false,
+              }]);
+
+            case _ if (nullable):
+              ctor.pos.error('@:json cannot be nullable');
+
+            case [{ params: [{ expr: EObjectDecl(obj) }] }]:
+              // the discriminator fields are splatted with the constructor arguments
+              var discriminator:Dynamic = getObjectValue(obj);
+              var fields = [for (fname in Reflect.fields(discriminator)) macro {
+                name: $v{fname},
+                type: tink.json.schema.Schema.SchemaType.SConst($v{(Reflect.field(discriminator, fname):Dynamic)}),
+                optional: false,
+              }];
+              macro SObject((${macro $a{fields}}:Array<tink.json.schema.Schema.ObjectFieldSchema>).concat(${objectFields(cfields)}));
+
+            default:
+              ctor.pos.error('invalid use of @:json');
+          }
       );
     }
-    
-    
+
     return macro SOneOf(${macro $a{types}});
   }
 
@@ -107,13 +187,10 @@ class GenSchemaWriter extends GenBase {
   }
 
   public function dyn(e, ct)
-    return dynAccess(e);
+    return e;
 
   public function dynAccess(e)
-	  return macro {
-      final const = null;
-      SDynamicAccess($e);
-    }
+    return macro SDynamicAccess($e);
 
   override public function rescue(t:Type, pos:Position, gen:GenType):Option<Expr>
     return
@@ -124,7 +201,6 @@ class GenSchemaWriter extends GenBase {
           pos.error('[tink_json] ${t.getID()} is an interface and cannot be stringified. ');
 
         case TInst(_.get() => cl, params):
-          //TODO: this should be handled by converting the class to an anonymous type and handing that off to `gen`
           var a = new Array<FieldInfo>();
 
           for (f in cl.fields.get())
@@ -140,108 +216,68 @@ class GenSchemaWriter extends GenBase {
       }
 
   public function reject(t:Type)
-    return 'tink_json cannot stringify ${t.toString()}';
+    return 'tink_json cannot generate a schema for ${t.toString()}';
 
-  override function processRepresentation(pos:Position, actual:Type, representation:Type, value:Expr):Expr {
-    var ct = representation.toComplex();
-    return macro @:pos(pos) {
-      var value = (value : tink.json.Representation<$ct>).get();
-      $value;
-    }
-  }
+  override function processRepresentation(pos:Position, actual:Type, representation:Type, value:Expr):Expr
+    return value;
 
   override function processDynamic(pos:Position):Expr
-    return macro @:pos(pos) this.writeDynamic(value);
+    return macro @:pos(pos) SAny;
 
   override function processValue(pos:Position):Expr
-    return macro @:pos(pos) this.writeValue(value);
+    return macro @:pos(pos) SAny;
 
+  // Serialized/Lazy are intercepted in drive() below where the type parameter
+  // is still available; these fallbacks are unreachable
   override function processSerialized(pos:Position):Expr
-    return macro @:pos(pos) this.output(value);
+    return macro @:pos(pos) SAny;
 
   override function processLazy(t, pos)
-    return macro @:pos(pos) {
-      var v:tink.json.Serialized<$t> = value.get();
-      this.output(v);
-    }
+    return macro @:pos(pos) SAny;
 
-  override function genCached(id:Int, normal:Expr, type:Type) {
-    var map = 'cache$id',
-        counter = 'counter$id';
-    crawler.add(macro class {
-      var $map = new Map();
-      var $counter = 0;
-    });
-    return macro switch ($i{map}[value]) {
-      case null:
-        $i{map}[value] = $i{counter}++;
-        $normal;
-      case v: writeInt(v);
-    }
-  }
+  override function genCached(id:Int, normal:Expr, type:Type)
+    // Cached<T> is written either in full or as an integer backreference
+    return macro SOneOf([$normal, SPrimitive(PInt(null))]);
 
-  static var aliasCount = 0;
   override function processCustom(c:CustomRule, original:Type, gen:Type->Expr):Expr {
     var original = original.toComplex();
     return switch c {
       case WithClass(path, pos):
         var rep = (macro @:pos(pos) { var f = null; new $path(null).prepare((f():$original)); }).typeof().sure();
-        var dotpath = switch path.params {
-          case []:
-            var tmp = path.pack.concat([path.name]);
-            if(path.sub != null) tmp.push(path.sub);
-            macro $p{tmp}
-          case _: // the type has type parameters
-            // because we don't have expr to represent a complex type...
-            // so we typedef the type then use its typepath
-
-            var tmp = ['tink', 'json', 'tmpwrite', 'Temp${aliasCount++}'];
-            haxe.macro.Context.defineType({
-              pos: pos,
-              pack: tmp.slice(0, tmp.length - 1),
-              name: tmp[tmp.length - 1],
-              kind: TDAlias(TPath(path)),
-              fields: [],
-            });
-            macro $p{tmp}
-        }
-
-        return macro @:pos(pos) {
-          ${gen(rep)};
-        }
+        gen(rep);
       case WithFunction(e):
         if (e.expr.match(EFunction(_))) {
           var ret = e.pos.makeBlankType();
           e = macro @:pos(e.pos) ($e:$original->$ret);
         }
-        //TODO: the two cases look suspiciously similar
         var rep = (macro @:pos(e.pos) $e((cast null:$original))).typeof().sure();
-        return macro @:pos(e.pos) {
-          ${gen(rep)};
-        }
+        gen(rep);
     }
   }
 
-  override public function drive(type:Type, pos:Position, gen:GenType):Expr
+  override public function drive(type:Type, pos:Position, gen:GenType):Expr {
+    pending = type.reduce();
     return
       switch type.reduce() {
+        // Context.getType('Dynamic') yields TDynamic(TMono); treat it as plain Dynamic
+        case TDynamic(t) if (t != null && t.match(TMono(_))):
+          macro @:pos(pos) SAny;
+        case TAbstract(_.get() => {pack: ['tink', 'core'], name: 'Pair'}, [a, b]):
+          macro STuple([${drive(a, pos, gen)}, ${drive(b, pos, gen)}]);
         case TAbstract(_.get() => {pack: ['haxe', 'ds'], name: 'Vector'}, [t]):
-          this.array(gen(t, pos));
-        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _):
-          macro @:pos(pos) {
-            var v = Std.string((value:Float));
-            ${if(haxe.macro.Context.defined('lua')) macro v = v.split('.')[0] else macro null}
-            ${if(haxe.macro.Context.defined('java')) macro v = this.expandScientificNotation(v) else macro null}
-            this.output(v);
-          }
+          this.array(drive(t, pos, gen));
+        case TAbstract(_.get() => {pack: [], name: 'UInt'}, _)
+           | TAbstract(_.get() => {pack: ['haxe'], name: 'UInt32'}, _):
+          macro SPrimitive(PInt(null, 0));
         case TEnum(_.get().module => 'haxe.ds.Either', [left, right]):
-          var lct = left.toComplex();
-          var rct = right.toComplex();
-          macro @:pos(pos) switch value {
-            case Left(v): this.output(tink.Json.stringify((v:$lct)));
-            case Right(v): this.output(tink.Json.stringify((v:$rct)));
-          }
+          macro SOneOf([${drive(left, pos, gen)}, ${drive(right, pos, gen)}]);
+        case TAbstract(_.get().module => 'tink.json.Serialized', [t]):
+          // Serialized<T> is output verbatim, i.e. the wire format is that of T
+          drive(t, pos, gen);
+        case TAbstract(_.get().module => 'tink.core.Lazy', [t]):
+          drive(t, pos, gen);
         default: super.drive(type, pos, gen);
       }
+  }
 }
 #end
