@@ -160,6 +160,16 @@ class GenSchemaWriter extends GenBase {
                 optional: false,
               }]);
 
+            case [{ params: [{ expr: EConst(CString(jsonKey)) }] }]:
+              var inner = macro SObject(${objectFields(cfields)});
+              if (nullable)
+                inner = macro SNullable($inner);
+              macro SObject([{
+                name: $v{jsonKey},
+                type: $inner,
+                optional: false,
+              }]);
+
             case _ if (nullable):
               ctor.pos.error('@:json cannot be nullable');
 

@@ -231,6 +231,11 @@ class GenWriter extends GenBase {
                 postfix = '}}';
                 '{"$name":' + if (nullable) '' else '{';
 
+              case [{ params:[{ expr: EConst(CString(name)) }] }]:
+
+                postfix = '}}';
+                '{"$name":' + if (nullable) '' else '{';
+
               case _ if (nullable):
 
                 c.pos.error('@:json cannot be nullable');
