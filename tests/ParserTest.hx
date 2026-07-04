@@ -259,6 +259,12 @@ class ParserTest {
     return asserts.done();
   }
 
+  public function renameConstructor() {
+    asserts.assert(parse(('{"a":{"v":1}}':RenameConstructor)).match(Success(RenameConstructor.A(1))));
+    asserts.assert(parse(('{"b":{"v":"b"}}':RenameConstructor)).match(Success(RenameConstructor.B({v:'b'}))));
+    return asserts.done();
+  }
+
   public function privateEnumAbstract() {
     asserts.assert(parse(('0':VeryPrivate)).match(Success(VeryPrivate.A)));
     asserts.assert(parse(('{"foo":1}':{foo:VeryPrivate})).match(Success({foo:VeryPrivate.B})));

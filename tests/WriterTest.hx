@@ -233,6 +233,12 @@ class WriterTest {
     return asserts.done();
   }
 
+  public function renameConstructor() {
+    asserts.assert(stringify(RenameConstructor.A(1)) == '{"a":{"v":1}}');
+    asserts.assert(stringify(RenameConstructor.B({v:'b'})) == '{"b":{"v":"b"}}');
+    return asserts.done();
+  }
+
   public function testIssue67() {
 
     var l:{ foo: Lazy<Int> } = { foo: function () return 42 };

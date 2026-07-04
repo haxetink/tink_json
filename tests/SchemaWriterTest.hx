@@ -4,6 +4,7 @@ import tink.json.schema.Schema;
 import tink.json.schema.SchemaWriter;
 import tink.json.schema.JsonSchema;
 import haxe.DynamicAccess;
+import Types;
 
 @:jsonStringify(function (v) return { x: v.value })
 class WrappedInt {
@@ -89,6 +90,7 @@ class SchemaWriterTest {
 	
 	@:variant(this.makeColorSchema(), '_SchemaWriterTest.Color', '{"oneOf":[{"type":"string","const":"White"},{"type":"object","additionalProperties":false,"required":["Hsl"],"properties":{"Hsl":{"type":"object","additionalProperties":false,"required":["value"],"properties":{"value":{"$$ref":"#/$$defs/Anon0"}}}}},{"type":"object","additionalProperties":false,"required":["Hsv"],"properties":{"Hsv":{"type":"object","additionalProperties":false,"required":["hue","saturation","value"],"properties":{"hue":{"type":"number"},"saturation":{"type":"number"},"value":{"type":"number"}}}}}]}')
 	@:variant(this.makeShapeSchema(), 'SchemaWriterTest.Shape', '{"oneOf":[{"type":"string","const":"dot"},{"type":"object","additionalProperties":false,"required":["type","radius"],"properties":{"type":{"const":"circle"},"radius":{"type":"number"}}},{"type":"object","additionalProperties":false,"required":["type","h","w"],"properties":{"type":{"const":"rect"},"h":{"type":"number"},"w":{"type":"number"}}}]}')
+	@:variant(this.makeRenameConstructorSchema(), 'Types.RenameConstructor', '{"oneOf":[{"type":"object","additionalProperties":false,"required":["a"],"properties":{"a":{"type":"object","additionalProperties":false,"required":["v"],"properties":{"v":{"type":"integer"}}}}},{"type":"object","additionalProperties":false,"required":["b"],"properties":{"b":{"type":"object","additionalProperties":false,"required":["v"],"properties":{"v":{"type":"string"}}}}}]}')
 	@:variant(this.makeTreeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["children","name"],"properties":{"children":{"type":"array","items":{"$$ref":"#/$$defs/Anon0"}},"name":{"type":"string"}}}')
 	@:variant(this.makeAltitudeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["alt"],"properties":{"alt":{"type":"number"}}}')
 	public function writeRef(schema:Schema, id:String, def:String) {
@@ -183,6 +185,9 @@ class SchemaWriterTest {
 	}
 	inline function makeShapeSchema():Schema {
 		return tink.Json.schema(Shape);
+	}
+	inline function makeRenameConstructorSchema():Schema {
+		return tink.Json.schema(RenameConstructor);
 	}
 	inline function makeTreeSchema():Schema {
 		return tink.Json.schema(Tree);
