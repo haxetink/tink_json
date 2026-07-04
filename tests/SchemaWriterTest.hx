@@ -13,13 +13,28 @@ class SchemaWriterTest {
 	
 	@:variant(SPrimitive(PString(null)), '{"type":"string"}')
 	@:variant(SPrimitive(PString('White')), '{"type":"string","const":"White"}')
+	@:variant(SPrimitive(PFloat(null)), '{"type":"number"}')
+	@:variant(SPrimitive(PFloat(1.5)), '{"type":"number","const":1.5}')
+	@:variant(SPrimitive(PInt(null)), '{"type":"integer"}')
+	@:variant(SPrimitive(PInt(5)), '{"type":"integer","const":5}')
 	@:variant(SPrimitive(PInt(null, 0)), '{"type":"integer","minimum":0}')
+	@:variant(SPrimitive(PBool(null)), '{"type":"boolean"}')
+	@:variant(SPrimitive(PBool(true)), '{"type":"boolean","const":true}')
+	@:variant(SPrimitive(PDate), '{"type":"number","description":"Unix timestamp in milliseconds"}')
+	@:variant(SPrimitive(PRegex('^[a-z]+$')), '{"type":"string","pattern":"^[a-z]+$"}')
 	@:variant(SAny, '{}')
 	@:variant(SConst('circle'), '{"const":"circle"}')
 	@:variant(SRef('Foo'), '{"$$ref":"#/$$defs/Foo"}')
 	@:variant(SNullable(SRef('Foo')), '{"oneOf":[{"$$ref":"#/$$defs/Foo"},{"type":"null"}]}')
+	@:variant(SNullable(SPrimitive(PString(null))), '{"type":["string","null"]}')
 	@:variant(SOneOf([SPrimitive(PString('White'))]), '{"oneOf":[{"type":"string","const":"White"}]}')
 	@:variant(STuple([SPrimitive(PInt(null)),SPrimitive(PString(null))]), '{"type":"array","prefixItems":[{"type":"integer"},{"type":"string"}],"items":false,"minItems":2}')
+	@:variant(SArray(SPrimitive(PString(null))), '{"type":"array","items":{"type":"string"}}')
+	@:variant(SObject([{name:'foo', type:SPrimitive(PString(null)), optional:false}]), '{"type":"object","additionalProperties":false,"required":["foo"],"properties":{"foo":{"type":"string"}}}')
+	@:variant(SObject([{name:'bar', type:SPrimitive(PInt(null)), optional:true}]), '{"type":"object","additionalProperties":false,"required":[],"properties":{"bar":{"type":"integer"}}}')
+	@:variant(SDynamicAccess(SPrimitive(PString(null))), '{"type":"object","additionalProperties":{"type":"string"}}')
+	@:variant(SEnum([0, 1, 2]), '{"enum":[0,1,2]}')
+	@:variant(SEnum(['a', 'b']), '{"enum":["a","b"]}')
 	public function writeType(schema:SchemaType, output:String) {
 		asserts.assert(JsonSchema.writeType(schema) == output);
 		return asserts.done();
