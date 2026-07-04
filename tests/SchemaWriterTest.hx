@@ -5,6 +5,30 @@ import tink.json.schema.SchemaWriter;
 import tink.json.schema.JsonSchema;
 import haxe.DynamicAccess;
 
+@:jsonStringify(function (v) return { x: v.value })
+class WrappedInt {
+	public var value(default, null):Int;
+	public function new(value) this.value = value;
+}
+
+@:jsonStringify(v -> (cast v:Float))
+abstract AsNumber(Float) {
+	public inline function new(v) this = v;
+}
+
+class AltitudeWriter {
+	public function new(v:tink.json.Writer.BasicWriter) {}
+	public function prepare(a:Altitude) {
+		return { alt: a.value };
+	}
+}
+
+@:jsonStringify((_:SchemaWriterTest.AltitudeWriter))
+class Altitude {
+	public var value(default, null):Float;
+	public function new(value) this.value = value;
+}
+
 @:asserts
 class SchemaWriterTest {
 	static inline var HEADER = '"$$schema":"https://json-schema.org/draft/2020-12/schema"';
@@ -56,6 +80,7 @@ class SchemaWriterTest {
 	@:variant(this.makeEnumAbstractSchema(), '{"enum":[0,1,2,3,4,5,6]}')
 	@:variant(this.makePairSchema(), '{"type":"array","prefixItems":[{"type":"string"},{"type":"integer"}],"items":false,"minItems":2}')
 	@:variant(this.makeEitherSchema(), '{"oneOf":[{"type":"string"},{"type":"integer"}]}')
+	@:variant(this.makeAsNumberSchema(), '{"type":["number","null"]}')
 	public function write(schema:Schema, body:String) {
 		final expected = body == '' ? '{$HEADER}' : '{$HEADER,${body.substr(1)}';
 		asserts.assert(JsonSchema.write(schema) == expected);
@@ -65,6 +90,7 @@ class SchemaWriterTest {
 	@:variant(this.makeColorSchema(), '_SchemaWriterTest.Color', '{"oneOf":[{"type":"string","const":"White"},{"type":"object","additionalProperties":false,"required":["Hsl"],"properties":{"Hsl":{"type":"object","additionalProperties":false,"required":["value"],"properties":{"value":{"$$ref":"#/$$defs/Anon0"}}}}},{"type":"object","additionalProperties":false,"required":["Hsv"],"properties":{"Hsv":{"type":"object","additionalProperties":false,"required":["hue","saturation","value"],"properties":{"hue":{"type":"number"},"saturation":{"type":"number"},"value":{"type":"number"}}}}}]}')
 	@:variant(this.makeShapeSchema(), 'SchemaWriterTest.Shape', '{"oneOf":[{"type":"string","const":"dot"},{"type":"object","additionalProperties":false,"required":["type","radius"],"properties":{"type":{"const":"circle"},"radius":{"type":"number"}}},{"type":"object","additionalProperties":false,"required":["type","h","w"],"properties":{"type":{"const":"rect"},"h":{"type":"number"},"w":{"type":"number"}}}]}')
 	@:variant(this.makeTreeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["children","name"],"properties":{"children":{"type":"array","items":{"$$ref":"#/$$defs/Anon0"}},"name":{"type":"string"}}}')
+	@:variant(this.makeAltitudeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["alt"],"properties":{"alt":{"type":"number"}}}')
 	public function writeRef(schema:Schema, id:String, def:String) {
 		final output = JsonSchema.write(schema);
 		asserts.assert(output.indexOf('$HEADER,"$$ref":"#/$$defs/$id"') == 1);
@@ -77,6 +103,14 @@ class SchemaWriterTest {
 		final id = 'Anon0';
 		final def = '{"type":"object","additionalProperties":false,"required":["renamed"],"properties":{"renamed":{"type":"string"},"maybe":{"type":["integer","null"]},"opt":{"type":"integer"}}}';
 		asserts.assert(JsonSchema.write(schema) == '{$HEADER,"$$ref":"#/$$defs/$id","$$defs":{"$id":$def}}');
+		return asserts.done();
+	}
+	
+	public function writeWrappedInt() {
+		final output = JsonSchema.write(tink.Json.schema(WrappedInt));
+		final def = '{"type":"object","additionalProperties":false,"required":["x"],"properties":{"x":{"type":"integer"}}}';
+		asserts.assert(output.indexOf(def) > 0);
+		asserts.assert(output.indexOf('"value"') == -1);
 		return asserts.done();
 	}
 	
@@ -105,6 +139,9 @@ class SchemaWriterTest {
 	@:variant(this.makeArraySchema(), [tink.Json.stringify(['foo', 'bar'])], ['[1,2]'])
 	@:variant(this.makeDynamicAccessSchema(), [tink.Json.stringify(({foo: 'bar'}:haxe.DynamicAccess<String>))], ['{"foo":1}'])
 	@:variant(this.makeEnumAbstractSchema(), [this.stringifyEnumAbstract(Mon)], ['7'])
+	@:variant(this.makeAsNumberSchema(), [this.stringifyAsNumber()], ['"1.5"', '{"value":1.5}'])
+	@:variant(this.makeWrappedIntSchema(), [this.stringifyWrappedInt()], ['{"value":5}', '{"x":"5"}'])
+	@:variant(this.makeAltitudeSchema(), [this.stringifyAltitude()], ['{"value":100}', '{"alt":"100"}'])
 	public function validate(schema:Schema, valid:Array<String>, invalid:Array<String>) {
 		final validate = new Ajv().compile(haxe.Json.parse(JsonSchema.write(schema)));
 		for(value in valid) asserts.assert(validate(haxe.Json.parse(value)));
@@ -127,6 +164,18 @@ class SchemaWriterTest {
 	
 	inline function stringifyEnumAbstract(v:Weekday) {
 		return tink.Json.stringify(v);
+	}
+	
+	inline function stringifyAsNumber() {
+		return tink.Json.stringify(new AsNumber(1.5));
+	}
+	
+	inline function stringifyWrappedInt() {
+		return tink.Json.stringify(new WrappedInt(5));
+	}
+	
+	inline function stringifyAltitude() {
+		return tink.Json.stringify(new Altitude(100));
 	}
 	
 	inline function makeColorSchema():Schema {
@@ -158,6 +207,15 @@ class SchemaWriterTest {
 	}
 	inline function makeEitherSchema():Schema {
 		return tink.Json.schema(StringOrInt);
+	}
+	inline function makeAsNumberSchema():Schema {
+		return tink.Json.schema(AsNumber);
+	}
+	inline function makeWrappedIntSchema():Schema {
+		return tink.Json.schema(WrappedInt);
+	}
+	inline function makeAltitudeSchema():Schema {
+		return tink.Json.schema(Altitude);
 	}
 }
 
