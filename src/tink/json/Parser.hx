@@ -151,7 +151,7 @@ abstract JsonString(String) {
 @:forward
 private abstract JsonString(SliceData) {
 
-  #if tink_json_compact_code
+  #if (tink_json_compact_code && !cpp)
   @:native('n')
   #else
   inline
@@ -176,7 +176,7 @@ private abstract JsonString(SliceData) {
   public function get()
     return this.source.substring(this.min, this.max);
 
-  #if tink_json_compact_code
+  #if (tink_json_compact_code && !cpp)
   @:native('i')
   #else
   inline
@@ -184,7 +184,7 @@ private abstract JsonString(SliceData) {
   public function toInt():Int
     return Std.parseInt(get());
 
-  #if tink_json_compact_code
+  #if (tink_json_compact_code && !cpp)
   @:native('u')
   #else
   inline
@@ -196,7 +196,7 @@ private abstract JsonString(SliceData) {
     return ret;
   }
 
-  #if tink_json_compact_code
+  #if (tink_json_compact_code && !cpp)
   @:native('f')
   #else
   inline
@@ -205,7 +205,7 @@ private abstract JsonString(SliceData) {
     return Std.parseFloat(get());
 
   @:commutative @:op(a == b)
-  #if tink_json_compact_code
+  #if (tink_json_compact_code && !cpp)
   @:native('e')
   #else
   inline
