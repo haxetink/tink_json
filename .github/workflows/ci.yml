@@ -23,7 +23,7 @@ jobs:
           - js
           # - lua
           - jvm
-          # - cpp # TODO: figure out hxcpp
+          - cpp
           - php
         flags:
           - ""
