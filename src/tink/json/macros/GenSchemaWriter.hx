@@ -22,8 +22,14 @@ class GenSchemaWriter extends GenBase {
 
   function makeId(ct:ComplexType) {
     final raw = switch ct {
-      // private types can't be expressed as a type path and yield an opaque marker
-      case TPath({pack: ['tink', 'macro'], name: 'DirectType'}): typeId();
+      // private types can't be expressed as a type path; typing the DirectType
+      // proxy runs resolveDirectType and recovers the original Type
+      case TPath({pack: ['tink', 'macro'], name: 'DirectType'}):
+        final t = ct.toType().sure();
+        switch t {
+          case TEnum(_, _) | TInst(_, _) | TAbstract(_, _): t.toString();
+          default: typeId();
+        }
       case TPath(_): ct.toString();
       default: typeId();
     }
