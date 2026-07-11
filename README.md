@@ -100,6 +100,31 @@ enum Item {
 }
 ```
 
+### Presence checks and shared enum tags
+
+Within an object tag, `_` means the key must be **present** (the value may still be `null`):
+
+```haxe
+@:json({ jsonrpc: "2.0" })
+enum JsonRpcMessage {
+  @:json({ error: _ })
+  Error(error:{ code:Int, message:String }, id:tink.json.Value);
+
+  @:json({ result: _ })
+  Success(result:tink.json.Value, id:tink.json.Value);
+
+  @:json({ method: _, id: _ })
+  Request(method:String, ?params:tink.json.Value, id:tink.json.Value);
+
+  @:json({ method: _ })
+  Notification(method:String, ?params:tink.json.Value);
+}
+```
+
+- `@:json({ field: _ })` on a constructor requires a **flattened** constructor field named `field` (including fields from the single-object-arg-matching-ctor-name inline convention).
+- `@:json({ ... })` on the **enum type** merges those fields into every object-tagged constructor on write, and requires them on parse (exact value, or presence if `_`). An enum-level `_` presence tag likewise requires that field on every constructor.
+- Optional constructor arguments (`?params`, etc.) follow the same omit rules as optional object fields: `null` means the key is omitted on write (use `Null<T>` or `Option` when you need an explicit `null` — see [Optional Fields and Nulls](#optional-fields-and-nulls)).
+
 ### Dates
 
 Dates are represented simply as floats obtained by calling `getTime()` on a `Date`.

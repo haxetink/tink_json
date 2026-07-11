@@ -239,3 +239,47 @@ abstract NotFloat(Float) {
   public inline function new(v) this = v;
   public inline function toFloat() return this;
 }
+
+typedef JsonRpcErrorObject = {
+  final code:Int;
+  final message:String;
+}
+
+@:json({ jsonrpc: "2.0" })
+enum JsonRpcMessage {
+  @:json({ error: _ })
+  Error(error:JsonRpcErrorObject, id:tink.json.Value);
+
+  @:json({ result: _ })
+  Success(result:tink.json.Value, id:tink.json.Value);
+
+  @:json({ method: _, id: _ })
+  Request(method:String, ?params:tink.json.Value, id:tink.json.Value);
+
+  @:json({ method: _ })
+  Notification(method:String, ?params:tink.json.Value);
+}
+
+@:json({ v: "1" })
+enum PresenceShape {
+  @:json({ type: "circle" })
+  Circle(Circle:{ radius:Float });
+
+  @:json({ type: "rect", w: _ })
+  Rect(Rect:{ w:Float, h:Float });
+}
+
+@:json({ kind: "msg" })
+enum PresenceOnly {
+  @:json({ payload: _ })
+  WithPayload(payload:Null<String>, ?extra:Int);
+
+  @:json({ empty: true })
+  Empty;
+}
+
+/** No const tags in the JSON prefix — exercises runtime comma handling when optionals are omitted. */
+enum OmitOptional {
+  @:json({ marker: _ })
+  A(?skip:Int, marker:Int, ?tail:String);
+}

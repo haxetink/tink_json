@@ -116,6 +116,28 @@ class SchemaWriterTest {
 		return asserts.done();
 	}
 	
+	public function writePresenceShape() {
+		final schema = tink.Json.schema(PresenceShape);
+		final output = JsonSchema.write(schema);
+		asserts.assert(output.indexOf('"const":"1"') > 0);
+		asserts.assert(output.indexOf('"const":"circle"') > 0);
+		asserts.assert(output.indexOf('"const":"rect"') > 0);
+		asserts.assert(output.indexOf('"radius"') > 0);
+		asserts.assert(output.indexOf('"w"') > 0);
+		return asserts.done();
+	}
+
+	public function writeJsonRpcMessage() {
+		final output = JsonSchema.write(tink.Json.schema(JsonRpcMessage));
+		asserts.assert(output.indexOf('"const":"2.0"') > 0);
+		asserts.assert(output.indexOf('"error"') > 0);
+		asserts.assert(output.indexOf('"result"') > 0);
+		asserts.assert(output.indexOf('"method"') > 0);
+		asserts.assert(output.indexOf('"id"') > 0);
+		asserts.assert(output.indexOf('"params"') > 0);
+		return asserts.done();
+	}
+	
 	#if nodejs
 	@:variant(tink.Json.schema(String), [tink.Json.stringify('foo')], ['1'])
 	@:variant(tink.Json.schema(Int), [tink.Json.stringify(1)], ['"1"'])

@@ -181,26 +181,10 @@ class GenWriter extends GenBase {
 
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, _) {
     if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
-    
-    // an enhanced version of ExprTools.getValue for EObjectDecl that can also obtain enum abstract fields statically
-    function getObjectValue(fields:Array<ObjectField>) {
-      var obj = {};
-      for (field in fields) {
-        var value =
-          try
-            field.expr.getValue()
-          catch(e:Dynamic)
-            switch Context.typeExpr(field.expr) {
-              case {expr: TCast(e, _)}: // TODO: make sure this is what we get when we type an expr of enum abstract field
-                Context.getTypedExpr(e).getValue();
-              case te:
-                throw '${te.toString()} does not have a statically known value';
-            }
-        Reflect.setField(obj, field.field, value);
-      }
-      return obj;
-    }
-    
+
+    final enumTags = Macro.enumLevelTag(ct, pos);
+    Macro.requireObjectTaggedCtors(enumTags, constructors, pos);
+
     var cases = [];
     for (c in constructors) {
       var nullable = isInlineNullable(c),
@@ -214,14 +198,22 @@ class GenWriter extends GenBase {
         if (c.type.reduce().match(TEnum(_,_)))
           {
             values: [macro $i{name}],
-            expr: (macro this.output($v{haxe.format.JsonPrinter.print(
-              switch c.meta.extract(':json') {
-                case []: c.name;
-                case [{ params:[{ expr: EConst(CString(v)) }]}]: v;
-                case [{ params:[{ expr: EObjectDecl(obj) }] }]: getObjectValue(obj);
-                case _: c.pos.error('invalid use of @:json');
+            expr: (macro this.output($v{
+              switch Macro.extractObjectJsonTag(c.meta) {
+                case null:
+                  haxe.format.JsonPrinter.print(
+                    switch c.meta.extract(':json') {
+                      case []: c.name;
+                      case [{ params:[{ expr: EConst(CString(v)) }]}]: v;
+                      case _: c.pos.error('invalid use of @:json');
+                    }
+                  );
+                case ctorTags:
+                  final merged = Macro.mergeTags(enumTags, ctorTags, c.pos);
+                  Macro.validatePresentTags(merged, cfields, c.pos);
+                  Macro.printConstTags(merged);
               }
-            )})),
+            })),
           }
         else {
           var prefix =
@@ -240,11 +232,13 @@ class GenWriter extends GenBase {
 
                 c.pos.error('@:json cannot be nullable');
 
-              case [{ params:[{ expr: EObjectDecl(obj) }] }]:
-
-                first = false;
-                var ret = haxe.format.JsonPrinter.print(getObjectValue(obj));
-                ret.substr(0, ret.length - 1);
+              case [{ params:[{ expr: EObjectDecl(_) }] }]:
+                final ctorTags = Macro.extractObjectJsonTag(c.meta);
+                final merged = Macro.mergeTags(enumTags, ctorTags, c.pos);
+                Macro.validatePresentTags(merged, cfields, c.pos);
+                final p = Macro.objectTagPrefix(merged);
+                first = p.first;
+                p.prefix;
 
               default:
                 c.pos.error('invalid use of @:json');
@@ -260,11 +254,14 @@ class GenWriter extends GenBase {
               this.output($v{prefix});
               if (${if (nullable) macro value == null else macro false}) this.output('null}');
               else {
+                var __first = $v{first};
                 $b{[for (f in cfields) {
                   var fname = f.name;
-                  macro {
-                    this.output($v{'${if (first) { first = false; ""; } else ","}"${Macro.nativeName(f)}"'});
-                    this.char(':'.code);
+                  var field = '"${Macro.nativeName(f)}":';
+                  var writeField = macro {
+                    if (__first) __first = false;
+                    else this.char(','.code);
+                    this.output($v{field});
                     {
                       var value = ${
                         if (inlined)
@@ -274,7 +271,11 @@ class GenWriter extends GenBase {
                       }
                       ${f.expr};
                     }
-                  }
+                  };
+                  if (f.optional) {
+                    final read = if (inlined) macro value.$fname else macro $i{f.name};
+                    macro if ($read != null) $writeField;
+                  } else writeField;
                 }]}
                 this.output($v{postfix});
               }

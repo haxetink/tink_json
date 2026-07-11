@@ -108,27 +108,11 @@ class GenSchemaWriter extends GenBase {
   public function array(e)
     return macro SArray($e);
 
-  // an enhanced version of ExprTools.getValue for EObjectDecl that can also obtain enum abstract fields statically
-  static function getObjectValue(fields:Array<ObjectField>):Dynamic {
-    var obj = {};
-    for (field in fields) {
-      var value =
-        try
-          field.expr.getValue()
-        catch(e:Dynamic)
-          switch Context.typeExpr(field.expr) {
-            case {expr: TCast(e, _)}:
-              Context.getTypedExpr(e).getValue();
-            case te:
-              throw '${te.toString()} does not have a statically known value';
-          }
-      Reflect.setField(obj, field.field, value);
-    }
-    return obj;
-  }
-
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, _) {
     if (constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
+
+    final enumTags = Macro.enumLevelTag(ct, pos);
+    Macro.requireObjectTaggedCtors(enumTags, constructors, pos);
 
     var types = [];
     for (c in constructors) {
@@ -138,15 +122,21 @@ class GenSchemaWriter extends GenBase {
           name = ctor.name;
       types.push(
         if (ctor.type.reduce().match(TEnum(_,_)))
-          switch ctor.meta.extract(':json') {
-            case []:
-              macro SPrimitive(PString($v{name}));
-            case [{ params: [{ expr: EConst(CString(v)) }] }]:
-              macro SPrimitive(PString($v{v}));
-            case [{ params: [{ expr: EObjectDecl(obj) }] }]:
-              macro SConst($v{getObjectValue(obj)});
-            case _:
-              ctor.pos.error('invalid use of @:json');
+          switch Macro.extractObjectJsonTag(ctor.meta) {
+            case null:
+              switch ctor.meta.extract(':json') {
+                case []:
+                  macro SPrimitive(PString($v{name}));
+                case [{ params: [{ expr: EConst(CString(v)) }] }]:
+                  macro SPrimitive(PString($v{v}));
+                case _:
+                  ctor.pos.error('invalid use of @:json');
+              }
+            case ctorTags:
+              final merged = Macro.mergeTags(enumTags, ctorTags, ctor.pos);
+              Macro.validatePresentTags(merged, cfields, ctor.pos);
+              // niladic object tag: only const fields (presents already rejected)
+              macro SConst($v{Macro.constTagValues(merged)});
           }
         else
           switch ctor.meta.extract(':json') {
@@ -173,15 +163,32 @@ class GenSchemaWriter extends GenBase {
             case _ if (nullable):
               ctor.pos.error('@:json cannot be nullable');
 
-            case [{ params: [{ expr: EObjectDecl(obj) }] }]:
-              // the discriminator fields are splatted with the constructor arguments
-              var discriminator:Dynamic = getObjectValue(obj);
-              var fields = [for (fname in Reflect.fields(discriminator)) macro {
-                name: $v{fname},
-                type: tink.json.schema.Schema.SchemaType.SConst($v{(Reflect.field(discriminator, fname):Dynamic)}),
-                optional: false,
-              }];
-              macro SObject((${macro $a{fields}}:Array<tink.json.schema.Schema.ObjectFieldSchema>).concat(${objectFields(cfields)}));
+            case [{ params: [{ expr: EObjectDecl(_) }] }]:
+              final ctorTags = Macro.extractObjectJsonTag(ctor.meta);
+              final merged = Macro.mergeTags(enumTags, ctorTags, ctor.pos);
+              Macro.validatePresentTags(merged, cfields, ctor.pos);
+              final byName = [for (f in cfields) f.name => f];
+              final tagFields = [];
+              final seen = new Map<String, Bool>();
+              for (t in merged) switch t {
+                case Const(fname, value):
+                  tagFields.push(macro {
+                    name: $v{fname},
+                    type: tink.json.schema.Schema.SchemaType.SConst($v{Macro.getExprValue(value)}),
+                    optional: false,
+                  });
+                  seen[fname] = true;
+                case Present(fname, _):
+                  final f = byName[fname];
+                  tagFields.push(macro {
+                    name: $v{fname},
+                    type: ${f.expr},
+                    optional: false,
+                  });
+                  seen[fname] = true;
+              }
+              final rest = [for (f in cfields) if (!seen.exists(f.name)) f];
+              macro SObject((${macro $a{tagFields}}:Array<tink.json.schema.Schema.ObjectFieldSchema>).concat(${objectFields(rest)}));
 
             default:
               ctor.pos.error('invalid use of @:json');

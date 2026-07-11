@@ -272,7 +272,22 @@ class GenReader extends GenBase {
   public function enm(constructors:Array<EnumConstructor>, ct:ComplexType, pos:Position, gen:GenType) {
     if(constructors.length == 0) pos.error('Enum ${ct.toString()} has no constructors and tink_json can\'t handle it');
     var fields = new Map<String, LiteInfo>(),
-        cases = new Array<Case>();
+        cases = new Array<Case>(),
+        enumTags = Macro.enumLevelTag(ct, pos),
+        allPresent = new Map<String, Bool>();
+
+    Macro.requireObjectTaggedCtors(enumTags, constructors, pos);
+
+    for (c in constructors) {
+      switch Macro.extractObjectJsonTag(c.ctor.meta) {
+        case null:
+        case ctorTags:
+          final merged = Macro.mergeTags(enumTags, ctorTags, c.ctor.pos);
+          Macro.validatePresentTags(merged, c.fields, c.ctor.pos);
+          for (name in Macro.presentNames(merged).keys())
+            allPresent[name] = true;
+      }
+    }
 
     function captured(f:String)
       return macro @:pos(pos) $i{
@@ -291,6 +306,7 @@ class GenReader extends GenBase {
             type: f.type,
             optional: same.optional || f.optional,
             meta: same.meta.concat(f.meta),
+            presence: same.presence || f.presence,
           }
         case other:
           fields[f.name] = {
@@ -300,10 +316,25 @@ class GenReader extends GenBase {
             type: (macro:tink.json.Serialized<tink.core.Any>).toType().sure(),
             optional: other.optional || f.optional,
             meta: other.meta.concat(f.meta),
+            presence: other.presence || f.presence,
           }
       }
 
     function mkComplex(fields:Iterable<LiteInfo>):ComplexType
+      return TAnonymous([for (f in fields) {
+        name: f.name,
+        pos: f.pos,
+        meta: {
+          final base =
+            if (f.presence) [{ name: ':optional', params: [], pos: f.pos }];
+            else if (f.optional) OPTIONAL;
+            else EXPLICIT;
+          base.concat(f.meta.filter(m -> m.name == ':json'));
+        },
+        kind: FProp(f.access.get, f.access.set, f.type.toComplex()),
+      }]);
+
+    function mkFieldComplex(fields:Iterable<FieldInfo>):ComplexType
       return TAnonymous([for (f in fields) {
         name: f.name,
         pos: f.pos,
@@ -317,18 +348,19 @@ class GenReader extends GenBase {
       var nullable = isInlineNullable(c),
           inlined = c.inlined,
           cfields = c.fields,
-          c = c.ctor,
-          name = c.name,
-          hasArgs = !c.type.reduce().match(TEnum(_,_));
+          ctor = c.ctor,
+          name = ctor.name,
+          hasArgs = !ctor.type.reduce().match(TEnum(_,_));
 
       function mkCase(jsonKey:String) {
         add({
           name: jsonKey,
           optional: true,
-          type: mkComplex(cfields).toType().sure(),
-          pos: c.pos,
+          type: mkFieldComplex(cfields).toType().sure(),
+          pos: ctor.pos,
           access: { get: 'default', set: 'default' },
           meta: [],
+          presence: false,
         });
 
         cases.push({
@@ -350,7 +382,7 @@ class GenReader extends GenBase {
         });
       }
 
-      switch c.meta.extract(':json') {
+      switch ctor.meta.extract(':json') {
         case [] if(!hasArgs):
             argLess.push(new Named(name, name));
         case []:
@@ -362,54 +394,114 @@ class GenReader extends GenBase {
         case [{ params:[{ expr: EConst(CString(v)) }]}] if(!hasArgs):
           argLess.push(new Named(name, v));
 
-        case [{ params:[{ expr: EObjectDecl(obj) }] }]:
+        case [{ params:[{ expr: EObjectDecl(_) }] }]:
+          if (nullable)
+            ctor.pos.error('@:json cannot be nullable');
+
+          final ctorTags = Macro.extractObjectJsonTag(ctor.meta);
+          final merged = Macro.mergeTags(enumTags, ctorTags, ctor.pos);
+
           if(hasArgs) {
             for (f in cfields) {
-              add(f.makeOptional());
+              if (allPresent.exists(f.name)) {
+                add({
+                  pos: f.pos,
+                  name: f.name,
+                  type: Macro.presenceType(f.type),
+                  optional: true,
+                  access: f.access,
+                  meta: f.meta,
+                  presence: true,
+                });
+              } else {
+                final opt = f.makeOptional();
+                add({
+                  pos: opt.pos,
+                  name: opt.name,
+                  type: opt.type,
+                  optional: opt.optional,
+                  access: opt.access,
+                  meta: opt.meta,
+                  presence: false,
+                });
+              }
             }
           }
 
-          for (f in obj)
-            add({
-              pos: f.expr.pos,
-              name: f.field,
-              type: f.expr.typeof().sure(),
-              optional: true,
-              access: { get: 'default', set: 'default' },
-              meta: [],
-            });
+          for (t in merged) switch t {
+            case Const(fname, value):
+              if (!fields.exists(fname))
+                add({
+                  pos: value.pos,
+                  name: fname,
+                  type: value.typeof().sure(),
+                  optional: true,
+                  access: { get: 'default', set: 'default' },
+                  meta: [],
+                  presence: false,
+                });
+            case Present(_):
+          }
 
         case v:
-          c.pos.error('invalid use of @:json');
+          ctor.pos.error('invalid use of @:json');
       }
     }
 
-    // second pass for @:json
+    // second pass for @:json object tags
     for (c in constructors) {
-      switch c.ctor.meta.extract(':json') {
-        case [{ params:[{ expr: EObjectDecl(obj) }] }]:
+      switch Macro.extractObjectJsonTag(c.ctor.meta) {
+        case null:
+        case ctorTags:
+          final merged = Macro.mergeTags(enumTags, ctorTags, c.ctor.pos);
+          final thisPresent = Macro.presentNames(merged);
+          final pat = [],
+              used = new Map<String, Bool>();
+          var guard = macro true;
 
-          var pat = obj.copy(),
-              guard = macro true;
-
-          for(f in c.fields) {
-            if (!(f.optional || isNullable(f.type)))
-              guard = macro $guard && ${captured(f.name)} != null;
-
-            pat.push({ field: f.name, expr: macro ${captured(f.name)}});
+          for (t in merged) switch t {
+            case Const(fname, value):
+              pat.push({ field: fname, expr: value });
+              used[fname] = true;
+            case Present(fname, _):
+              pat.push({ field: fname, expr: macro ${captured(fname)} });
+              used[fname] = true;
+              guard = macro $guard && ${captured(fname)}.match(Some(_));
           }
 
-          function read(f:FieldInfo) {
+          for(f in c.fields) {
+            if (!used.exists(f.name)) {
+              if (!(f.optional || isNullable(f.type)))
+                guard = macro $guard && ${captured(f.name)} != null;
+
+              pat.push({ field: f.name, expr: macro ${captured(f.name)}});
+            }
+          }
+
+          function readField(f:FieldInfo):Expr {
             var e = captured(f.name);
+            if (allPresent.exists(f.name)) {
+              final fct = f.type.toComplex();
+              return if (thisPresent.exists(f.name))
+                macro switch ($e:haxe.ds.Option<$fct>) {
+                  case Some(v): v;
+                  case None: throw new tink.core.Error(422, $v{'Missing field ${f.name}'});
+                }
+              else
+                macro switch ($e:haxe.ds.Option<$fct>) {
+                  case null | None: null;
+                  case Some(v): v;
+                };
+            }
             return if(fields[f.name].type.getID() == 'tink.json.Serialized') {
-              var ct = f.type.toComplex();
+              var fct = f.type.toComplex();
               if(f.optional) {
                 macro {
                   var s = $e;
-                  s == null ? null : (cast s:tink.json.Serialized<$ct>).parse();
+                  s == null ? null : (cast s:tink.json.Serialized<$fct>).parse();
                 }
               } else {
-                macro (cast $e:tink.json.Serialized<$ct>).parse();
+                macro (cast $e:tink.json.Serialized<$fct>).parse();
               }
             } else {
               e;
@@ -417,8 +509,8 @@ class GenReader extends GenBase {
           }
 
           var args =
-            if (c.inlined) [EObjectDecl([for (f in c.fields) { field: f.name, expr: read(f) }]).at(pos)];
-            else [for (f in c.fields) read(f)];
+            if (c.inlined) [EObjectDecl([for (f in c.fields) { field: f.name, expr: readField(f) }]).at(pos)];
+            else [for (f in c.fields) readField(f)];
 
           var call = switch args {
             case []: macro ($i{c.ctor.name} : $ct);
@@ -430,7 +522,6 @@ class GenReader extends GenBase {
             guard: guard,
             expr: call
           });
-        case _:
       }
     }
 
@@ -636,6 +727,7 @@ private typedef LiteInfo = {
   var optional(default, never):Bool;
   var access(default, never):FieldAccessInfo;
   var meta(default, never):Metadata;
+  var presence(default, never):Bool;
 }
 
 private typedef Branch = { ?expr:Expr, children:Map<Int, Branch> };
