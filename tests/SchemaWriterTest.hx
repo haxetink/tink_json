@@ -91,7 +91,7 @@ class SchemaWriterTest {
 	@:variant(this.makeColorSchema(), '_SchemaWriterTest.Color', '{"oneOf":[{"type":"string","const":"White"},{"type":"object","additionalProperties":false,"required":["Hsl"],"properties":{"Hsl":{"type":"object","additionalProperties":false,"required":["value"],"properties":{"value":{"$$ref":"#/$$defs/Anon0"}}}}},{"type":"object","additionalProperties":false,"required":["Hsv"],"properties":{"Hsv":{"type":"object","additionalProperties":false,"required":["hue","saturation","value"],"properties":{"hue":{"type":"number"},"saturation":{"type":"number"},"value":{"type":"number"}}}}}]}')
 	@:variant(this.makeShapeSchema(), 'SchemaWriterTest.Shape', '{"oneOf":[{"type":"string","const":"dot"},{"type":"object","additionalProperties":false,"required":["type","radius"],"properties":{"type":{"const":"circle"},"radius":{"type":"number"}}},{"type":"object","additionalProperties":false,"required":["type","h","w"],"properties":{"type":{"const":"rect"},"h":{"type":"number"},"w":{"type":"number"}}}]}')
 	@:variant(this.makeRenameConstructorSchema(), 'Types.RenameConstructor', '{"oneOf":[{"type":"object","additionalProperties":false,"required":["a"],"properties":{"a":{"type":"object","additionalProperties":false,"required":["v"],"properties":{"v":{"type":"integer"}}}}},{"type":"object","additionalProperties":false,"required":["b"],"properties":{"b":{"type":"object","additionalProperties":false,"required":["v"],"properties":{"v":{"type":"string"}}}}}]}')
-	@:variant(this.makeTreeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["children","name"],"properties":{"children":{"type":"array","items":{"$$ref":"#/$$defs/Anon0"}},"name":{"type":"string"}}}')
+	@:variant(this.makeTreeSchema(), 'SchemaWriterTest.Tree', '{"type":"object","additionalProperties":false,"required":["children","name"],"properties":{"children":{"type":"array","items":{"$$ref":"#/$$defs/SchemaWriterTest.Tree"}},"name":{"type":"string"}}}')
 	@:variant(this.makeAltitudeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["alt"],"properties":{"alt":{"type":"number"}}}')
 	public function writeRef(schema:Schema, id:String, def:String) {
 		final output = JsonSchema.write(schema);
@@ -102,7 +102,7 @@ class SchemaWriterTest {
 	
 	public function writeCustomNames() {
 		final schema = tink.Json.schema(Renamed);
-		final id = 'Anon0';
+		final id = 'SchemaWriterTest.Renamed';
 		final def = '{"type":"object","additionalProperties":false,"required":["renamed"],"properties":{"renamed":{"type":"string"},"maybe":{"type":["integer","null"]},"opt":{"type":"integer"}}}';
 		asserts.assert(JsonSchema.write(schema) == '{$HEADER,"$$ref":"#/$$defs/$id","$$defs":{"$id":$def}}');
 		return asserts.done();

@@ -21,26 +21,55 @@ class GenSchemaWriter extends GenBase {
   }
 
   function makeId(ct:ComplexType) {
-    final raw = switch ct {
-      // private types can't be expressed as a type path; typing the DirectType
-      // proxy runs resolveDirectType and recovers the original Type
-      case TPath({pack: ['tink', 'macro'], name: 'DirectType'}):
-        final t = ct.toType().sure();
-        switch t {
-          case TEnum(_, _) | TInst(_, _) | TAbstract(_, _): t.toString();
-          default: typeId();
-        }
-      case TPath(_): ct.toString();
-      default: typeId();
+    // named anon typedefs: prefer pending so the id is module-qualified
+    // (ct is usually the reduced TAnonymous; Type.toString() on TType is short)
+    final raw = switch namedAnonTypedefId(pending) {
+      case Some(id): id;
+      case None: switch ct {
+        // private types can't be expressed as a type path; typing the DirectType
+        // proxy runs resolveDirectType and recovers the original Type
+        case TPath({pack: ['tink', 'macro'], name: 'DirectType'}):
+          final t = ct.toType().sure();
+          switch t {
+            case TEnum(_, _) | TInst(_, _) | TAbstract(_, _): t.toString();
+            default: typeId();
+          }
+        case TPath(_): ct.toString();
+        default: typeId();
+      }
     }
     // sanitized so it can appear in a JSON pointer without escaping
     return ~/[^A-Za-z0-9_.]/g.replace(raw, '_');
   }
 
+  function namedAnonTypedefId(t:Null<Type>):Option<String>
+    return switch t {
+      case TType(_.get() => def, _)
+        if (def.name != 'Null' && def.type.reduce().match(TAnonymous(_))):
+        Some(typedefId(def));
+      case _: None;
+    }
+
+  // module-qualified, matching Type.toString() style for enums/classes
+  // (e.g. SchemaWriterTest.Tree, _SchemaWriterTest.Private)
+  function typedefId(def:DefType):String {
+    final parts = def.module.split('.');
+    final moduleName = parts[parts.length - 1];
+    if (def.isPrivate)
+      parts[parts.length - 1] = '_$moduleName';
+    final base = parts.join('.');
+    return if (def.name == moduleName) base else '$base.${def.name}';
+  }
+
   function typeId()
-    return switch pending {
-      case TEnum(_, _) | TInst(_, _) | TAbstract(_, _): pending.toString();
-      default: 'Anon${anonCounter++}';
+    return switch namedAnonTypedefId(pending) {
+      case Some(id): id;
+      case None: switch pending {
+        case TEnum(_, _) | TInst(_, _) | TAbstract(_, _):
+          pending.toString();
+        default:
+          'Anon${anonCounter++}';
+      }
     }
 
   public function wrap(placeholder:Expr, ct:ComplexType):Function {
@@ -272,7 +301,7 @@ class GenSchemaWriter extends GenBase {
   }
 
   override public function drive(type:Type, pos:Position, gen:GenType):Expr {
-    pending = type.reduce();
+    pending = type;
     return
       switch type.reduce() {
         // Context.getType('Dynamic') yields TDynamic(TMono); treat it as plain Dynamic
