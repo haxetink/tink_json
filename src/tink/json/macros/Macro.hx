@@ -8,10 +8,17 @@ import haxe.ds.Option;
 import tink.macro.BuildCache;
 
 import tink.typecrawler.*;
+import tink.typecrawler.Generator.EnumConstructor;
 
 using haxe.macro.Tools;
 using StringTools;
 using tink.MacroApi;
+using tink.CoreApi;
+
+enum JsonTagField {
+  Const(name:String, value:Expr);
+  Present(name:String, pos:Position);
+}
 
 class Macro {
 
@@ -68,6 +75,143 @@ class Macro {
         case [{ params:[{ expr: EConst(CString(v)) }]}]: v;
         case v: c.pos.error('invalid use of @:json');
       }
+
+  static public function isUnderscore(e:Expr):Bool
+    return switch e {
+      case { expr: EConst(CIdent('_')) }: true;
+      case _: false;
+    }
+
+  static public function parseJsonTagFields(obj:Array<ObjectField>):Array<JsonTagField> {
+    final out = [];
+    for (f in obj) {
+      if (isUnderscore(f.expr))
+        out.push(Present(f.field, f.expr.pos));
+      else
+        out.push(Const(f.field, f.expr));
+    }
+    return out;
+  }
+
+  static public function extractObjectJsonTag(meta:MetaAccess):Null<Array<JsonTagField>>
+    return switch meta.extract(':json') {
+      case []: null;
+      case [{ params: [{ expr: EObjectDecl(obj) }] }]: parseJsonTagFields(obj);
+      case [{ params: [{ expr: EConst(CString(_)) }] }]: null;
+      case [m]: m.pos.error('invalid use of @:json');
+      case v: v[1].pos.error('duplicate @:json metadata not allowed');
+    }
+
+  static public function enumLevelTag(ct:ComplexType, pos:Position):Array<JsonTagField> {
+    final t = switch ct.toType() {
+      case Success(t): t;
+      case Failure(e): return pos.error(e.message);
+    }
+    return switch t.reduce() {
+      case TEnum(_.get() => e, _):
+        switch e.meta.extract(':json') {
+          case []: [];
+          case [{ params: [{ expr: EObjectDecl(obj) }] }]: parseJsonTagFields(obj);
+          case [m]: m.pos.error('@:json on enum type must be an object literal');
+          case v: v[1].pos.error('duplicate @:json metadata not allowed on enum type');
+        }
+      case _: [];
+    }
+  }
+
+  static public function isObjectTaggedCtor(c:EnumField):Bool
+    return switch c.meta.extract(':json') {
+      case [{ params: [{ expr: EObjectDecl(_) }] }]: true;
+      case _: false;
+    }
+
+  static public function mergeTags(enumLevel:Array<JsonTagField>, ctorLevel:Array<JsonTagField>, pos:Position):Array<JsonTagField> {
+    final byName = new Map<String, Bool>();
+    final out = [];
+    function add(t:JsonTagField) {
+      final name = switch t {
+        case Const(n, _): n;
+        case Present(n, _): n;
+      }
+      if (byName.exists(name))
+        pos.error('Duplicate @:json tag field "$name" across enum-level and constructor-level metadata');
+      byName[name] = true;
+      out.push(t);
+    }
+    for (t in enumLevel) add(t);
+    for (t in ctorLevel) add(t);
+    return out;
+  }
+
+  static public function validatePresentTags(tags:Array<JsonTagField>, fields:Array<FieldInfo>, pos:Position) {
+    final names = [for (f in fields) f.name => true];
+    for (t in tags) switch t {
+      case Present(name, p) if (!names.exists(name)):
+        p.error('@:json({ $name: _ }) requires a constructor field named "$name"');
+      case Const(name, value) if (names.exists(name)):
+        value.pos.error('@:json const tag "$name" collides with a constructor field of the same name');
+      case _:
+    }
+  }
+
+  static public function requireObjectTaggedCtors(enumLevel:Array<JsonTagField>, constructors:Array<EnumConstructor>, pos:Position) {
+    if (enumLevel.length == 0) return;
+    for (c in constructors)
+      if (!isObjectTaggedCtor(c.ctor))
+        c.ctor.pos.error('Enum-level @:json requires every constructor to use @:json({...}) object tags');
+  }
+
+  static public function printConstTags(tags:Array<JsonTagField>):String {
+    final parts = [];
+    for (t in tags) switch t {
+      case Const(name, value):
+        parts.push(haxe.format.JsonPrinter.print(name) + ':' + haxe.format.JsonPrinter.print(getExprValue(value)));
+      case Present(_):
+    }
+    return '{' + parts.join(',') + '}';
+  }
+
+  static public function objectTagPrefix(tags:Array<JsonTagField>):{ prefix:String, first:Bool } {
+    final printed = printConstTags(tags);
+    if (printed == '{}')
+      return { prefix: '{', first: true };
+    return { prefix: printed.substr(0, printed.length - 1), first: false };
+  }
+
+  static public function constTagValues(tags:Array<JsonTagField>):Dynamic {
+    final obj = {};
+    for (t in tags) switch t {
+      case Const(name, value):
+        Reflect.setField(obj, name, getExprValue(value));
+      case Present(_):
+    }
+    return obj;
+  }
+
+  static public function getExprValue(e:Expr):Dynamic
+    return
+      try e.getValue()
+      catch (err:Dynamic)
+        switch Context.typeExpr(e) {
+          case { expr: TCast(te, _) }:
+            Context.getTypedExpr(te).getValue();
+          case te:
+            e.pos.error('${te.toString()} does not have a statically known value');
+        }
+
+  static public function presenceType(t:Type):Type {
+    final ct = t.toComplex({ direct: true });
+    return (macro : haxe.ds.Option<$ct>).toType().sure();
+  }
+
+  static public function presentNames(tags:Array<JsonTagField>):Map<String, Bool> {
+    final m = new Map();
+    for (t in tags) switch t {
+      case Present(name, _): m[name] = true;
+      case _:
+    }
+    return m;
+  }
 
 
   static function parser(ctx:BuildContext):TypeDefinition {

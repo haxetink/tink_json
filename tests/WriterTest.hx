@@ -254,6 +254,31 @@ class WriterTest {
     asserts.assert(tink.Json.stringify(o) == '{"foo":0.5}');
     return asserts.done();
   }
+
+  public function jsonRpcMessages() {
+    asserts.assert(stringify(JsonRpcMessage.Error({ code: -32600, message: 'Invalid Request' }, VNull)) == '{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null}');
+    asserts.assert(stringify(JsonRpcMessage.Success(VNull, VNumber(1))) == '{"jsonrpc":"2.0","result":null,"id":1}');
+    asserts.assert(stringify(JsonRpcMessage.Request('sum', VArray([VNumber(1), VNumber(2)]), VNull)) == '{"jsonrpc":"2.0","method":"sum","params":[1,2],"id":null}');
+    asserts.assert(stringify(JsonRpcMessage.Request('sum', null, VNull)) == '{"jsonrpc":"2.0","method":"sum","id":null}');
+    asserts.assert(stringify(JsonRpcMessage.Notification('notify', null)) == '{"jsonrpc":"2.0","method":"notify"}');
+    return asserts.done();
+  }
+
+  public function presenceAndInline() {
+    asserts.assert(stringify(Circle({ radius: 1.5 })) == '{"v":"1","type":"circle","radius":1.5}');
+    asserts.assert(stringify(Rect({ w: 2, h: 3 })) == '{"v":"1","type":"rect","h":3,"w":2}');
+    asserts.assert(stringify(WithPayload(null)) == '{"kind":"msg","payload":null}');
+    asserts.assert(stringify(Empty) == '{"kind":"msg","empty":true}');
+    return asserts.done();
+  }
+
+  public function omitOptionalEnumFields() {
+    asserts.assert(stringify(Staff(.5)) == '{"type":"staff","block":0.5}');
+    asserts.assert(stringify(OmitOptional.A(null, 1)) == '{"marker":1}');
+    asserts.assert(stringify(OmitOptional.A(2, 1)) == '{"skip":2,"marker":1}');
+    asserts.assert(stringify(OmitOptional.A(null, 1, 'x')) == '{"marker":1,"tail":"x"}');
+    return asserts.done();
+  }
 }
 
 abstract Opacity(Float) from Float to Float {

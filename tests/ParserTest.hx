@@ -265,6 +265,30 @@ class ParserTest {
     return asserts.done();
   }
 
+  public function jsonRpcMessages() {
+    asserts.assert(parse(('{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null}':JsonRpcMessage)).match(Success(JsonRpcMessage.Error(_, VNull))));
+    asserts.assert(parse(('{"jsonrpc":"2.0","result":null,"id":1}':JsonRpcMessage)).match(Success(JsonRpcMessage.Success(VNull, VNumber(1)))));
+    asserts.assert(parse(('{"jsonrpc":"2.0","method":"sum","params":[1,2],"id":null}':JsonRpcMessage)).match(Success(JsonRpcMessage.Request('sum', _, VNull))));
+    asserts.assert(parse(('{"jsonrpc":"2.0","method":"notify"}':JsonRpcMessage)).match(Success(JsonRpcMessage.Notification('notify', null))));
+    asserts.assert(parse(('{"jsonrpc":"2.0","method":"m"}':JsonRpcMessage)).match(Success(JsonRpcMessage.Notification('m', null))));
+    asserts.assert(parse(('{"jsonrpc":"2.0","method":"m","id":1}':JsonRpcMessage)).match(Success(JsonRpcMessage.Request('m', null, VNumber(1)))));
+    asserts.assert(parse(('{"jsonrpc":"1.0","method":"notify"}':JsonRpcMessage)).match(Failure(_)));
+    return asserts.done();
+  }
+
+  public function presenceAndInline() {
+    asserts.assert(parse(('{"v":"1","type":"circle","radius":1.5}':PresenceShape)).match(Success(Circle({ radius: 1.5 }))));
+    asserts.assert(parse(('{"v":"1","type":"rect","w":2,"h":3}':PresenceShape)).match(Success(Rect({ w: 2, h: 3 }))));
+    asserts.assert(parse(('{"v":"1","type":"rect","h":3}':PresenceShape)).match(Failure(_)));
+    asserts.assert(parse(('{"kind":"msg","payload":null}':PresenceOnly)).match(Success(WithPayload(null, null))));
+    asserts.assert(parse(('{"kind":"msg","empty":true}':PresenceOnly)).match(Success(Empty)));
+    asserts.assert(parse(('{"kind":"msg"}':PresenceOnly)).match(Failure(_)));
+    asserts.assert(parse(('{"kind":"other"}':PresenceOnly)).match(Failure(_)));
+    asserts.assert(parse(('{"marker":1}':OmitOptional)).match(Success(OmitOptional.A(null, 1, null))));
+    asserts.assert(parse(('{"skip":2,"marker":1,"tail":"x"}':OmitOptional)).match(Success(OmitOptional.A(2, 1, 'x'))));
+    return asserts.done();
+  }
+
   public function privateEnumAbstract() {
     asserts.assert(parse(('0':VeryPrivate)).match(Success(VeryPrivate.A)));
     asserts.assert(parse(('{"foo":1}':{foo:VeryPrivate})).match(Success({foo:VeryPrivate.B})));
