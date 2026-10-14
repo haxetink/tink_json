@@ -322,10 +322,10 @@ class Macro {
     return
       if (Context.unify(t, Context.getType('tink.json.Representation'))) {
 
-        var rep = (macro tink.json.Representation.of((null : $ct)).get()).typeof().sure();
+        var rep = (macro tink.json.Representation.of((cast null : $ct)).get()).typeof().sure();
         var rt = rep.toComplex();
 
-        if (!(macro ((null : tink.json.Representation<$rt>) : $ct)).typeof().isSuccess())
+        if (!(macro ((cast null : tink.json.Representation<$rt>) : $ct)).typeof().isSuccess())
           pos.error('Cannot represent ${t.toString()} in JSON because ${(macro : tink.json.Representation<$rt>).toString()} cannot be converted to ${t.toString()}');
 
         Some(rep);
