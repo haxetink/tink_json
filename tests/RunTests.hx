@@ -14,6 +14,7 @@ class RunTests {
       new ParserTest(),
       new WriterTest(),
       new RoundTripTest(),
+      new NullableRepresentationTest(),
       new SerializedTest(),
       new CacheTest(),
       // jvm: IO.Overflow("write_ui16") https://github.com/HaxeFoundation/haxe/issues/9654

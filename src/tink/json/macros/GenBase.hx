@@ -52,7 +52,7 @@ class GenBase {
 
   public function drive(type:Type, pos:Position, gen:GenType):Expr
     return
-      switch Macro.getRepresentation(type, pos) {
+      switch (isNullable(type) ? None : Macro.getRepresentation(type, pos)) {
         case Some(v):
           processRepresentation(pos, type, v, gen(v, pos));
         case None:
@@ -106,7 +106,7 @@ class GenBase {
       case TAbstract(_.get() => { pack: [], name: 'Null' }, _),
            TType(_.get() => { pack: [], name: 'Null' }, _): true;
       case TType(_) | TLazy(_):
-        isNullable(t.reduce());
+        isNullable(t.reduce(true));
       default: false;
     }
 }
