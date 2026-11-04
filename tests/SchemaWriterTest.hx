@@ -82,6 +82,8 @@ class SchemaWriterTest {
 	@:variant(this.makePairSchema(), '{"type":"array","prefixItems":[{"type":"string"},{"type":"integer"}],"items":false,"minItems":2}')
 	@:variant(this.makeEitherSchema(), '{"oneOf":[{"type":"string"},{"type":"integer"}]}')
 	@:variant(this.makeAsNumberSchema(), '{"type":["number","null"]}')
+	@:variant(this.makeSerializedIntSchema(), '{"type":"integer"}')
+	@:variant(this.makeSerializedArraySchema(), '{"type":"array","items":{"type":"string"}}')
 	public function write(schema:Schema, body:String) {
 		final expected = body == '' ? '{$HEADER}' : '{$HEADER,${body.substr(1)}';
 		asserts.assert(JsonSchema.write(schema) == expected);
@@ -93,6 +95,7 @@ class SchemaWriterTest {
 	@:variant(this.makeRenameConstructorSchema(), 'Types.RenameConstructor', '{"oneOf":[{"type":"object","additionalProperties":false,"required":["a"],"properties":{"a":{"type":"object","additionalProperties":false,"required":["v"],"properties":{"v":{"type":"integer"}}}}},{"type":"object","additionalProperties":false,"required":["b"],"properties":{"b":{"type":"object","additionalProperties":false,"required":["v"],"properties":{"v":{"type":"string"}}}}}]}')
 	@:variant(this.makeTreeSchema(), 'SchemaWriterTest.Tree', '{"type":"object","additionalProperties":false,"required":["children","name"],"properties":{"children":{"type":"array","items":{"$$ref":"#/$$defs/SchemaWriterTest.Tree"}},"name":{"type":"string"}}}')
 	@:variant(this.makeAltitudeSchema(), 'Anon0', '{"type":"object","additionalProperties":false,"required":["alt"],"properties":{"alt":{"type":"number"}}}')
+	@:variant(this.makeSerializedFieldsSchema(), 'SchemaWriterTest.SerializedFields', '{"type":"object","additionalProperties":false,"required":["data","maybe"],"properties":{"data":{"type":"array","items":{"type":"integer"}},"maybe":{"type":["boolean","null"]}}}')
 	public function writeRef(schema:Schema, id:String, def:String) {
 		final output = JsonSchema.write(schema);
 		asserts.assert(output.indexOf('$HEADER,"$$ref":"#/$$defs/$id"') == 1);
@@ -166,6 +169,10 @@ class SchemaWriterTest {
 	@:variant(this.makeAsNumberSchema(), [this.stringifyAsNumber()], ['"1.5"', '{"value":1.5}'])
 	@:variant(this.makeWrappedIntSchema(), [this.stringifyWrappedInt()], ['{"value":5}', '{"x":"5"}'])
 	@:variant(this.makeAltitudeSchema(), [this.stringifyAltitude()], ['{"value":100}', '{"alt":"100"}'])
+	@:variant(this.makeSerializedFieldsSchema(), [
+		this.stringifySerializedFields(true),
+		this.stringifySerializedFields(null),
+	], ['{"data":"[1]","maybe":true}', '{"data":[1],"maybe":"true"}'])
 	public function validate(schema:Schema, valid:Array<String>, invalid:Array<String>) {
 		final validate = new Ajv().compile(haxe.Json.parse(JsonSchema.write(schema)));
 		for(value in valid) asserts.assert(validate(haxe.Json.parse(value)));
@@ -200,6 +207,14 @@ class SchemaWriterTest {
 	
 	inline function stringifyAltitude() {
 		return tink.Json.stringify(new Altitude(100));
+	}
+	
+	inline function stringifySerializedFields(maybe:Null<Bool>) {
+		final v:SerializedFields = {
+			data: tink.Json.stringify([1]),
+			maybe: tink.Json.stringify(maybe),
+		};
+		return tink.Json.stringify(v);
 	}
 	
 	inline function makeColorSchema():Schema {
@@ -243,6 +258,15 @@ class SchemaWriterTest {
 	}
 	inline function makeAltitudeSchema():Schema {
 		return tink.Json.schema(Altitude);
+	}
+	inline function makeSerializedIntSchema():Schema {
+		return tink.Json.schema(SerializedInt);
+	}
+	inline function makeSerializedArraySchema():Schema {
+		return tink.Json.schema(SerializedArray);
+	}
+	inline function makeSerializedFieldsSchema():Schema {
+		return tink.Json.schema(SerializedFields);
 	}
 }
 
@@ -293,3 +317,9 @@ typedef StringArray = Array<String>;
 typedef StringDynamicAccess = DynamicAccess<String>;
 typedef StringIntPair = tink.core.Pair<String, Int>;
 typedef StringOrInt = haxe.ds.Either<String, Int>;
+typedef SerializedInt = tink.json.Serialized<Int>;
+typedef SerializedArray = Array<tink.json.Serialized<String>>;
+typedef SerializedFields = {
+	final data:tink.json.Serialized<Array<Int>>;
+	final maybe:tink.json.Serialized<Null<Bool>>;
+}
